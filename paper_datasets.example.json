@@ -1,0 +1,109 @@
+{
+  "datasets": [
+    {
+      "name": "webbase-1M",
+      "path": "datasets/real/suitesparse/webbase-1M/webbase-1M.mtx",
+      "format": "mtx",
+      "category": "power-law",
+      "group": "row_split_targets",
+      "Ns": [64, 128, 256, 512],
+      "symmetrize": true,
+      "unit_values": true,
+      "tags": ["SuiteSparse", "RoDe"],
+      "notes": "SuiteSparse-style power-law web graph placeholder. Strong row-skew / hub benchmark."
+    },
+    {
+      "name": "roadNet-CA",
+      "path": "datasets/real/snap/roadNet-CA/roadNet-CA.txt",
+      "format": "edge",
+      "category": "road",
+      "group": "baseline_reference",
+      "Ns": [64, 128, 256, 512],
+      "delimiter": " ",
+      "directed": false,
+      "symmetrize": true,
+      "one_indexed": false,
+      "unit_values": true,
+      "tags": ["SNAP"],
+      "notes": "Road-network placeholder for direct-friendly sparse-band structure."
+    },
+    {
+      "name": "Cora",
+      "path": "datasets/gnn/exports/Cora.npz",
+      "format": "npz",
+      "category": "community",
+      "group": "tc_locality_targets",
+      "Ns": [64, 128, 256, 512],
+      "unit_values": true,
+      "skip_if_missing": true,
+      "tags": ["GNN", "Planetoid"],
+      "notes": "Exported by datasets/prepare_gnn_datasets.py."
+    },
+    {
+      "name": "CiteSeer",
+      "path": "datasets/gnn/exports/CiteSeer.npz",
+      "format": "npz",
+      "category": "community",
+      "group": "tc_locality_targets",
+      "Ns": [64, 128, 256, 512],
+      "unit_values": true,
+      "skip_if_missing": true,
+      "tags": ["GNN", "Planetoid"],
+      "notes": "Exported by datasets/prepare_gnn_datasets.py."
+    },
+    {
+      "name": "ogbn-arxiv",
+      "path": "datasets/gnn/exports/ogbn-arxiv.npz",
+      "format": "npz",
+      "category": "power-law",
+      "group": "row_split_targets",
+      "Ns": [64, 128, 256, 512],
+      "unit_values": true,
+      "skip_if_missing": true,
+      "tags": ["GNN", "OGB"],
+      "notes": "Exported by datasets/prepare_gnn_datasets.py."
+    },
+    {
+      "name": "ogbn-products",
+      "path": "datasets/gnn/exports/ogbn-products.npz",
+      "format": "npz",
+      "category": "power-law",
+      "group": "row_split_targets",
+      "Ns": [64, 128],
+      "max_N": 128,
+      "unit_values": true,
+      "skip_if_missing": true,
+      "memory_sensitive": true,
+      "tags": ["GNN", "OGB"],
+      "notes": "Exported by datasets/prepare_gnn_datasets.py."
+    },
+    {
+      "name": "Reddit",
+      "path": "datasets/gnn/exports/Reddit.npz",
+      "format": "npz",
+      "category": "power-law",
+      "group": "row_split_targets",
+      "Ns": [64, 128, 256],
+      "max_N": 256,
+      "unit_values": true,
+      "skip_if_missing": true,
+      "memory_sensitive": true,
+      "tags": ["GNN", "PyG"],
+      "notes": "Optional Tier 2 export from datasets/prepare_gnn_datasets.py."
+    },
+    {
+      "name": "ogbn-proteins",
+      "path": "datasets/gnn/exports/ogbn-proteins.npz",
+      "format": "npz",
+      "category": "block-local",
+      "group": "tc_locality_targets",
+      "Ns": [64, 128],
+      "max_N": 128,
+      "unit_values": true,
+      "skip_if_missing": true,
+      "memory_sensitive": true,
+      "tags": ["GNN", "OGB"],
+      "notes": "Optional Tier 2 export from datasets/prepare_gnn_datasets.py."
+    }
+  ]
+}

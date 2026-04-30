@@ -1,0 +1,40 @@
+# Verification & audit artifacts (server-side build/test outputs)
+verification/
+
+# Build outputs
+build/
+dist/
+*.egg-info/
+*.so
+*.o
+*.obj
+*.dll
+*.dylib
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# CUDA build artifacts
+*.cubin
+*.fatbin
+*.ptx
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Local data caches (not part of the public release)
+datasets/
+external/
+logs/
+
+# Temporary
+*.tmp
+*.bak
+*.JACCARD_BACKUP
