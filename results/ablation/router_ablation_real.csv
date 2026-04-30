@@ -1,0 +1,12 @@
+variant,n_points,geomean_vs_cusparse,geomean_vs_oracle,oracle_hits,worst_case_ratio,notes
+full_v2,92,3.251,0.9901,77,0.525,"Full 8-rule router; 3 features (M, d_bar, CV_d)"
+remove_rule_1,92,3.2128,0.9785,72,0.525,Skip rule 1 (sub-tiny M<5000 -> TC_DIRECT; SEG_HYB at wide N)
+remove_rule_2,92,3.2367,0.9858,74,0.525,"Skip rule 2 (sparse-tail M>=100K, d<8, CV>4 -> RODE/TC_DIRECT)"
+remove_rule_3,92,3.2366,0.9857,75,0.525,"Skip rule 3 (dense-small M<=15K, d>=25 -> SEG_HYB or COMMUNITY)"
+remove_rule_4,92,3.203,0.9755,70,0.525,"Skip rule 4 (skewed mid-degree d in [12,40], CV>=1.5)"
+remove_rule_5,92,3.2295,0.9836,75,0.525,"Skip rule 5 (dense-large d>=96 -> TC_DIRECT, RODE on extreme skew)"
+remove_rule_6,92,3.2254,0.9824,75,0.525,"Skip rule 6 (ogbn-products: M>=1M, d in [40,96), CV<=2.5 -> COMMUNITY_TC)"
+remove_rule_7,92,3.205,0.9761,73,0.525,"Skip rule 7 (Flickr class: 50K<=M<=150K, d in [9,12] -> ZERO_OVERHEAD_CSR)"
+remove_rule_8,92,3.0902,0.9412,50,0.525,"Skip rule 8 (COMMUNITY_TC sweet spot, 3 OR branches over M/d/CV)"
+drop_CV,92,2.9986,0.9133,55,0.3611,Only M and d_bar features (all CV bounds dropped from predicates and actions)
+drop_CV_and_d,92,2.8294,0.8617,25,0.4968,Only M feature (all d AND CV bounds dropped; most rules collapse to M-bin)

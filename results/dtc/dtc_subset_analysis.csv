@@ -1,0 +1,28 @@
+subset,category,n_points,geomean_dtc_vs_cusparse
+full_26,ALL,92,4.1710
+full_26,Community,11,1.8067
+full_26,Dense Large-Scale,11,1.1939
+full_26,Dense Small,20,10.8899
+full_26,Mixed/Irregular,16,19.7165
+full_26,Sparse Skewed,7,2.1669
+full_26,Sparse Uniform,27,2.2638
+dtc_paper_aligned,ALL,80,2.9178
+dtc_paper_aligned,Community,11,1.8067
+dtc_paper_aligned,Dense Large-Scale,11,1.1939
+dtc_paper_aligned,Dense Small,20,10.8899
+dtc_paper_aligned,Mixed/Irregular,4,1.6407
+dtc_paper_aligned,Sparse Skewed,7,2.1669
+dtc_paper_aligned,Sparse Uniform,27,2.2638
+tight_no_M_lt_10K,ALL,68,2.0559
+tight_no_M_lt_10K,Community,11,1.8067
+tight_no_M_lt_10K,Dense Large-Scale,11,1.1939
+tight_no_M_lt_10K,Dense Small,8,4.0043
+tight_no_M_lt_10K,Mixed/Irregular,4,1.6407
+tight_no_M_lt_10K,Sparse Skewed,7,2.1669
+tight_no_M_lt_10K,Sparse Uniform,27,2.2638
+dropped_outliers,CiteSeer,4,62.7145
+dropped_outliers,Cora,4,46.5050
+dropped_outliers,PPI,4,31.5800
+dropped_outliers,ca-CondMat,4,8.8176
+dropped_outliers,ca-GrQc,4,41.2521
+dropped_outliers,ca-HepTh,4,26.2581
