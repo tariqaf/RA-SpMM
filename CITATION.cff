@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the accompanying paper."
+title: "RA-SpMM: Regime-Aware Sparse Matrix Multiplication for Graph Neural Network Workloads on GPUs"
+authors:
+  - family-names: "Afridi"
+    given-names: "Tariq Habib"
+    orcid: "https://orcid.org/0000-0002-1535-8203"
+    affiliation: "Department of Computer Science and Engineering, Kyung Hee University"
+  - family-names: "Lee"
+    given-names: "Young-Koo"
+    orcid: "https://orcid.org/0000-0003-2314-5395"
+    affiliation: "Department of Computer Science and Engineering, Kyung Hee University"
+license: MIT
+repository-code: "https://github.com/tariqaf/RA-SpMM"
+identifiers:
+  - description: "Benchmark-graphs dataset archive (26 real + 25 synthetic graphs) on Zenodo"
+    type: doi
+    value: "10.5281/zenodo.19903312"
+preferred-citation:
+  type: article
+  title: "Regime-Aware Sparse Matrix Multiplication for Graph Neural Network Workloads on GPUs"
+  journal: "Future Generation Computer Systems"
+  publisher:
+    name: "Elsevier"
+  year: 2026
+  authors:
+    - family-names: "Afridi"
+      given-names: "Tariq Habib"
+    - family-names: "Lee"
+      given-names: "Young-Koo"
