@@ -22,6 +22,8 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <map>
 #include <numeric>
@@ -113,6 +115,40 @@ inline uint16_t float_to_half_bits(float value) {
     uint16_t bits = 0;
     std::memcpy(&bits, &h, sizeof(bits));
     return bits;
+}
+
+// ---------------------------------------------------------------------------
+// Deterministic parallel stable sort. A stable sort's output is uniquely
+// determined by (input, comparator) — stability plus the strict weak ordering
+// fixes the exact permutation — so sorting fixed chunks in parallel with
+// std::stable_sort and then merging with the stable std::inplace_merge yields
+// output BYTE-IDENTICAL to a serial std::stable_sort, for any thread count.
+// ---------------------------------------------------------------------------
+template <typename It, typename Cmp>
+void ra_parallel_stable_sort(It first, It last, Cmp cmp) {
+    const std::ptrdiff_t n = last - first;
+    if (n < (1 << 15)) {                    // small: serial is faster
+        std::stable_sort(first, last, cmp);
+        return;
+    }
+    constexpr int kChunks = 16;             // fixed chunking (not thread-count dependent)
+    std::ptrdiff_t bounds[kChunks + 1];
+    for (int c = 0; c <= kChunks; ++c) bounds[c] = n * c / kChunks;
+    #pragma omp parallel for schedule(dynamic)
+    for (int c = 0; c < kChunks; ++c) {
+        std::stable_sort(first + bounds[c], first + bounds[c + 1], cmp);
+    }
+    for (int width = 1; width < kChunks; width *= 2) {
+        #pragma omp parallel for schedule(dynamic)
+        for (int c = 0; c < kChunks; c += 2 * width) {
+            const int mid = c + width;
+            const int endc = std::min(c + 2 * width, kChunks);
+            if (mid < endc) {
+                std::inplace_merge(first + bounds[c], first + bounds[mid],
+                                   first + bounds[endc], cmp);
+            }
+        }
+    }
 }
 
 // =========================================================================
@@ -327,6 +363,17 @@ __global__ void ra_community_tc_fp32_kernel_vec4(
 }  // namespace
 
 // ============================================================================
+// Format checksum (env-gated, RA_PLAN_CHECKSUM=1): FNV-1a over every host-side
+// packed-format array, printed to stderr. Used to verify the parallel build
+// is byte-identical to the serial build for any OMP thread count.
+// ============================================================================
+static inline uint64_t ra_fnv1a64_comm(const void* data, size_t nbytes, uint64_t h) {
+    const unsigned char* p = static_cast<const unsigned char*>(data);
+    for (size_t i = 0; i < nbytes; ++i) { h ^= p[i]; h *= 1099511628211ULL; }
+    return h;
+}
+
+// ============================================================================
 // make_ra_community_tc_plan
 // ============================================================================
 
@@ -356,6 +403,8 @@ void make_ra_community_tc_plan(
     // Step 1: Build row metadata (centroid, signature, span)
     // -----------------------------------------------------------------
     std::vector<RowOrderInfo> info(M);
+    // Rows are independent (each writes only info[row]) — safe to parallelize.
+    #pragma omp parallel for schedule(dynamic, 1024)
     for (int row = 0; row < M; ++row) {
         const int start = h_rowptr[row];
         const int end   = h_rowptr[row + 1];
@@ -436,7 +485,7 @@ void make_ra_community_tc_plan(
     // identical-degree rows fall back to file order (mild locality bonus).
     std::vector<int> row_order_lp(M);
     std::iota(row_order_lp.begin(), row_order_lp.end(), 0);
-    std::stable_sort(row_order_lp.begin(), row_order_lp.end(),
+    ra_parallel_stable_sort(row_order_lp.begin(), row_order_lp.end(),
                      [&](int a, int b) {
                          if (info[a].len != info[b].len)
                              return info[a].len > info[b].len;
@@ -489,15 +538,19 @@ void make_ra_community_tc_plan(
         }
     }
 
-    // Renumber communities to compact IDs [0..num_communities)
-    std::map<int, int> community_remap;
+    // Renumber communities to compact IDs [0..num_communities) in first-seen row
+    // order (unordered_map: keyed lookup only, so iteration order is irrelevant —
+    // byte-identical to the old std::map, just without the O(log) per row).
+    std::unordered_map<int, int> community_remap;
+    community_remap.reserve(static_cast<size_t>(M) * 2);
     int next_community = 0;
     for (int row = 0; row < M; ++row) {
         const int cid = community_id[row];
-        if (community_remap.find(cid) == community_remap.end()) {
-            community_remap[cid] = next_community++;
+        auto it = community_remap.find(cid);
+        if (it == community_remap.end()) {
+            it = community_remap.emplace(cid, next_community++).first;
         }
-        community_id[row] = community_remap[cid];
+        community_id[row] = it->second;
     }
     plan.num_communities = next_community;
 
@@ -505,14 +558,18 @@ void make_ra_community_tc_plan(
     std::vector<int> order(M);
     std::iota(order.begin(), order.end(), 0);
 
-    std::stable_sort(order.begin(), order.end(), [&](int a, int b) {
+    ra_parallel_stable_sort(order.begin(), order.end(), [&](int a, int b) {
         if (community_id[a] != community_id[b])
             return community_id[a] < community_id[b];
         return info[a].centroid < info[b].centroid;
     });
 
     // Within each 16-row group, sort by nnz descending (same as TC_DIRECT)
-    for (int base = 0; base < M; base += kGroupRows) {
+    // Groups are disjoint 16-element ranges — safe to parallelize.
+    const int num_groups_ct = (M + kGroupRows - 1) / kGroupRows;
+    #pragma omp parallel for schedule(static)
+    for (int g = 0; g < num_groups_ct; ++g) {
+        const int base = g * kGroupRows;
         const int end = std::min(M, base + kGroupRows);
         std::stable_sort(order.begin() + base, order.begin() + end,
                          [&](int a, int b) { return info[a].len > info[b].len; });
@@ -520,13 +577,13 @@ void make_ra_community_tc_plan(
 
     // Compute intra-community nnz fraction for diagnostics
     {
-        // Build a set of column indices per community for quick lookup
-        // would be expensive, so approximate: count nnz in reordered groups
-        // that are single-community vs mixed
+        // Per-group int64 contributions; integer reduction is exact and
+        // order-independent, so the parallel sum is deterministic.
         int64_t intra_nnz = 0;
-        for (int base = 0; base < M; base += kGroupRows) {
+        #pragma omp parallel for schedule(static) reduction(+:intra_nnz)
+        for (int g = 0; g < num_groups_ct; ++g) {
+            const int base = g * kGroupRows;
             const int end = std::min(M, base + kGroupRows);
-            // Check if entire group is same community
             const int first_comm = community_id[order[base]];
             bool single_community = true;
             int64_t group_nnz = 0;
@@ -547,8 +604,10 @@ void make_ra_community_tc_plan(
     }
 
     // Build permutation arrays
+    // Writes are disjoint (original_row values form a permutation) — safe to parallelize.
     plan.h_row_perm     = new int[M];
     plan.h_row_perm_inv = new int[M];
+    #pragma omp parallel for schedule(static)
     for (int reordered_row = 0; reordered_row < M; ++reordered_row) {
         const int original_row = order[reordered_row];
         plan.h_row_perm[reordered_row]     = original_row;
@@ -578,64 +637,117 @@ void make_ra_community_tc_plan(
     int tc_groups    = 0;
     int fp32_groups  = 0;
 
-    for (int base = 0; base < M; base += kGroupRows) {
-        const int end = std::min(M, base + kGroupRows);
-        group_offsets.push_back(end);
+    // Two-phase parallel group construction (same scheme as TC_DIRECT).
+    // Phase A (parallel over groups) computes gating + packed tiles into
+    // per-group buffers; Phase B (serial, group order) concatenates them and
+    // accumulates diagnostics in the original order — byte-identical output
+    // for any thread count.
+    struct PackEnt { int kb; int pos; float val; };
+    std::vector<uint8_t>               g_fp32(num_groups_ct, 0);
+    std::vector<float>                 g_density(num_groups_ct, 0.f);
+    std::vector<std::vector<int>>      g_kids(num_groups_ct);
+    std::vector<std::vector<uint16_t>> g_vals(num_groups_ct);
 
-        int64_t group_nnz = 0;
-        int group_max_row_nnz = 0;
+    // ---- Phase A: parallel per-group analysis + packing (group-local writes) ----
+    #pragma omp parallel
+    {
+        std::vector<PackEnt> pack_ent;      // thread-local scratch (gated groups have <2048 nnz)
+        float tile_scratch[kTileElems];
 
-        for (int idx = base; idx < end; ++idx) {
-            const RowOrderInfo& ri = info[order[idx]];
-            group_nnz += ri.len;
-            group_max_row_nnz = std::max(group_max_row_nnz, ri.len);
-        }
-        const float avg_row_nnz =
-            static_cast<float>(group_nnz) / static_cast<float>(std::max(1, end - base));
+        #pragma omp for schedule(dynamic, 32)
+        for (int g = 0; g < num_groups_ct; ++g) {
+            const int base = g * kGroupRows;
+            const int end  = std::min(M, base + kGroupRows);
 
-        // FP32 gating: conservative thresholds + force_all_fp32 guard
-        bool use_fp32_group = force_all_fp32 ||
-            (group_max_row_nnz >= kFp32GroupMaxRowNnzThreshold) ||
-            (group_nnz >= kFp32GroupTotalNnzThreshold) ||
-            (avg_row_nnz >= kFp32GroupAvgRowNnzThreshold);
+            int64_t group_nnz = 0;
+            int group_max_row_nnz = 0;
 
-        if (!use_fp32_group) {
-            // Pack nonzero entries into 16x16 tiles keyed by k-block
-            std::map<int, std::array<float, kTileElems>> tile_map;
             for (int idx = base; idx < end; ++idx) {
-                const int original_row = order[idx];
-                const int local_row    = idx - base;
-                for (int p = h_rowptr[original_row]; p < h_rowptr[original_row + 1]; ++p) {
-                    const int col = h_col[p];
-                    const int kb  = col / 16;
-                    auto it = tile_map.find(kb);
-                    if (it == tile_map.end()) {
-                        it = tile_map.emplace(kb, std::array<float, kTileElems>{}).first;
-                    }
-                    it->second[local_row * 16 + (col % 16)] = h_val[p];
-                }
+                const RowOrderInfo& ri = info[order[idx]];
+                group_nnz += ri.len;
+                group_max_row_nnz = std::max(group_max_row_nnz, ri.len);
             }
+            const float avg_row_nnz =
+                static_cast<float>(group_nnz) / static_cast<float>(std::max(1, end - base));
 
-            if (!tile_map.empty()) {
-                const float tile_density = static_cast<float>(group_nnz) /
-                    static_cast<float>(tile_map.size() * kTileElems);
+            // FP32 gating: conservative thresholds + force_all_fp32 guard
+            bool use_fp32_group = force_all_fp32 ||
+                (group_max_row_nnz >= kFp32GroupMaxRowNnzThreshold) ||
+                (group_nnz >= kFp32GroupTotalNnzThreshold) ||
+                (avg_row_nnz >= kFp32GroupAvgRowNnzThreshold);
 
-                if (tile_density < kMinTcGroupTileDensity) {
-                    use_fp32_group = true;
-                } else {
-                    tc_tile_density_sum += tile_density;
-                    ++tc_groups;
+            if (!use_fp32_group) {
+                // Flat tile packing (byte-identical to the serial path): gather group
+                // nonzeros, stable-sort by k-block, fill 16x16 tiles in ascending
+                // k-block order into this group's own buffers.
+                pack_ent.clear();
+                for (int idx = base; idx < end; ++idx) {
+                    const int original_row = order[idx];
+                    const int local_row    = idx - base;
+                    for (int p = h_rowptr[original_row]; p < h_rowptr[original_row + 1]; ++p) {
+                        const int col = h_col[p];
+                        pack_ent.push_back(PackEnt{col / 16, local_row * 16 + (col % 16), h_val[p]});
+                    }
+                }
 
-                    for (const auto& entry : tile_map) {
-                        group_tile_k_ids.push_back(entry.first);
-                        for (float value : entry.second) {
-                            group_tile_vals.push_back(float_to_half_bits(value));
+                if (!pack_ent.empty()) {
+                    std::stable_sort(pack_ent.begin(), pack_ent.end(),
+                                     [](const PackEnt& a, const PackEnt& b) { return a.kb < b.kb; });
+                    int num_tiles = 1;
+                    for (size_t i = 1; i < pack_ent.size(); ++i) {
+                        if (pack_ent[i].kb != pack_ent[i - 1].kb) ++num_tiles;
+                    }
+                    const float tile_density = static_cast<float>(group_nnz) /
+                        static_cast<float>(static_cast<int64_t>(num_tiles) * kTileElems);
+
+                    if (tile_density < kMinTcGroupTileDensity) {
+                        use_fp32_group = true;
+                    } else {
+                        g_density[g] = tile_density;
+                        g_kids[g].reserve(num_tiles);
+                        g_vals[g].reserve(static_cast<size_t>(num_tiles) * kTileElems);
+
+                        size_t i = 0;
+                        while (i < pack_ent.size()) {
+                            const int kb = pack_ent[i].kb;
+                            for (int e = 0; e < kTileElems; ++e) tile_scratch[e] = 0.f;
+                            size_t j = i;
+                            for (; j < pack_ent.size() && pack_ent[j].kb == kb; ++j) {
+                                tile_scratch[pack_ent[j].pos] = pack_ent[j].val;
+                            }
+                            g_kids[g].push_back(kb);
+                            for (int e = 0; e < kTileElems; ++e) {
+                                g_vals[g].push_back(float_to_half_bits(tile_scratch[e]));
+                            }
+                            i = j;
                         }
                     }
+                } else {
+                    use_fp32_group = true;
                 }
-            } else {
-                use_fp32_group = true;
             }
+            g_fp32[g] = use_fp32_group ? 1 : 0;
+        }
+    }
+
+    // ---- Phase B: serial in-group-order concatenation + diagnostics ----
+    {
+        size_t total_tiles = 0;
+        for (int g = 0; g < num_groups_ct; ++g) total_tiles += g_kids[g].size();
+        group_tile_k_ids.reserve(total_tiles);
+        group_tile_vals.reserve(total_tiles * kTileElems);
+    }
+    for (int g = 0; g < num_groups_ct; ++g) {
+        const int base = g * kGroupRows;
+        const int end  = std::min(M, base + kGroupRows);
+        group_offsets.push_back(end);
+
+        const bool use_fp32_group = (g_fp32[g] != 0);
+        if (!use_fp32_group) {
+            tc_tile_density_sum += g_density[g];
+            ++tc_groups;
+            group_tile_k_ids.insert(group_tile_k_ids.end(), g_kids[g].begin(), g_kids[g].end());
+            group_tile_vals.insert(group_tile_vals.end(), g_vals[g].begin(), g_vals[g].end());
         }
 
         group_use_fp32.push_back(use_fp32_group ? 1 : 0);
@@ -662,23 +774,68 @@ void make_ra_community_tc_plan(
     std::vector<int>   r_rowptr(M + 1, 0);
     std::vector<int>   r_col(total_nnz);
     std::vector<float> r_val(total_nnz);
-    int write_ptr = 0;
 
+    // Output offsets first (serial prefix sum over permuted row lengths), then
+    // a parallel copy — each row writes only its own precomputed disjoint range
+    // [r_rowptr[i], r_rowptr[i+1]), so the result is deterministic by construction.
     for (int reordered_row = 0; reordered_row < M; ++reordered_row) {
         const int original_row = plan.h_row_perm[reordered_row];
-        std::vector<std::pair<int, float>> entries;
-        entries.reserve(h_rowptr[original_row + 1] - h_rowptr[original_row]);
-        for (int p = h_rowptr[original_row]; p < h_rowptr[original_row + 1]; ++p) {
-            entries.push_back({h_col[p], h_val[p]});
+        r_rowptr[reordered_row + 1] = r_rowptr[reordered_row] +
+            (h_rowptr[original_row + 1] - h_rowptr[original_row]);
+    }
+
+    #pragma omp parallel
+    {
+        std::vector<std::pair<int, float>> entries;   // thread-local scratch
+        #pragma omp for schedule(dynamic, 1024)
+        for (int reordered_row = 0; reordered_row < M; ++reordered_row) {
+            const int original_row = plan.h_row_perm[reordered_row];
+            const int rs = h_rowptr[original_row];
+            const int re = h_rowptr[original_row + 1];
+            int write_ptr = r_rowptr[reordered_row];
+            // Fast path: original row already STRICTLY ascending in col (the common case
+            // for deduplicated CSR) -> sorting is a no-op, so copy the slice directly.
+            // Byte-identical to the std::sort output (unique keys => unambiguous order).
+            bool strictly_sorted = true;
+            for (int p = rs + 1; p < re; ++p) {
+                if (h_col[p] <= h_col[p - 1]) { strictly_sorted = false; break; }
+            }
+            if (strictly_sorted) {
+                for (int p = rs; p < re; ++p) {
+                    r_col[write_ptr] = h_col[p];
+                    r_val[write_ptr] = h_val[p];
+                    ++write_ptr;
+                }
+            } else {
+                entries.clear();
+                entries.reserve(re - rs);
+                for (int p = rs; p < re; ++p) entries.push_back({h_col[p], h_val[p]});
+                std::sort(entries.begin(), entries.end(),
+                          [](const auto& a, const auto& b) { return a.first < b.first; });
+                for (const auto& entry : entries) {
+                    r_col[write_ptr] = entry.first;
+                    r_val[write_ptr] = entry.second;
+                    ++write_ptr;
+                }
+            }
         }
-        std::sort(entries.begin(), entries.end(),
-                  [](const auto& a, const auto& b) { return a.first < b.first; });
-        for (const auto& entry : entries) {
-            r_col[write_ptr] = entry.first;
-            r_val[write_ptr] = entry.second;
-            ++write_ptr;
-        }
-        r_rowptr[reordered_row + 1] = write_ptr;
+    }
+
+    if (std::getenv("RA_PLAN_CHECKSUM")) {
+        uint64_t h = 1469598103934665603ULL;
+        h = ra_fnv1a64_comm(plan.h_row_perm, static_cast<size_t>(M) * sizeof(int), h);
+        h = ra_fnv1a64_comm(r_rowptr.data(), r_rowptr.size() * sizeof(int), h);
+        h = ra_fnv1a64_comm(r_col.data(), r_col.size() * sizeof(int), h);
+        h = ra_fnv1a64_comm(r_val.data(), r_val.size() * sizeof(float), h);
+        h = ra_fnv1a64_comm(group_offsets.data(), group_offsets.size() * sizeof(int), h);
+        h = ra_fnv1a64_comm(group_use_fp32.data(), group_use_fp32.size() * sizeof(int), h);
+        h = ra_fnv1a64_comm(fp32_rows.data(), fp32_rows.size() * sizeof(int), h);
+        h = ra_fnv1a64_comm(group_tile_offsets.data(), group_tile_offsets.size() * sizeof(int), h);
+        h = ra_fnv1a64_comm(group_tile_k_ids.data(), group_tile_k_ids.size() * sizeof(int), h);
+        h = ra_fnv1a64_comm(group_tile_vals.data(), group_tile_vals.size() * sizeof(uint16_t), h);
+        h = ra_fnv1a64_comm(community_id.data(), community_id.size() * sizeof(int), h);
+        std::fprintf(stderr, "RA_PLAN_CHECKSUM COMMUNITY_TC M=%d nnz=%d tiles=%zu %016llx\n",
+                     M, total_nnz, group_tile_k_ids.size(), (unsigned long long)h);
     }
 
     // -----------------------------------------------------------------
