@@ -45,6 +45,7 @@ nvcc_flags = [
     '--expt-relaxed-constexpr',
     '-lineinfo',
     '-Xcompiler', '-fPIC',
+    '-Xcompiler', '-fopenmp',   # OpenMP for host-side plan construction
     '--generate-code', 'arch=compute_86,code=sm_86',
 ]
 
@@ -52,6 +53,7 @@ cpp_flags = [
     '-O3',
     '-fPIC',
     '-std=c++17',
+    '-fopenmp',                 # OpenMP for host-side plan construction
 ]
 
 setup(
@@ -65,6 +67,8 @@ setup(
                 'cxx': cpp_flags,
                 'nvcc': nvcc_flags,
             },
+            extra_link_args=['-fopenmp'],   # link libgomp
+
             include_dirs=[
                 os.path.dirname(os.path.abspath(__file__)),
             ],
