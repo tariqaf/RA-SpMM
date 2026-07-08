@@ -11,6 +11,8 @@ authors:
     orcid: "https://orcid.org/0000-0003-2314-5395"
     affiliation: "Department of Computer Science and Engineering, Kyung Hee University"
 license: MIT
+version: "1.1.0"
+date-released: "2026-07-09"
 repository-code: "https://github.com/tariqaf/RA-SpMM"
 identifiers:
   - description: "Benchmark-graphs dataset archive (26 real + 25 synthetic graphs) on Zenodo"
