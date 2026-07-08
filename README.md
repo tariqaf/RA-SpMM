@@ -2,17 +2,24 @@
 
 **RA-SpMM** is the artifact for *"Regime-Aware Sparse Matrix Multiplication for Graph Neural Network Workloads on GPUs"* (submitted to **Future Generation Computer Systems**, Elsevier, 2026).
 
-RA-SpMM classifies sparse matrices into **six structural categories** using three CSR-derivable features (matrix size *M*, average row density *d̄*, and degree coefficient of variation CV<sub>d</sub>) and dispatches each SpMM call to one of six purpose-built, **preprocessing-free** GPU kernels via an interpretable 8-rule router. Python and C++ router implementations are validated to produce identical kernel choices on all 192 evaluation points.
+RA-SpMM classifies sparse matrices into **six structural categories** using three CSR-derivable features (matrix size *M*, average row density *d̄*, and degree coefficient of variation CV<sub>d</sub>) and dispatches each SpMM call to one of six purpose-built GPU kernels --- three strictly preprocessing-free CSR specialists and three tile-based kernels with an explicitly modeled one-time conversion --- plus a guarded dense-GEMM fallback for tiny dense inputs, via an interpretable 8-rule router. A conversion-aware layer keeps the first call preprocessing-free (11.4 ms mean setup) and pays tile conversion only when graph reuse amortizes it. Python and C++ router implementations are validated to produce identical kernel choices on all 192 evaluation points.
 
 ## Headline results (RTX 3090, CUDA 12.x)
 
 - **3.25× geomean speedup over cuSPARSE** across 26 real-world graphs (92 evaluation points)
 - **99.0% of oracle performance** (Router/Oracle = 0.990× geomean)
 - **91 of 92 real-graph points satisfy the bounded-regret target ≥ 0.85×**
-- **Plan-phase wall-clock: 10.9 ms mean** (vs DTC-SpMM's 38.5 s mean autotuning — a ~3,500× setup-cost reduction)
+- **Cold-start setup: 11.4 ms mean** (feature pass + routing + zero-conversion kernel; vs DTC-SpMM's 38.5 s mean autotuning — a ≈3,400× setup-cost reduction)
 - **End-to-end GNN training**: 2.55× / 1.71× / 1.55× geomean over cuSPARSE on GCN / GraphSAGE / GIN across 8 datasets
 - **Cross-SKU validation**: 35 of 35 routing decisions transfer identically from RTX 3090 to RTX A6000
 - **Synthetic stress-test**: combined 192-point suite (26 real + 25 synthetic) holds 0.995× Router/Oracle ratio with 86.5% oracle hit rate
+
+## What's new in v1.1
+
+- **Parallel tile-format construction.** The one-time CSR→tile conversion for `TC_DIRECT` and `COMMUNITY_TC` is now OpenMP-parallel on the host, with byte-identical output for any thread count (verified by checksums over every format array; router parity 192/192). `TC_DIRECT` conversion drops from 466 ms to 34 ms geomean over the 26 real graphs (worst case, ogbn-products: 19.6 s → 1.29 s).
+- **Conversion-aware routing analysis.** A cost model `total(K) = conversion + K·compute` selects the cheapest kernel for the anticipated reuse count: cold start (K=1) dispatches a zero-conversion CSR kernel; higher-throughput tile kernels take over once their conversion amortizes (median break-even 189 calls).
+- **Dense-GEMM fallback.** A guarded rule (`M ≤ 2000` and `N ≤ 128`) routes tiny dense inputs to a dense cuBLAS path.
+- **`experiments/` suite.** The profiling, baseline, and analysis drivers behind the paper's evaluation: Nsight Compute microarchitectural profiling, HC-SpMM and MP-SpMM external baselines (with crash attribution), a dense cuBLAS small-matrix probe, GPU-side feature extraction, format checksum verification, conversion timing, and a cross-architecture sweep (RTX 4090 / FlashSparse).
 
 ## Six-kernel paper portfolio
 
@@ -71,6 +78,7 @@ RA-SpMM/
 ├── bindings/                # pybind11 bindings (ra_bindings.cpp)
 ├── bench/                   # SpMM benchmarking utilities
 ├── gnn_bench/               # GCN / GraphSAGE / GIN end-to-end runners
+├── experiments/             # revision experiment suite (profiling, baselines, analysis)
 ├── graph/                   # CSR I/O + dataset loading
 ├── ra_router_eval.py        # Python router (must match C++ via parity test)
 ├── ra_router_parity_test.py # Python ≡ C++ parity verifier
@@ -187,6 +195,18 @@ python router_vs_baselines_gcn.py --datasets Reddit,ogbn-proteins,ogbn-arxiv,PPI
 python router_vs_baselines_sage.py --datasets Reddit,ogbn-proteins,ogbn-arxiv,PPI,amazon-photo,amazon-computers,Cora,CiteSeer
 python router_vs_baselines_gin.py --datasets Reddit,ogbn-proteins,ogbn-arxiv,PPI,amazon-photo,amazon-computers,Cora,CiteSeer
 ```
+
+### 6. Revision experiments (`experiments/`)
+
+| Script | Produces |
+|---|---|
+| `profile_ncu.py` / `profile_parse.py` | Nsight Compute metrics per (kernel, graph) → `profile_summary.csv` |
+| `bench_hcspmm*.py`, `bench_mpspmm*.py` | HC-SpMM / MP-SpMM baseline timings + preprocessing |
+| `bench_cublas_dense.py`, `bench_dense_gemm_rule.py` | dense cuBLAS probe + guarded DENSE_GEMM rule evaluation |
+| `time_feature_extraction.py`, `time_conversion_pipeline.py` | GPU-vs-CPU feature extraction; per-kernel conversion times |
+| `conversion_aware_routing.py` | cold-start / steady-state routing, crossover K, DTC setup comparison |
+| `verify_format_checksums.py` | byte-identity check of the parallel format build |
+| `cross_arch/` | RTX 4090 sweep + FlashSparse comparison drivers |
 
 ## Citation
 
