@@ -38,3 +38,15 @@ logs/
 *.tmp
 *.bak
 *.JACCARD_BACKUP
+
+# Local Python virtual environments
+.venv/
+venv/
+env/
+
+# Local experiment outputs and scratch (regenerated locally; not shipped)
+fgcs_results/
+baselines/
+*_bundle.tar.gz
+*.patch
+*.diff
