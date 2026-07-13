@@ -1,4 +1,4 @@
-# Post-sweep report — 170-pt evaluation
+# Post-sweep report — FGCS 170-pt evaluation
 
 Source CSV: `fgcs_results/spmm/all_graphs_results.csv`  
 Total rows: 1344  

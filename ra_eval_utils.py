@@ -12,7 +12,7 @@ import torch
 from scipy import sparse as sp
 
 import ra_spmm
-import test_next as harness
+import test_ra as harness
 
 
 MAIN_PATHS = list(harness.MAIN_PATHS)
@@ -894,6 +894,19 @@ class ExperimentRunner:
         K = int(mat["K"])
         if path == "CSR_DIRECT":
             return None
+        if path == "ZERO_OVERHEAD_CSR":
+            return ra_spmm.make_zero_overhead_plan(mat["rowptr"], M, K)
+        if path == "RODE_ENHANCED":
+            return ra_spmm.make_rode_enhanced_plan(mat["rowptr"], M, K)
+        if path == "TC_DIRECT":
+            return ra_spmm.make_tc_direct_plan(
+                mat["rowptr"], mat["colind"], mat["vals"], M, K, N)
+        if path == "COMMUNITY_TC":
+            return ra_spmm.make_community_tc_plan(
+                mat["rowptr"], mat["colind"], mat["vals"], M, K, N)
+        if path == "SEGMENT_HYBRID":
+            return ra_spmm.make_segment_hybrid_plan(
+                mat["rowptr"], mat["colind"], mat["vals"], M, K, N)
         if path == "CSR_ADAPTIVE":
             return ra_spmm.make_csr_adaptive_plan(mat["rowptr"], mat["colind"], M, K)
         if path == "STAGED_REUSE":
@@ -913,7 +926,7 @@ class ExperimentRunner:
     def _plan_valid(self, path: str, plan: object) -> bool:
         if path == "CSR_DIRECT" or path == "CUSPARSE":
             return True
-        if path == "TC_REORDERED":
+        if path in {"TC_REORDERED", "TC_DIRECT", "COMMUNITY_TC", "SEGMENT_HYBRID"}:
             return bool(getattr(plan, "active", False))
         return bool(getattr(plan, "valid", True))
 
@@ -925,6 +938,16 @@ class ExperimentRunner:
         out = None
         if path == "CSR_DIRECT":
             out = ra_spmm.spmm_csr_direct(rowptr, colind, vals, B)
+        elif path == "ZERO_OVERHEAD_CSR":
+            out = ra_spmm.run_zero_overhead_plan(plan, rowptr, colind, vals, B)
+        elif path == "RODE_ENHANCED":
+            out = ra_spmm.run_rode_enhanced_plan(plan, colind, vals, B)
+        elif path == "TC_DIRECT":
+            out = ra_spmm.run_tc_direct_plan(plan, B)
+        elif path == "COMMUNITY_TC":
+            out = ra_spmm.run_community_tc_plan(plan, B)
+        elif path == "SEGMENT_HYBRID":
+            out = ra_spmm.run_segment_hybrid_plan(plan, colind, vals, B)
         elif path == "CSR_ADAPTIVE":
             out = ra_spmm.run_csr_adaptive_plan(plan, rowptr, colind, vals, B)
         elif path == "STAGED_REUSE":

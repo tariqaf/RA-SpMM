@@ -1,7 +1,7 @@
 // ============================================================================
 // router_dispatch.cpp - Explainable rule-based router
 //
-// MAIN portfolio:
+// MAIN portfolio (paper-facing):
 // - CSR_DIRECT
 // - RODE_ENHANCED
 // - ZERO_OVERHEAD_CSR
@@ -50,14 +50,14 @@ bool path_in_portfolio(NextPath path, Portfolio portfolio) {
     if (portfolio == Portfolio::FULL) {
         return true;
     }
-    // MAIN portfolio: original paths + new regime-specific kernels
+    // MAIN portfolio: paper-facing sparse kernels
     switch (path) {
         case NextPath::CSR_DIRECT:
         case NextPath::ROW_SPLIT_CUDA:
         case NextPath::TC_REORDERED:
         case NextPath::HYBRID_TC_CUDA:
         case NextPath::CUSPARSE:
-        // New regime-specific kernels (all in MAIN)
+        // Paper portfolio kernels.
         case NextPath::RODE_ENHANCED:
         case NextPath::VECTORIZED_COARSE:
         case NextPath::LOCALITY_TILED:
@@ -384,14 +384,14 @@ bool compute_feasible(
             return true;
 
         // =================================================================
-        // New regime-specific kernels
+        // Paper portfolio kernels.
         // =================================================================
 
         case NextPath::TC_DIRECT:
-            // R4: TC-friendly — always feasible when N >= 64 (TC needs minimum width)
-            if (f.output_dim_N < 64 && f.matrix_M < 150000) {
+            // Plan construction is inactive below the implementation minimum.
+            if (f.output_dim_N < 16) {
                 reject_code = RejectReason::REJECT_MARGIN_TOO_SMALL;
-                reject_detail = fmt_value("N", (float)f.output_dim_N, "<", 64.f);
+                reject_detail = fmt_value("N", (float)f.output_dim_N, "<", 16.f);
                 return false;
             }
             reject_code = RejectReason::CHOSEN;
@@ -399,10 +399,9 @@ bool compute_feasible(
             return true;
 
         case NextPath::COMMUNITY_TC:
-            // R5: Community — feasible when community structure is present and N >= 64
-            if (f.output_dim_N < 64 && f.matrix_M < 150000) {
+            if (f.output_dim_N < 16) {
                 reject_code = RejectReason::REJECT_MARGIN_TOO_SMALL;
-                reject_detail = fmt_value("N", (float)f.output_dim_N, "<", 64.f);
+                reject_detail = fmt_value("N", (float)f.output_dim_N, "<", 16.f);
                 return false;
             }
             reject_code = RejectReason::CHOSEN;
@@ -438,10 +437,9 @@ bool compute_feasible(
             return true;
 
         case NextPath::LOCALITY_TILED:
-            // R3: Reordered locality — feasible when locality can be recovered
-            if (f.output_dim_N < 64 && f.matrix_M < 150000) {
+            if (f.output_dim_N < 16) {
                 reject_code = RejectReason::REJECT_MARGIN_TOO_SMALL;
-                reject_detail = fmt_value("N", (float)f.output_dim_N, "<", 64.f);
+                reject_detail = fmt_value("N", (float)f.output_dim_N, "<", 16.f);
                 return false;
             }
             reject_code = RejectReason::CHOSEN;
@@ -449,10 +447,9 @@ bool compute_feasible(
             return true;
 
         case NextPath::SEGMENT_HYBRID:
-            // R7: Hybrid/mixed — feasible when N >= 64
-            if (f.output_dim_N < 64 && f.matrix_M < 150000) {
+            if (f.output_dim_N < 16) {
                 reject_code = RejectReason::REJECT_MARGIN_TOO_SMALL;
-                reject_detail = fmt_value("N", (float)f.output_dim_N, "<", 64.f);
+                reject_detail = fmt_value("N", (float)f.output_dim_N, "<", 16.f);
                 return false;
             }
             reject_code = RejectReason::CHOSEN;
@@ -968,7 +965,7 @@ RouterPlan route_dispatch(
     }
 
     // =================================================================
-    // Extended kernel routing — final 6-kernel router
+    // Extended kernel routing — final paper-facing 6-kernel router
     //
     // Keep TC_DIRECT as the broad default, but carve out a small number of
     // explainable structural pockets that materially reduce worst-case regret:
@@ -993,7 +990,7 @@ RouterPlan route_dispatch(
         float extended_risk = 0.05f;
 
         // ============================================================
-        // Recalibrated 8-rule router. Mirrors
+        // Production eight-rule router. Mirrors
         // ra_router_eval.py simple_router(). Rules are evaluated
         // top-to-bottom; the first match wins. The Python and C++
         // implementations stay in lockstep; ra_router_parity_test.py
@@ -1005,107 +1002,86 @@ RouterPlan route_dispatch(
             return plan.feasible[static_cast<int>(p)];
         };
 
-        if (!feas(NextPath::TC_DIRECT)) {
-            extended_choice = NextPath::CSR_DIRECT;
-            extended_reason = "csr_direct_tc_direct_infeasible";
-            extended_risk = 0.05f;
-        } else if (M < 5000) {
-            // Rule 1: Sub-tiny graphs (Cora, CiteSeer, PPI). Mid-degree
-            // and very-low-degree tinies at wide N go to SEGMENT_HYBRID;
-            // everything else launch-bound, TC_DIRECT.
-            if (N >= 256 && (d >= 12.0f || d <= 6.0f) &&
-                feas(NextPath::SEGMENT_HYBRID)) {
-                extended_choice = NextPath::SEGMENT_HYBRID;
-                extended_reason = "segment_hybrid_subtiny_wideN";
-                extended_risk = 0.08f;
-            } else {
-                extended_choice = NextPath::TC_DIRECT;
-                extended_reason = "tc_direct_subtiny_default";
-                extended_risk = 0.05f;
-            }
-        } else if (M >= 100000 && d < 8.0f && cv > 4.0f) {
-            // Rule 2: Sparse-tail (com-youtube, very-skewed sparse).
-            if (N >= 256 && feas(NextPath::RODE_ENHANCED)) {
-                extended_choice = NextPath::RODE_ENHANCED;
-                extended_reason = "rode_enhanced_sparse_tail_wideN";
-                extended_risk = 0.08f;
-            } else {
-                extended_choice = NextPath::TC_DIRECT;
-                extended_reason = "tc_direct_sparse_tail_narrowN";
-                extended_risk = 0.05f;
-            }
-        } else if (M <= 15000 && d >= 25.0f) {
-            // Rule 3: Dense-small with d>=25. Natural-skew (amazon-photo,
-            // amazon-computers, CV>=1) -> SEG_HYB; synthetic uniform
-            // dense-small (CV=0) -> COMMUNITY_TC.
-            if (cv >= 1.0f && feas(NextPath::SEGMENT_HYBRID)) {
-                extended_choice = NextPath::SEGMENT_HYBRID;
-                extended_reason = "segment_hybrid_dense_small_natural_skew";
-                extended_risk = 0.07f;
-            } else if (feas(NextPath::COMMUNITY_TC)) {
-                extended_choice = NextPath::COMMUNITY_TC;
-                extended_reason = "community_tc_dense_small_uniform";
-                extended_risk = 0.07f;
-            }
-        } else if (d >= 12.0f && d <= 40.0f && cv >= 1.5f) {
-            // Rule 4: Heavily skewed sparse mid-degree. Sub-cases by M:
-            //   twitter-combined (M<=100K) -> CSR_DIRECT/RODE
-            //   soc-Pokec (M>=1M)          -> CSR_DIRECT
-            //   synth_mixed_v* (M in middle) -> falls through to TC_DIRECT
-            if (M <= 100000) {
-                if (N >= 256 && feas(NextPath::RODE_ENHANCED)) {
-                    extended_choice = NextPath::RODE_ENHANCED;
-                    extended_reason = "rode_enhanced_skewed_small_wideN";
-                    extended_risk = 0.08f;
-                } else {
-                    extended_choice = NextPath::CSR_DIRECT;
-                    extended_reason = "csr_direct_skewed_small_narrowN";
-                    extended_risk = 0.05f;
-                }
-            } else if (M >= 1000000) {
+        // Preprocessing-aware tile gate: the ME-BCRS plan build measures
+        // ~20 ms per 1e6 nnz on the reference host; tile kernels are
+        // withheld when the estimated build exceeds the 20 s amortization
+        // budget (or the tile path is infeasible, e.g. N < 16). Fallback
+        // CSR kernel is chosen by skew.
+        const double est_plan_s =
+            2e-8 * static_cast<double>(d) * static_cast<double>(M);
+        const bool tile_ok = feas(NextPath::TC_DIRECT) && est_plan_s <= 20.0;
+        auto pick_tile = [&](NextPath p, const char* reason) {
+            if (tile_ok && feas(p)) {
+                extended_choice = p;
+                extended_reason = reason;
+                extended_risk = 0.06f;
+            } else if (cv < 1.5f) {
                 extended_choice = NextPath::CSR_DIRECT;
-                extended_reason = "csr_direct_skewed_huge";
+                extended_reason = "csr_direct_tile_gated";
                 extended_risk = 0.05f;
-            }
-            // else (100K < M < 1M): fall through to TC_DIRECT default
-            // (synth_mixed_v* land here)
-        } else if (d >= 96.0f) {
-            // Rule 5: Dense-large (Reddit, ogbn-proteins, gplus-combined).
-            if (cv >= 2.5f && N >= 256 && feas(NextPath::RODE_ENHANCED)) {
-                extended_choice = NextPath::RODE_ENHANCED;
-                extended_reason = "rode_enhanced_extreme_skew_dense_large";
-                extended_risk = 0.08f;
             } else {
-                extended_choice = NextPath::TC_DIRECT;
-                extended_reason = "tc_direct_dense_large_default";
-                extended_risk = 0.05f;
-            }
-        } else if (M >= 1000000 && d >= 40.0f && d < 96.0f && cv <= 2.5f) {
-            // Rule 6: ogbn-products-class (huge M, mid d, mild skew).
-            if (feas(NextPath::COMMUNITY_TC)) {
-                extended_choice = NextPath::COMMUNITY_TC;
-                extended_reason = "community_tc_huge_mid_density";
-                extended_risk = 0.07f;
-            }
-        } else if (M >= 50000 && M <= 150000 && d >= 9.0f && d <= 12.0f) {
-            // Rule 7: Flickr-class medium-scale low-d irregular.
-            if (feas(NextPath::ZERO_OVERHEAD_CSR)) {
                 extended_choice = NextPath::ZERO_OVERHEAD_CSR;
-                extended_reason = "zero_overhead_flickr_class";
+                extended_reason = "zero_overhead_tile_gated";
                 extended_risk = 0.06f;
             }
-        } else if (
-            ((M >= 150000 && d <= 10.0f && cv >= 0.5f && cv <= 4.0f && N <= 256) ||
-             (M >= 250000 && d <= 9.0f && cv > 0.1f) ||
-             (M >= 150000 && d <= 4.0f)) &&
-            feas(NextPath::COMMUNITY_TC)) {
-            // Rule 8: COMMUNITY_TC sweet spot. See Python comments for
-            // full sub-case rationale.
-            extended_choice = NextPath::COMMUNITY_TC;
-            extended_reason = "community_tc_sparse_medium_large";
-            extended_risk = 0.07f;
+        };
+
+        if (M < 5000) {
+            // Rule 1: sub-tiny graphs (Cora, CiteSeer, PPI).
+            pick_tile(NextPath::TC_DIRECT, "tc_direct_subtiny");
+        } else if (cv >= 5.0f) {
+            // Rule 2: extreme-skew sparse tails (com-youtube).
+            extended_choice = NextPath::ZERO_OVERHEAD_CSR;
+            extended_reason = "zero_overhead_extreme_skew";
+            extended_risk = 0.06f;
+        } else if (cv < 0.7f) {
+            // Rule 3: uniform / near-uniform family.
+            if (d < 4.5f) {
+                extended_choice = NextPath::CSR_DIRECT;
+                extended_reason = "csr_direct_uniform_ultralow_d";
+                extended_risk = 0.05f;
+            } else if (cv < 0.2f && N <= 64 && d >= 25.0f) {
+                extended_choice = NextPath::CSR_DIRECT;
+                extended_reason = "csr_direct_uniform_dense_small_narrowN";
+                extended_risk = 0.05f;
+            } else if (cv >= 0.2f && d < 7.0f) {
+                extended_choice = NextPath::CSR_DIRECT;
+                extended_reason = "csr_direct_synth_community";
+                extended_risk = 0.05f;
+            } else {
+                pick_tile(NextPath::TC_DIRECT, "tc_direct_uniform");
+            }
+        } else if (cv >= 3.0f) {
+            // Rule 4: very skewed (Yelp-class large vs Flickr-class medium).
+            if (M >= 250000) {
+                pick_tile(NextPath::COMMUNITY_TC, "community_tc_skewed_large");
+            } else {
+                pick_tile(NextPath::SEGMENT_HYBRID, "segment_hybrid_skewed_medium");
+            }
+        } else if (d >= 40.0f) {
+            // Rule 5: dense rows (Reddit, ogbn-proteins, gplus, dense skewed).
+            pick_tile(NextPath::COMMUNITY_TC, "community_tc_dense_rows");
+        } else if (M < 20000 && d >= 25.0f) {
+            // Rule 6: small dense (amazon-photo/computers).
+            if (N < 96) {
+                extended_choice = NextPath::CUSPARSE;
+                extended_reason = "cusparse_small_dense_narrowN";
+                extended_risk = 0.05f;
+            } else if (N < 384) {
+                pick_tile(NextPath::SEGMENT_HYBRID, "segment_hybrid_small_dense");
+            } else {
+                pick_tile(NextPath::COMMUNITY_TC, "community_tc_small_dense_wideN");
+            }
+        } else if (d >= 25.0f && cv >= 1.8f) {
+            // Rule 7: heavy mixed (synth_mixed_v2..v5).
+            pick_tile(NextPath::COMMUNITY_TC, "community_tc_heavy_mixed");
+        } else if (d < 9.0f && cv >= 1.10f && cv <= 1.45f && M >= 250000) {
+            // Rule 8: web-locality sparse (web-Google, web-Stanford).
+            pick_tile(NextPath::COMMUNITY_TC, "community_tc_web_locality");
+        } else {
+            // Default fallthrough.
+            pick_tile(NextPath::TC_DIRECT, "tc_direct_default");
         }
-        // Default fallthrough: TC_DIRECT (extended_choice initialised above)
 
         if (plan.feasible[static_cast<int>(extended_choice)]) {
             mark_choice(
@@ -1129,7 +1105,9 @@ RouterPlan make_router_plan(
 {
     const auto t0 = std::chrono::high_resolution_clock::now();
 
-    RouterFeatures features = compute_router_features(rowptr, colind, M, K, N);
+    RouterFeatures features = (portfolio == Portfolio::MAIN)
+        ? compute_production_router_features(rowptr, M, K, N)
+        : compute_router_features(rowptr, colind, M, K, N);
     RouterScores scores = compute_router_scores(features);
     RouterPlan plan = route_dispatch(features, scores, portfolio);
 

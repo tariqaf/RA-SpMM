@@ -1,8 +1,8 @@
 """
 ra_eval_extended.py - Evaluation script for RA-SpMM extended kernels
 
-Tests new regime-specific kernels (Wave 1: R6, R2, R1) against cuSPARSE
-and existing kernels. Outputs CSV for analysis.
+Tests the paper portfolio and ablation kernels against cuSPARSE. Outputs CSV
+for analysis.
 
 Usage:
     python ra_eval_extended.py                    # Run all tests
@@ -167,7 +167,7 @@ def run_row_split(rowptr, colind, vals, B, plan_cache: dict, key: str):
     return ra_spmm.run_row_split_plan(plan_cache[key], colind, vals, B)
 
 
-# --- Wave 2 kernel runners ---
+# --- Tensor Core kernel runners ---
 
 def run_tc_direct(rowptr, colind, vals, B, plan_cache: dict, key: str):
     M = rowptr.shape[0] - 1
@@ -187,7 +187,7 @@ def run_locality_tiled(rowptr, colind, vals, B, plan_cache: dict, key: str):
     return ra_spmm.run_locality_tiled_plan(plan_cache[key], B)
 
 
-# --- Wave 3 kernel runners ---
+# --- Structured hybrid kernel runners ---
 
 def run_community_tc(rowptr, colind, vals, B, plan_cache: dict, key: str):
     M = rowptr.shape[0] - 1
@@ -278,7 +278,9 @@ def benchmark_case(case: TestCase, Ns: List[int]) -> List[Dict]:
 
         # Baseline: cuSPARSE
         try:
-            ms_cusparse = measure_ms(lambda: run_cusparse(rowptr, colind, vals, B))
+            cusparse_timing = ra_spmm.benchmark_cusparse(
+                rowptr, colind, vals, B, WARMUP, TIMED_ITERS)
+            ms_cusparse = float(cusparse_timing["exec_ms"])
         except Exception:
             ms_cusparse = float('inf')
 
@@ -288,8 +290,8 @@ def benchmark_case(case: TestCase, Ns: List[int]) -> List[Dict]:
         except Exception:
             ms_row_split = float('inf')
 
-        # Final kernel roster (6 kernels)
-        new_kernels = {
+        # Final paper kernel roster.
+        paper_kernels = {
             "ZERO_OVERHEAD_CSR": lambda: run_zero_overhead(rowptr, colind, vals, B, plan_cache, f"zo_{N}"),
             "RODE_ENHANCED": lambda: run_rode_enhanced(rowptr, colind, vals, B, plan_cache, f"re_{N}"),
             "TC_DIRECT": lambda: run_tc_direct(rowptr, colind, vals, B, plan_cache, f"ft_{N}"),
@@ -297,7 +299,7 @@ def benchmark_case(case: TestCase, Ns: List[int]) -> List[Dict]:
             "SEGMENT_HYBRID": lambda: run_segment_hybrid(rowptr, colind, vals, B, plan_cache, f"sh_{N}"),
         }
 
-        for kname, kfn in new_kernels.items():
+        for kname, kfn in paper_kernels.items():
             try:
                 ms_kernel = measure_ms(kfn)
                 speedup_vs_cusparse = ms_cusparse / ms_kernel if ms_kernel > 0 else 0
@@ -316,6 +318,7 @@ def benchmark_case(case: TestCase, Ns: List[int]) -> List[Dict]:
                     "ms_row_split": round(ms_row_split, 4),
                     "speedup_vs_cusparse": round(speedup_vs_cusparse, 3),
                     "speedup_vs_csr_direct": round(speedup_vs_direct, 3),
+                    "timing_regime": "warm_execute_only",
                 })
 
                 print(f"  {kname} N={N}: {ms_kernel:.3f}ms "
@@ -351,7 +354,7 @@ def main():
     args = parser.parse_args()
 
     print("=" * 70)
-    print("RA-SpMM Extended Evaluation - Wave 1 Kernels")
+    print("RA-SpMM Extended Evaluation")
     print("=" * 70)
 
     # GPU info

@@ -1,0 +1,11 @@
+{
+  "dataset": "roadNet-PA",
+  "category": "Sparse Uniform",
+  "synthetic": false,
+  "kernel": "CSR_DIRECT",
+  "N": 512,
+  "gpu": 1,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "roadNet-PA__CSR_DIRECT__N512.ncu-rep",
+  "raw_csv": "roadNet-PA__CSR_DIRECT__N512.ncu.csv"
+}

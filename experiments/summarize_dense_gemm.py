@@ -1,9 +1,9 @@
 """
-No-regression verification + DENSE_SUMMARY.md for the DENSE_GEMM router rule.
+No-regression verification + DENSE_SUMMARY.md for the experiment-only DENSE_GEMM rule.
 
-Confirms the DENSE_GEMM router rule is INERT everywhere except PPI@{64,128}, and that
-adding it never lowers the full-set router geomean/hit (it can only help). Reads the
-3090 sweep CSV + dense_gemm.csv; no GPU needed.
+Confirms the experiment-only DENSE_GEMM branch is inert everywhere except
+PPI@{64,128}, and that it would not lower the full-set router geomean/hit. Reads
+the 3090 sweep CSV + dense_gemm.csv; no GPU needed.
 """
 from __future__ import annotations
 import csv, math, sys
@@ -53,7 +53,7 @@ def main():
         # OLD router (sparse only)
         old_pick = simple_router(d_bar, cv, M, N, nnz)
         old_sp = speeds.get(old_pick, speeds.get("CSR_DIRECT", 1.0))
-        # NEW router (+DENSE_GEMM), only where the rule fires AND dense measured a win
+        # Experiment router (+DENSE_GEMM), only where the rule fires and dense measured a win.
         fires = dense_rule_fires(M, N) and (ds, N) in dense_sp
         if fires:
             new_pick = "DENSE_GEMM"; new_sp = dense_sp[(ds, N)]
@@ -74,8 +74,8 @@ def main():
     old_gm, new_gm = geomean(old_logs), geomean(new_logs)
     ogm_all = geomean([max(v.values()) if (k not in [(c[0], c[1]) for c in changed]) else v.get(max(v, key=v.get)) for k, v in pairs.items()])
 
-    lines = ["# DENSE_GEMM portfolio path + router rule (tiny/dense corner)\n\n",
-             "**Rule (7th, targeted option — not a general kernel):**\n",
+    lines = ["# DENSE_GEMM experiment path + router rule (tiny/dense corner)\n\n",
+             "**Experiment-only rule (not part of the shipped six-kernel router):**\n",
              "```\nDENSE_GEMM  iff  M <= 2000 and N <= 128\n```\n",
              "DENSE_GEMM = materialize A → dense FP16, cuBLAS GemmEx (FP16 in / FP32 accum, via "
              "`torch.matmul`), same 50-warmup/200-timed CUDA-event protocol (median-of-3), "

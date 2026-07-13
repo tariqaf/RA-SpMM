@@ -15,8 +15,6 @@
 #include <cuda_runtime.h>
 #include <cuda_fp16.h>
 #include <cstdint>
-#include <mutex>
-#include <unordered_map>
 
 // ---------------------------------------------------------------------------
 // Warp-per-row CSR kernel (standard case)
@@ -157,25 +155,72 @@ __global__ void csr_direct_kernel_coarsened_vec4(
     }
 }
 
-int cached_nnz_for_rowptr(const int* rowptr, int M) {
-    static std::mutex cache_mu;
-    static std::unordered_map<const int*, int> nnz_cache;
-    {
-        std::lock_guard<std::mutex> lock(cache_mu);
-        auto it = nnz_cache.find(rowptr);
-        if (it != nnz_cache.end()) {
-            return it->second;
+// ---------------------------------------------------------------------------
+// Subwarp + register-tile vec4 kernel (Sputnik-style A distribution).
+//
+// One row is owned by a W-lane subwarp (W in {8,16,32}); a warp packs 32/W
+// rows in parallel, so N=64 (N4=16) runs with zero idle lanes instead of 16.
+// Each lane keeps S float4 accumulators covering n4 = sl + s*W, so the A row
+// is traversed once for all of N (the old kernel re-read A per 32-wide N
+// stride). A colind/vals chunk is loaded coalesced (one element per lane)
+// and broadcast with __shfl_sync, replacing per-lane redundant scalar loads.
+// Launcher guarantees N4 == W*S exactly.
+// ---------------------------------------------------------------------------
+template<int W, int S>
+__global__ void csr_direct_subwarp_vec4_kernel(
+    const int*   __restrict__ rowptr,
+    const int*   __restrict__ colind,
+    const float* __restrict__ vals,
+    const float* __restrict__ B,
+    float*       __restrict__ C,
+    int M, int K, int N)
+{
+    constexpr int SUBWARPS = 32 / W;
+    const int warp_id = (blockIdx.x * blockDim.x + threadIdx.x) >> 5;
+    const int lane    = threadIdx.x & 31;
+    const int sub     = lane / W;
+    const int sl      = lane % W;
+    const unsigned mask =
+        (W == 32) ? 0xffffffffu : (((1u << W) - 1u) << (sub * W));
+
+    const int row = warp_id * SUBWARPS + sub;
+    if (row >= M) return;
+
+    const int row_start = rowptr[row];
+    const int row_end   = rowptr[row + 1];
+
+    float4 acc[S];
+#pragma unroll
+    for (int s = 0; s < S; ++s) acc[s] = make_float4(0.f, 0.f, 0.f, 0.f);
+
+    for (int chunk = row_start; chunk < row_end; chunk += W) {
+        const int my_p = chunk + sl;
+        int   my_col = 0;
+        float my_val = 0.f;
+        if (my_p < row_end) {
+            my_col = __ldg(colind + my_p);
+            my_val = __ldg(vals + my_p);
+        }
+        const int limit = min(W, row_end - chunk);
+        for (int j = 0; j < limit; ++j) {
+            const int   col = __shfl_sync(mask, my_col, j, W);
+            const float av  = __shfl_sync(mask, my_val, j, W);
+            const float4* B_ptr =
+                reinterpret_cast<const float4*>(B + (i64)col * N);
+#pragma unroll
+            for (int s = 0; s < S; ++s) {
+                const float4 b4 = __ldg(B_ptr + sl + s * W);
+                acc[s].x += av * b4.x;
+                acc[s].y += av * b4.y;
+                acc[s].z += av * b4.z;
+                acc[s].w += av * b4.w;
+            }
         }
     }
 
-    int nnz = 0;
-    CUDA_CHECK_NEXT(cudaMemcpy(&nnz, rowptr + M, sizeof(int), cudaMemcpyDeviceToHost));
-
-    {
-        std::lock_guard<std::mutex> lock(cache_mu);
-        nnz_cache[rowptr] = nnz;
-    }
-    return nnz;
+    float4* C_ptr = reinterpret_cast<float4*>(C + (i64)row * N);
+#pragma unroll
+    for (int s = 0; s < S; ++s) C_ptr[sl + s * W] = acc[s];
 }
 
 // ---------------------------------------------------------------------------
@@ -187,11 +232,9 @@ void csr_direct_spmm(
     const float* vals,
     const float* B,
     float*       C,
-    int M, int K, int N)
+    int M, int K, int N, int nnz)
 {
     if (M == 0 || N == 0) return;
-
-    CUDA_CHECK_NEXT(cudaMemset(C, 0, (i64)M * N * sizeof(float)));
 
     const int WARPS_PER_BLOCK = 4;
     const int THREADS = WARPS_PER_BLOCK * 32;
@@ -204,9 +247,48 @@ void csr_direct_spmm(
     const bool b_aligned = (reinterpret_cast<std::uintptr_t>(B) % 16u) == 0u;
     const bool c_aligned = (reinterpret_cast<std::uintptr_t>(C) % 16u) == 0u;
     const bool use_vec4 = (N % 4 == 0) && b_aligned && c_aligned;
-    const int nnz = cached_nnz_for_rowptr(rowptr, M);
     const float avg_nnz_per_row =
         (M > 0) ? static_cast<float>(nnz) / static_cast<float>(M) : 0.0f;
+
+    // Subwarp engine for exact-fit N4 = W*S (covers N = 32/64/128/256/512).
+    if (use_vec4) {
+        const int N4 = N / 4;
+        int W = 0, S = 0;
+        if      (N4 == 8)   { W = 8;  S = 1; }
+        else if (N4 == 16)  { W = 16; S = 1; }
+        else if (N4 == 32)  { W = 32; S = 1; }
+        else if (N4 == 64)  { W = 32; S = 2; }
+        else if (N4 == 128) { W = 32; S = 4; }
+        if (W != 0) {
+            const int subwarps = 32 / W;
+            num_warps  = (M + subwarps - 1) / subwarps;
+            num_blocks = (num_warps + WARPS_PER_BLOCK - 1) / WARPS_PER_BLOCK;
+            switch (N4) {
+                case 8:
+                    csr_direct_subwarp_vec4_kernel<8, 1><<<num_blocks, THREADS>>>(
+                        rowptr, colind, vals, B, C, M, K, N);
+                    break;
+                case 16:
+                    csr_direct_subwarp_vec4_kernel<16, 1><<<num_blocks, THREADS>>>(
+                        rowptr, colind, vals, B, C, M, K, N);
+                    break;
+                case 32:
+                    csr_direct_subwarp_vec4_kernel<32, 1><<<num_blocks, THREADS>>>(
+                        rowptr, colind, vals, B, C, M, K, N);
+                    break;
+                case 64:
+                    csr_direct_subwarp_vec4_kernel<32, 2><<<num_blocks, THREADS>>>(
+                        rowptr, colind, vals, B, C, M, K, N);
+                    break;
+                default:
+                    csr_direct_subwarp_vec4_kernel<32, 4><<<num_blocks, THREADS>>>(
+                        rowptr, colind, vals, B, C, M, K, N);
+                    break;
+            }
+            CUDA_CHECK_KERNEL();
+            return;
+        }
+    }
 
     if (avg_nnz_per_row <= 2.5f) {
         num_warps = (M + 8 - 1) / 8;

@@ -1,0 +1,11 @@
+{
+  "dataset": "com-Amazon",
+  "category": "Community",
+  "synthetic": false,
+  "kernel": "TC_DIRECT",
+  "N": 128,
+  "gpu": 0,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "com-Amazon__TC_DIRECT__N128.ncu-rep",
+  "raw_csv": "com-Amazon__TC_DIRECT__N128.ncu.csv"
+}

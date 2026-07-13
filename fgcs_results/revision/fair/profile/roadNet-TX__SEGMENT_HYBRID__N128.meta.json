@@ -1,0 +1,11 @@
+{
+  "dataset": "roadNet-TX",
+  "category": "Sparse Uniform",
+  "synthetic": false,
+  "kernel": "SEGMENT_HYBRID",
+  "N": 128,
+  "gpu": 0,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "roadNet-TX__SEGMENT_HYBRID__N128.ncu-rep",
+  "raw_csv": "roadNet-TX__SEGMENT_HYBRID__N128.ncu.csv"
+}

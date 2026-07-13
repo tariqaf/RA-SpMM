@@ -6,9 +6,18 @@ from setuptools import setup
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 import os
 
+def normalize_sm_arch(value):
+    value = str(value).strip().lower()
+    value = value.replace("sm_", "").replace("compute_", "").replace(".", "")
+    if not value.isdigit():
+        raise ValueError(f"Invalid RA_SM_ARCH value: {value!r}")
+    return value
+
+SM_ARCH = normalize_sm_arch(os.environ.get("RA_SM_ARCH", "86"))
+
 # Source files
 sources = [
-    # --- Existing kernels ---
+    # --- Baseline and ablation kernels ---
     'csr/csr_direct.cu',
     'csr/csr_adaptive.cu',
     'csr/row_split.cu',
@@ -17,18 +26,19 @@ sources = [
     'tc/tc_sparse.cu',
     'tc/tc_reordered.cu',
     'tc/hybrid_tc_cuda.cu',
-    # --- New regime-specific kernels (Wave 1: CUDA-core) ---
+    # --- Paper portfolio: CUDA-core kernels ---
     'csr/ra_zero_overhead.cu',       # R6: Overhead-sensitive
     'csr/ra_vectorized_coarse.cu',   # R2: Road-network
     'csr/ra_rode_enhanced.cu',       # R1: Power-law
-    # --- New regime-specific kernels (Wave 2: TC) ---
+    # --- Paper portfolio: Tensor Core kernels ---
     'tc/ra_tc_direct.cu',             # R4: TC-friendly
     'tc/ra_locality_tiled.cu',       # R3: Reordered locality
-    # --- New regime-specific kernels (Wave 3: Complex) ---
+    # --- Paper portfolio: structured hybrid kernels ---
     'tc/ra_community_tc.cu',         # R5: Community
     'tc/ra_segment_hybrid.cu',       # R7: Hybrid/mixed
     # --- Infrastructure ---
     'router/router_features.cpp',
+    'router/router_features_cuda.cu',
     'router/router_scores.cpp',
     'router/router_dispatch.cpp',
     'graph/generators.cpp',
@@ -40,13 +50,13 @@ sources = [
 nvcc_flags = [
     '-O3',
     '--use_fast_math',
-    '-arch=sm_86',
+    f'-arch=sm_{SM_ARCH}',
     '--expt-extended-lambda',
     '--expt-relaxed-constexpr',
     '-lineinfo',
     '-Xcompiler', '-fPIC',
     '-Xcompiler', '-fopenmp',   # OpenMP for host-side plan construction
-    '--generate-code', 'arch=compute_86,code=sm_86',
+    '--generate-code', f'arch=compute_{SM_ARCH},code=sm_{SM_ARCH}',
 ]
 
 cpp_flags = [

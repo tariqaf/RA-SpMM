@@ -1,0 +1,6 @@
+# Analysis-only dependencies for evaluation generators.
+# Install PyTorch and the matching torch-sparse wheel separately as documented
+# in README.md because their CUDA versions must match the local toolkit.
+numpy>=1.22
+scipy>=1.8
+scikit-learn>=1.4

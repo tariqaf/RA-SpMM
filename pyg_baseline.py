@@ -1,8 +1,8 @@
 """
 pyg_baseline.py — Wrapper for PyG torch_sparse as an external GNN-framework baseline.
 
-This baseline compares against what GNN practitioners actually use in PyG.
-torch_sparse's SparseTensor.matmul() is the
+Why: reviewers of a GNN-focused SpMM paper expect a comparison against what GNN
+practitioners actually use in PyG. torch_sparse's SparseTensor.matmul() is the
 idiomatic path; internally it dispatches to cuSPARSE for most cases but the
 end-to-end invocation path (Python overhead, tensor formatting) is what we
 actually time here — this is what a PyG user sees.

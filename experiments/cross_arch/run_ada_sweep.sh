@@ -10,7 +10,12 @@
 #     bash run_ada_sweep.sh
 set -euo pipefail
 
-PKG_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+if [ -f "${SCRIPT_DIR}/../../setup.py" ]; then
+    PKG_ROOT="$(cd -- "${SCRIPT_DIR}/../.." &>/dev/null && pwd)"
+else
+    PKG_ROOT="${SCRIPT_DIR}"
+fi
 cd "${PKG_ROOT}"
 OUT="fgcs_results/revision/ada"
 mkdir -p "${OUT}"
@@ -43,7 +48,7 @@ python ra_router_eval.py --results "${OUT}/ada_all_graphs_results.csv" \
     | tee "${OUT}/ada_router_quality.txt"
 
 echo "[5/5] Kernel-choice PARITY: Ada oracle vs 3090 oracle/router ..."
-python parity_vs_3090.py \
+python "${SCRIPT_DIR}/parity_vs_3090.py" \
     --ada "${OUT}/ada_all_graphs_results.csv" \
     --baseline3090 baseline_3090/all_graphs_results.csv \
     --out "${OUT}/parity_vs_3090.csv" | tee "${OUT}/parity_vs_3090.txt"

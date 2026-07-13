@@ -1,0 +1,11 @@
+{
+  "dataset": "roadNet-CA",
+  "category": "Sparse Uniform",
+  "synthetic": false,
+  "kernel": "COMMUNITY_TC",
+  "N": 128,
+  "gpu": 0,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "roadNet-CA__COMMUNITY_TC__N128.ncu-rep",
+  "raw_csv": "roadNet-CA__COMMUNITY_TC__N128.ncu.csv"
+}

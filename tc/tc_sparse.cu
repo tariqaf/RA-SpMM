@@ -179,7 +179,7 @@ __global__ void tc_wmma_kernel(
     }
 }
 
-// Stub for older architectures
+// Compatibility branch for architectures without WMMA support.
 #if !(defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700)
 // The kernel above compiles for all architectures but the WMMA section
 // is guarded. For sm < 70, it just does nothing in the loop.

@@ -1,4 +1,5 @@
 import importlib
+import ctypes
 import os
 import sys
 from glob import glob
@@ -29,6 +30,14 @@ def load_dtc_module():
         raise FileNotFoundError(f"DTC module directory not found: {module_dir}")
     if module_dir not in sys.path:
         sys.path.insert(0, module_dir)
+    external_root = os.path.dirname(module_dir)
+    dependency_paths = [
+        os.path.join(external_root, "third_party", "glog", "build", "lib", "libglog.so"),
+        os.path.join(external_root, "third_party", "sputnik", "build", "sputnik", "libsputnik.so"),
+    ]
+    for dependency in dependency_paths:
+        if os.path.exists(dependency):
+            ctypes.CDLL(dependency, mode=ctypes.RTLD_GLOBAL)
     _DTC_MODULE = importlib.import_module("DTCSpMM")
     return _DTC_MODULE
 

@@ -17,7 +17,7 @@
 // Legacy / ablation note:
 // - This remains a useful FULL-portfolio skew baseline.
 // - Very long rows still rely on atomic accumulation in the xlong path.
-// - It is not promoted as the primary MAIN path in this repository state.
+// - It is not promoted as the paper-facing MAIN path in this repository state.
 // ============================================================================
 #include "../ra_common.h"
 #include <cuda.h>

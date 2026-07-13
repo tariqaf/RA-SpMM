@@ -20,7 +20,7 @@
 // - This path still uses atomic accumulation at tile granularity.
 // - It is mainly informative for FULL-portfolio reuse ablations.
 // - The benchmark stack now measures plan/run costs externally instead of
-//   treating this kernel as a MAIN candidate.
+//   treating this kernel as a paper-facing MAIN candidate.
 // ============================================================================
 #include "../ra_common.h"
 #include <cuda.h>

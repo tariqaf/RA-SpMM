@@ -4,16 +4,21 @@
 //
 // Target regime: degree_cv <= 0.30, avg_nnz 5-10, uniform degree distribution
 //
-// Strategy: degree-binned dispatch with near-zero preprocessing (O(M) row scan).
-// Rows are classified by nnz into 4 bins, each launching a specialized kernel:
-//   tiny   (1-4 nnz)  : 8 rows per warp, register-only accumulation
-//   short  (5-16 nnz) : 1 warp per row, standard N-parallel
-//   medium (17-64 nnz) : 1 block (128 threads = 4 warps) per row, N-chunked
-//   long   (65+ nnz)  : multi-block per row with atomicAdd accumulation
+// Strategy: near-zero preprocessing (single O(M) row scan) producing
+//   - one unified small-row list (1-64 nnz) stored bin-ordered (tiny, short,
+//     medium) so co-scheduled warps see similar row lengths, executed by a
+//     single subwarp kernel launch: a W-lane subwarp owns one row, packs
+//     32/W rows per warp (no idle lanes at N=64), keeps S float4
+//     accumulators (single A pass for N up to 512), and distributes
+//     coalesced colind/vals chunks with __shfl_sync;
+//   - a flattened long-row chunk list (256-nnz chunks): one block per real
+//     chunk (no rectangular mostly-empty grid), sole chunks (row fits in
+//     one chunk) store directly, only multi-chunk rows use atomicAdd;
+//   - a zero list (empty rows + multi-chunk rows) cleared by a small slice
+//     kernel instead of a full M x N cudaMemset.
 //
-// All bins have scalar and float4-vectorized variants (float4 when N%4==0).
-//
-// NO cudaDeviceSynchronize in any function -- sync happens at Python boundary.
+// No device-wide synchronization; callers synchronize only when host
+// visibility is required.
 // ============================================================================
 #include "../ra_common.h"
 
@@ -24,11 +29,11 @@
 #include <cstdint>
 #include <vector>
 
+namespace {
+
 // ---------------------------------------------------------------------------
 // Upload helper (mirrors pattern from row_split.cu)
 // ---------------------------------------------------------------------------
-namespace {
-
 template <typename T>
 T* ra_upload(const std::vector<T>& values) {
     if (values.empty()) return nullptr;
@@ -43,57 +48,50 @@ T* ra_upload(const std::vector<T>& values) {
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-constexpr int kTinyThreshold  = 4;    // nnz <= 4
-constexpr int kShortThreshold = 16;   // nnz <= 16
-constexpr int kMediumThreshold = 64;  // nnz <= 64
+constexpr int kTinyThreshold   = 4;    // nnz <= 4
+constexpr int kShortThreshold  = 16;   // nnz <= 16
+constexpr int kMediumThreshold = 64;   // nnz <= 64
                                        // nnz > 64 => long
-
-constexpr int kTinyRowsPerWarp = 8;
-constexpr int kMediumThreads   = 128; // 4 warps per block for medium rows
-constexpr int kLongChunkSize   = 64;  // nnz per block for long-row splitting
+constexpr int kLongChunkSize   = 256;  // nnz per block for long-row splitting
+constexpr unsigned kSoleChunkFlag = 0x80000000u;
 
 // ============================================================================
-// Kernel 1: Tiny rows (1-4 nnz) -- 8 rows per warp, scalar
+// Zeroing kernel: clear the C slices of listed rows (empty + multi-chunk).
 // ============================================================================
-template <int ROWS_PER_WARP>
-__global__ void zo_tiny_scalar_kernel(
-    const int*   __restrict__ rowptr,
-    const int*   __restrict__ colind,
-    const float* __restrict__ vals,
-    const float* __restrict__ B,
-    float*       __restrict__ C,
-    const int*   __restrict__ row_ids,
+__global__ void zo_zero_rows_vec4_kernel(
+    float* __restrict__ C,
+    const int* __restrict__ row_ids,
+    int num_rows, int N4, int N)
+{
+    const i64 total = (i64)num_rows * N4;
+    for (i64 idx = (i64)blockIdx.x * blockDim.x + threadIdx.x;
+         idx < total; idx += (i64)gridDim.x * blockDim.x) {
+        const int row = row_ids[idx / N4];
+        const int n4  = static_cast<int>(idx % N4);
+        reinterpret_cast<float4*>(C + (i64)row * N)[n4] =
+            make_float4(0.f, 0.f, 0.f, 0.f);
+    }
+}
+
+__global__ void zo_zero_rows_scalar_kernel(
+    float* __restrict__ C,
+    const int* __restrict__ row_ids,
     int num_rows, int N)
 {
-    const int warp_id = (blockIdx.x * blockDim.x + threadIdx.x) / 32;
-    const int lane    = threadIdx.x % 32;
-    const int base_idx = warp_id * ROWS_PER_WARP;
-
-    for (int r = 0; r < ROWS_PER_WARP; ++r) {
-        const int idx = base_idx + r;
-        if (idx >= num_rows) return;
-
-        const int row = row_ids[idx];
-        const int row_start = rowptr[row];
-        const int row_end   = rowptr[row + 1];
-
-        for (int n = lane; n < N; n += 32) {
-            float acc = 0.0f;
-            for (int p = row_start; p < row_end; ++p) {
-                const int col = colind[p];
-                const float a_val = vals[p];
-                acc += a_val * __ldg(&B[(i64)col * N + n]);
-            }
-            C[(i64)row * N + n] = acc;
-        }
+    const i64 total = (i64)num_rows * N;
+    for (i64 idx = (i64)blockIdx.x * blockDim.x + threadIdx.x;
+         idx < total; idx += (i64)gridDim.x * blockDim.x) {
+        const int row = row_ids[idx / N];
+        C[(i64)row * N + (idx % N)] = 0.f;
     }
 }
 
 // ============================================================================
-// Kernel 1v: Tiny rows (1-4 nnz) -- 8 rows per warp, float4
+// Unified small-row subwarp kernel (vec4). W-lane subwarp per row, S float4
+// accumulators per lane; launcher guarantees N4 == W*S exactly.
 // ============================================================================
-template <int ROWS_PER_WARP>
-__global__ void zo_tiny_vec4_kernel(
+template <int W, int S>
+__global__ void zo_small_subwarp_vec4_kernel(
     const int*   __restrict__ rowptr,
     const int*   __restrict__ colind,
     const float* __restrict__ vals,
@@ -102,74 +100,58 @@ __global__ void zo_tiny_vec4_kernel(
     const int*   __restrict__ row_ids,
     int num_rows, int N)
 {
-    const int warp_id = (blockIdx.x * blockDim.x + threadIdx.x) / 32;
-    const int lane    = threadIdx.x % 32;
-    const int base_idx = warp_id * ROWS_PER_WARP;
-    const int N4 = N / 4;
+    constexpr int SUBWARPS = 32 / W;
+    const int warp_id = (blockIdx.x * blockDim.x + threadIdx.x) >> 5;
+    const int lane    = threadIdx.x & 31;
+    const int sub     = lane / W;
+    const int sl      = lane % W;
+    const unsigned mask =
+        (W == 32) ? 0xffffffffu : (((1u << W) - 1u) << (sub * W));
 
-    for (int r = 0; r < ROWS_PER_WARP; ++r) {
-        const int idx = base_idx + r;
-        if (idx >= num_rows) return;
+    const int idx = warp_id * SUBWARPS + sub;
+    if (idx >= num_rows) return;
 
-        const int row = row_ids[idx];
-        const int row_start = rowptr[row];
-        const int row_end   = rowptr[row + 1];
-
-        for (int n4 = lane; n4 < N4; n4 += 32) {
-            float4 acc = make_float4(0.f, 0.f, 0.f, 0.f);
-            for (int p = row_start; p < row_end; ++p) {
-                const int col = colind[p];
-                const float a_val = vals[p];
-                const float4* B_ptr =
-                    reinterpret_cast<const float4*>(B + (i64)col * N);
-                const float4 b4 = __ldg(B_ptr + n4);
-                acc.x += a_val * b4.x;
-                acc.y += a_val * b4.y;
-                acc.z += a_val * b4.z;
-                acc.w += a_val * b4.w;
-            }
-            float4* C_ptr = reinterpret_cast<float4*>(C + (i64)row * N);
-            C_ptr[n4] = acc;
-        }
-    }
-}
-
-// ============================================================================
-// Kernel 2: Short rows (5-16 nnz) -- 1 warp per row, scalar
-// ============================================================================
-__global__ void zo_short_scalar_kernel(
-    const int*   __restrict__ rowptr,
-    const int*   __restrict__ colind,
-    const float* __restrict__ vals,
-    const float* __restrict__ B,
-    float*       __restrict__ C,
-    const int*   __restrict__ row_ids,
-    int num_rows, int N)
-{
-    const int warp_id = (blockIdx.x * blockDim.x + threadIdx.x) / 32;
-    const int lane    = threadIdx.x % 32;
-
-    if (warp_id >= num_rows) return;
-
-    const int row = row_ids[warp_id];
+    const int row       = row_ids[idx];
     const int row_start = rowptr[row];
     const int row_end   = rowptr[row + 1];
 
-    for (int n = lane; n < N; n += 32) {
-        float acc = 0.0f;
-        for (int p = row_start; p < row_end; ++p) {
-            const int col = colind[p];
-            const float a_val = vals[p];
-            acc += a_val * __ldg(&B[(i64)col * N + n]);
+    float4 acc[S];
+#pragma unroll
+    for (int s = 0; s < S; ++s) acc[s] = make_float4(0.f, 0.f, 0.f, 0.f);
+
+    for (int chunk = row_start; chunk < row_end; chunk += W) {
+        const int my_p = chunk + sl;
+        int   my_col = 0;
+        float my_val = 0.f;
+        if (my_p < row_end) {
+            my_col = __ldg(colind + my_p);
+            my_val = __ldg(vals + my_p);
         }
-        C[(i64)row * N + n] = acc;
+        const int limit = min(W, row_end - chunk);
+        for (int j = 0; j < limit; ++j) {
+            const int   col = __shfl_sync(mask, my_col, j, W);
+            const float av  = __shfl_sync(mask, my_val, j, W);
+            const float4* B_ptr =
+                reinterpret_cast<const float4*>(B + (i64)col * N);
+#pragma unroll
+            for (int s = 0; s < S; ++s) {
+                const float4 b4 = __ldg(B_ptr + sl + s * W);
+                acc[s].x += av * b4.x;
+                acc[s].y += av * b4.y;
+                acc[s].z += av * b4.z;
+                acc[s].w += av * b4.w;
+            }
+        }
     }
+
+    float4* C_ptr = reinterpret_cast<float4*>(C + (i64)row * N);
+#pragma unroll
+    for (int s = 0; s < S; ++s) C_ptr[sl + s * W] = acc[s];
 }
 
-// ============================================================================
-// Kernel 2v: Short rows (5-16 nnz) -- 1 warp per row, float4
-// ============================================================================
-__global__ void zo_short_vec4_kernel(
+// Generic vec4 fallback for N4 without an exact (W, S) fit: warp per row,
+// lane-strided n4 loop.
+__global__ void zo_small_warp_vec4_kernel(
     const int*   __restrict__ rowptr,
     const int*   __restrict__ colind,
     const float* __restrict__ vals,
@@ -184,15 +166,15 @@ __global__ void zo_short_vec4_kernel(
 
     if (warp_id >= num_rows) return;
 
-    const int row = row_ids[warp_id];
+    const int row       = row_ids[warp_id];
     const int row_start = rowptr[row];
     const int row_end   = rowptr[row + 1];
 
     for (int n4 = lane; n4 < N4; n4 += 32) {
         float4 acc = make_float4(0.f, 0.f, 0.f, 0.f);
         for (int p = row_start; p < row_end; ++p) {
-            const int col = colind[p];
-            const float a_val = vals[p];
+            const int col = __ldg(colind + p);
+            const float a_val = __ldg(vals + p);
             const float4* B_ptr =
                 reinterpret_cast<const float4*>(B + (i64)col * N);
             const float4 b4 = __ldg(B_ptr + n4);
@@ -206,11 +188,8 @@ __global__ void zo_short_vec4_kernel(
     }
 }
 
-// ============================================================================
-// Kernel 3: Medium rows (17-64 nnz) -- 1 block (128 threads, 4 warps) per row
-// Multiple warps handle different N-column chunks, scalar
-// ============================================================================
-__global__ void zo_medium_scalar_kernel(
+// Scalar fallback (N % 4 != 0 or unaligned): warp per row over the list.
+__global__ void zo_small_warp_scalar_kernel(
     const int*   __restrict__ rowptr,
     const int*   __restrict__ colind,
     const float* __restrict__ vals,
@@ -219,19 +198,20 @@ __global__ void zo_medium_scalar_kernel(
     const int*   __restrict__ row_ids,
     int num_rows, int N)
 {
-    const int row_idx = blockIdx.x;
-    if (row_idx >= num_rows) return;
+    const int warp_id = (blockIdx.x * blockDim.x + threadIdx.x) / 32;
+    const int lane    = threadIdx.x % 32;
 
-    const int row = row_ids[row_idx];
+    if (warp_id >= num_rows) return;
+
+    const int row       = row_ids[warp_id];
     const int row_start = rowptr[row];
     const int row_end   = rowptr[row + 1];
 
-    // All 128 threads cooperate over N columns
-    for (int n = threadIdx.x; n < N; n += blockDim.x) {
+    for (int n = lane; n < N; n += 32) {
         float acc = 0.0f;
         for (int p = row_start; p < row_end; ++p) {
-            const int col = colind[p];
-            const float a_val = vals[p];
+            const int col = __ldg(colind + p);
+            const float a_val = __ldg(vals + p);
             acc += a_val * __ldg(&B[(i64)col * N + n]);
         }
         C[(i64)row * N + n] = acc;
@@ -239,30 +219,36 @@ __global__ void zo_medium_scalar_kernel(
 }
 
 // ============================================================================
-// Kernel 3v: Medium rows (17-64 nnz) -- 1 block per row, float4
+// Long-row chunk kernels: one block per real chunk. Sole chunks (bit 31 of
+// d_chunk_rows) cover their whole row and store directly; multi-chunk rows
+// accumulate into a pre-zeroed C with atomicAdd.
 // ============================================================================
-__global__ void zo_medium_vec4_kernel(
+__global__ void zo_chunk_vec4_kernel(
     const int*   __restrict__ rowptr,
     const int*   __restrict__ colind,
     const float* __restrict__ vals,
     const float* __restrict__ B,
     float*       __restrict__ C,
-    const int*   __restrict__ row_ids,
-    int num_rows, int N)
+    const int*   __restrict__ chunk_rows,
+    const int*   __restrict__ chunk_starts,
+    int num_chunks, int N)
 {
-    const int row_idx = blockIdx.x;
-    if (row_idx >= num_rows) return;
+    const int c = blockIdx.x;
+    if (c >= num_chunks) return;
 
-    const int row = row_ids[row_idx];
-    const int row_start = rowptr[row];
-    const int row_end   = rowptr[row + 1];
+    const unsigned tag = static_cast<unsigned>(chunk_rows[c]);
+    const bool sole = (tag & kSoleChunkFlag) != 0u;
+    const int row = static_cast<int>(tag & ~kSoleChunkFlag);
+
+    const int chunk_start = chunk_starts[c];
+    const int chunk_end   = min(chunk_start + kLongChunkSize, rowptr[row + 1]);
     const int N4 = N / 4;
 
     for (int n4 = threadIdx.x; n4 < N4; n4 += blockDim.x) {
         float4 acc = make_float4(0.f, 0.f, 0.f, 0.f);
-        for (int p = row_start; p < row_end; ++p) {
-            const int col = colind[p];
-            const float a_val = vals[p];
+        for (int p = chunk_start; p < chunk_end; ++p) {
+            const int col = __ldg(colind + p);
+            const float a_val = __ldg(vals + p);
             const float4* B_ptr =
                 reinterpret_cast<const float4*>(B + (i64)col * N);
             const float4 b4 = __ldg(B_ptr + n4);
@@ -271,104 +257,57 @@ __global__ void zo_medium_vec4_kernel(
             acc.z += a_val * b4.z;
             acc.w += a_val * b4.w;
         }
-        float4* C_ptr = reinterpret_cast<float4*>(C + (i64)row * N);
-        C_ptr[n4] = acc;
+        if (sole) {
+            reinterpret_cast<float4*>(C + (i64)row * N)[n4] = acc;
+        } else {
+            float* C_row = C + (i64)row * N + n4 * 4;
+            atomicAdd(C_row + 0, acc.x);
+            atomicAdd(C_row + 1, acc.y);
+            atomicAdd(C_row + 2, acc.z);
+            atomicAdd(C_row + 3, acc.w);
+        }
     }
 }
 
-// ============================================================================
-// Kernel 4: Long rows (65+ nnz) -- multi-block per row with atomicAdd
-// Each block handles a 64-nnz chunk of the row's nonzeros, scalar
-// Grid: (num_chunks, 1, 1) where chunks are enumerated across all long rows
-// ============================================================================
-__global__ void zo_long_scalar_kernel(
+__global__ void zo_chunk_scalar_kernel(
     const int*   __restrict__ rowptr,
     const int*   __restrict__ colind,
     const float* __restrict__ vals,
     const float* __restrict__ B,
     float*       __restrict__ C,
-    const int*   __restrict__ row_ids,
-    int num_rows, int N)
+    const int*   __restrict__ chunk_rows,
+    const int*   __restrict__ chunk_starts,
+    int num_chunks, int N)
 {
-    // Each block handles one row. gridDim.y encodes the chunk index.
-    const int row_idx   = blockIdx.x;
-    const int chunk_idx = blockIdx.y;
-    if (row_idx >= num_rows) return;
+    const int c = blockIdx.x;
+    if (c >= num_chunks) return;
 
-    const int row = row_ids[row_idx];
-    const int row_start = rowptr[row];
-    const int row_end   = rowptr[row + 1];
-    const int row_nnz   = row_end - row_start;
+    const unsigned tag = static_cast<unsigned>(chunk_rows[c]);
+    const bool sole = (tag & kSoleChunkFlag) != 0u;
+    const int row = static_cast<int>(tag & ~kSoleChunkFlag);
 
-    // This block handles nnz in [chunk_start, chunk_end)
-    const int chunk_start = row_start + chunk_idx * kLongChunkSize;
-    const int chunk_end   = min(chunk_start + kLongChunkSize, row_end);
-    if (chunk_start >= row_end) return;
+    const int chunk_start = chunk_starts[c];
+    const int chunk_end   = min(chunk_start + kLongChunkSize, rowptr[row + 1]);
 
     for (int n = threadIdx.x; n < N; n += blockDim.x) {
         float acc = 0.0f;
         for (int p = chunk_start; p < chunk_end; ++p) {
-            const int col = colind[p];
-            const float a_val = vals[p];
+            const int col = __ldg(colind + p);
+            const float a_val = __ldg(vals + p);
             acc += a_val * __ldg(&B[(i64)col * N + n]);
         }
-        // Accumulate via atomicAdd since multiple blocks write the same row
-        atomicAdd(&C[(i64)row * N + n], acc);
-    }
-}
-
-// ============================================================================
-// Kernel 4v: Long rows (65+ nnz) -- multi-block per row, float4
-// ============================================================================
-__global__ void zo_long_vec4_kernel(
-    const int*   __restrict__ rowptr,
-    const int*   __restrict__ colind,
-    const float* __restrict__ vals,
-    const float* __restrict__ B,
-    float*       __restrict__ C,
-    const int*   __restrict__ row_ids,
-    int num_rows, int N)
-{
-    const int row_idx   = blockIdx.x;
-    const int chunk_idx = blockIdx.y;
-    if (row_idx >= num_rows) return;
-
-    const int row = row_ids[row_idx];
-    const int row_start = rowptr[row];
-    const int row_end   = rowptr[row + 1];
-
-    const int chunk_start = row_start + chunk_idx * kLongChunkSize;
-    const int chunk_end   = min(chunk_start + kLongChunkSize, row_end);
-    if (chunk_start >= row_end) return;
-
-    const int N4 = N / 4;
-
-    for (int n4 = threadIdx.x; n4 < N4; n4 += blockDim.x) {
-        float4 acc = make_float4(0.f, 0.f, 0.f, 0.f);
-        for (int p = chunk_start; p < chunk_end; ++p) {
-            const int col = colind[p];
-            const float a_val = vals[p];
-            const float4* B_ptr =
-                reinterpret_cast<const float4*>(B + (i64)col * N);
-            const float4 b4 = __ldg(B_ptr + n4);
-            acc.x += a_val * b4.x;
-            acc.y += a_val * b4.y;
-            acc.z += a_val * b4.z;
-            acc.w += a_val * b4.w;
+        if (sole) {
+            C[(i64)row * N + n] = acc;
+        } else {
+            atomicAdd(&C[(i64)row * N + n], acc);
         }
-        // atomicAdd for float4 components -- C is pre-zeroed
-        float* C_row = C + (i64)row * N + n4 * 4;
-        atomicAdd(C_row + 0, acc.x);
-        atomicAdd(C_row + 1, acc.y);
-        atomicAdd(C_row + 2, acc.z);
-        atomicAdd(C_row + 3, acc.w);
     }
 }
 
 } // anonymous namespace
 
 // ============================================================================
-// make_ra_zero_overhead_plan: O(M) row scan, bin rows by nnz, upload to GPU
+// make_ra_zero_overhead_plan: O(M) row scan
 // ============================================================================
 void make_ra_zero_overhead_plan(
     RAZeroOverheadPlan& plan,
@@ -380,18 +319,21 @@ void make_ra_zero_overhead_plan(
     plan.K = K;
     plan.plan_bytes = 0;
 
-    // Bin rows by their nnz count
-    std::vector<int> tiny_rows, short_rows, medium_rows, long_rows;
+    std::vector<int> tiny_rows, short_rows, medium_rows;
+    std::vector<int> chunk_rows, chunk_starts, zero_rows;
     tiny_rows.reserve(M);
     short_rows.reserve(M);
     medium_rows.reserve(M / 4);
-    long_rows.reserve(M / 16);
 
+    int max_long_nnz = 0;
+    int num_empty = 0;
+    int num_long = 0;
     for (int i = 0; i < M; ++i) {
-        const int nnz = h_rowptr[i + 1] - h_rowptr[i];
+        const int start = h_rowptr[i];
+        const int nnz = h_rowptr[i + 1] - start;
         if (nnz == 0) {
-            // Empty rows: skip (output already zeroed)
-            continue;
+            ++num_empty;
+            zero_rows.push_back(i);
         } else if (nnz <= kTinyThreshold) {
             tiny_rows.push_back(i);
         } else if (nnz <= kShortThreshold) {
@@ -399,28 +341,53 @@ void make_ra_zero_overhead_plan(
         } else if (nnz <= kMediumThreshold) {
             medium_rows.push_back(i);
         } else {
-            long_rows.push_back(i);
+            ++num_long;
+            max_long_nnz = std::max(max_long_nnz, nnz);
+            if (nnz <= kLongChunkSize) {
+                chunk_rows.push_back(
+                    static_cast<int>(static_cast<unsigned>(i) | kSoleChunkFlag));
+                chunk_starts.push_back(start);
+            } else {
+                zero_rows.push_back(i);
+                for (int off = 0; off < nnz; off += kLongChunkSize) {
+                    chunk_rows.push_back(i);
+                    chunk_starts.push_back(start + off);
+                }
+            }
         }
     }
 
     plan.num_tiny   = static_cast<int>(tiny_rows.size());
     plan.num_short  = static_cast<int>(short_rows.size());
     plan.num_medium = static_cast<int>(medium_rows.size());
-    plan.num_long   = static_cast<int>(long_rows.size());
+    plan.num_long   = num_long;
+    plan.num_empty  = num_empty;
+    plan.max_long_chunks =
+        (max_long_nnz + kLongChunkSize - 1) / kLongChunkSize;
 
-    // Upload row-id lists to GPU
-    plan.d_tiny_row_ids   = ra_upload(tiny_rows);
-    plan.d_short_row_ids  = ra_upload(short_rows);
-    plan.d_medium_row_ids = ra_upload(medium_rows);
-    plan.d_long_row_ids   = ra_upload(long_rows);
+    // Bin-ordered unified small-row list: tiny, then short, then medium.
+    std::vector<int> small_rows;
+    small_rows.reserve(tiny_rows.size() + short_rows.size() +
+                       medium_rows.size());
+    small_rows.insert(small_rows.end(), tiny_rows.begin(), tiny_rows.end());
+    small_rows.insert(small_rows.end(), short_rows.begin(), short_rows.end());
+    small_rows.insert(small_rows.end(), medium_rows.begin(), medium_rows.end());
 
-    // Record total GPU memory allocated for the plan
-    plan.plan_bytes = (tiny_rows.size() + short_rows.size() +
-                       medium_rows.size() + long_rows.size()) * sizeof(int);
+    plan.num_small      = static_cast<int>(small_rows.size());
+    plan.num_chunks     = static_cast<int>(chunk_rows.size());
+    plan.num_zero_rows  = static_cast<int>(zero_rows.size());
+
+    plan.d_small_row_ids = ra_upload(small_rows);
+    plan.d_chunk_rows    = ra_upload(chunk_rows);
+    plan.d_chunk_starts  = ra_upload(chunk_starts);
+    plan.d_zero_row_ids  = ra_upload(zero_rows);
+
+    plan.plan_bytes = (small_rows.size() + chunk_rows.size() +
+                       chunk_starts.size() + zero_rows.size()) * sizeof(int);
 }
 
 // ============================================================================
-// run_ra_zero_overhead_plan: launch binned kernels
+// run_ra_zero_overhead_plan: launch zeroing + small + chunk kernels
 // ============================================================================
 void run_ra_zero_overhead_plan(
     const RAZeroOverheadPlan& plan,
@@ -434,11 +401,6 @@ void run_ra_zero_overhead_plan(
     const int M = plan.M;
     if (M == 0 || N == 0) return;
 
-    // Zero output matrix (required for atomicAdd in long kernel, and for
-    // empty rows that are not dispatched to any bin)
-    CUDA_CHECK_NEXT(cudaMemset(d_C, 0, (i64)M * N * sizeof(float)));
-
-    // Check alignment for float4 vectorization
     const bool b_aligned = (reinterpret_cast<std::uintptr_t>(d_B) % 16u) == 0u;
     const bool c_aligned = (reinterpret_cast<std::uintptr_t>(d_C) % 16u) == 0u;
     const bool use_vec4  = (N % 4 == 0) && b_aligned && c_aligned;
@@ -446,138 +408,113 @@ void run_ra_zero_overhead_plan(
     constexpr int WARPS_PER_BLOCK = 4;
     constexpr int THREADS = WARPS_PER_BLOCK * 32; // 128
 
-    // ----- Tiny bin: 8 rows per warp -----
-    if (plan.num_tiny > 0) {
-        const int num_warps  = (plan.num_tiny + kTinyRowsPerWarp - 1) /
-                               kTinyRowsPerWarp;
-        const int num_blocks = (num_warps + WARPS_PER_BLOCK - 1) /
-                               WARPS_PER_BLOCK;
-        if (use_vec4) {
-            zo_tiny_vec4_kernel<kTinyRowsPerWarp>
-                <<<num_blocks, THREADS>>>(
-                    d_rowptr, d_colind, d_vals, d_B, d_C,
-                    plan.d_tiny_row_ids, plan.num_tiny, N);
+    // ----- Pre-zero only the rows that need it -----
+    if (plan.num_zero_rows > 0) {
+        if (plan.num_zero_rows > M / 4) {
+            CUDA_CHECK_NEXT(cudaMemsetAsync(d_C, 0,
+                                            (i64)M * N * sizeof(float)));
+        } else if (use_vec4) {
+            const int N4 = N / 4;
+            const i64 total = (i64)plan.num_zero_rows * N4;
+            const int blocks = static_cast<int>(
+                std::min<i64>((total + THREADS - 1) / THREADS, 65535));
+            zo_zero_rows_vec4_kernel<<<blocks, THREADS>>>(
+                d_C, plan.d_zero_row_ids, plan.num_zero_rows, N4, N);
         } else {
-            zo_tiny_scalar_kernel<kTinyRowsPerWarp>
-                <<<num_blocks, THREADS>>>(
-                    d_rowptr, d_colind, d_vals, d_B, d_C,
-                    plan.d_tiny_row_ids, plan.num_tiny, N);
+            const i64 total = (i64)plan.num_zero_rows * N;
+            const int blocks = static_cast<int>(
+                std::min<i64>((total + THREADS - 1) / THREADS, 65535));
+            zo_zero_rows_scalar_kernel<<<blocks, THREADS>>>(
+                d_C, plan.d_zero_row_ids, plan.num_zero_rows, N);
         }
     }
 
-    // ----- Short bin: 1 warp per row -----
-    if (plan.num_short > 0) {
-        const int num_warps  = plan.num_short;
-        const int num_blocks = (num_warps + WARPS_PER_BLOCK - 1) /
-                               WARPS_PER_BLOCK;
+    // ----- Small rows (1-64 nnz): one unified launch -----
+    if (plan.num_small > 0) {
+        int W = 0, S = 0;
         if (use_vec4) {
-            zo_short_vec4_kernel<<<num_blocks, THREADS>>>(
-                d_rowptr, d_colind, d_vals, d_B, d_C,
-                plan.d_short_row_ids, plan.num_short, N);
-        } else {
-            zo_short_scalar_kernel<<<num_blocks, THREADS>>>(
-                d_rowptr, d_colind, d_vals, d_B, d_C,
-                plan.d_short_row_ids, plan.num_short, N);
+            const int N4 = N / 4;
+            if      (N4 == 8)   { W = 8;  S = 1; }
+            else if (N4 == 16)  { W = 16; S = 1; }
+            else if (N4 == 32)  { W = 32; S = 1; }
+            else if (N4 == 64)  { W = 32; S = 2; }
+            else if (N4 == 128) { W = 32; S = 4; }
         }
-    }
-
-    // ----- Medium bin: 1 block (128 threads) per row -----
-    if (plan.num_medium > 0) {
-        if (use_vec4) {
-            zo_medium_vec4_kernel
-                <<<plan.num_medium, kMediumThreads>>>(
-                    d_rowptr, d_colind, d_vals, d_B, d_C,
-                    plan.d_medium_row_ids, plan.num_medium, N);
-        } else {
-            zo_medium_scalar_kernel
-                <<<plan.num_medium, kMediumThreads>>>(
-                    d_rowptr, d_colind, d_vals, d_B, d_C,
-                    plan.d_medium_row_ids, plan.num_medium, N);
-        }
-    }
-
-    // ----- Long bin: multi-block per row with atomicAdd -----
-    // Grid: (num_long_rows, max_chunks_per_row)
-    // Each block processes kLongChunkSize (64) nonzeros of its assigned row.
-    if (plan.num_long > 0) {
-        // Find max row length among long rows to determine gridDim.y.
-        // We read rowptr from device for the long row IDs. To keep the plan
-        // overhead minimal, we compute max chunks from the host rowptr that
-        // was used during planning. Since the plan is const here, we use a
-        // conservative upper bound: launch enough chunks and let the kernel
-        // early-exit for out-of-range chunks.
-        //
-        // We upload the row_ids at plan time, so we can compute max_nnz by
-        // reading d_rowptr for the long rows. But to avoid a device-to-host
-        // copy at run time, we use a heuristic upper bound. For truly large
-        // matrices the overhead of a few extra empty blocks is negligible.
-        //
-        // Practical bound: for the target regime (avg_nnz 5-10, cv<=0.30),
-        // long rows are extremely rare. We cap at a generous 1024 chunks
-        // (covers rows up to 65536 nnz).
-        constexpr int kMaxChunksY = 1024;
-
-        // A tighter bound: read the last long row's rowptr range from device.
-        // This single cudaMemcpy is acceptable because num_long is typically
-        // very small (< 0.1% of rows in the target regime).
-        int max_chunks = 1;
-        if (plan.num_long <= 64) {
-            // For a small number of long rows, read their rowptr entries
-            std::vector<int> long_row_ids_h(plan.num_long);
-            CUDA_CHECK_NEXT(cudaMemcpy(long_row_ids_h.data(),
-                                       plan.d_long_row_ids,
-                                       plan.num_long * sizeof(int),
-                                       cudaMemcpyDeviceToHost));
-            int max_nnz = 0;
-            for (int i = 0; i < plan.num_long; ++i) {
-                int rstart = 0, rend = 0;
-                CUDA_CHECK_NEXT(cudaMemcpy(&rstart,
-                                           d_rowptr + long_row_ids_h[i],
-                                           sizeof(int),
-                                           cudaMemcpyDeviceToHost));
-                CUDA_CHECK_NEXT(cudaMemcpy(&rend,
-                                           d_rowptr + long_row_ids_h[i] + 1,
-                                           sizeof(int),
-                                           cudaMemcpyDeviceToHost));
-                max_nnz = std::max(max_nnz, rend - rstart);
+        if (W != 0) {
+            const int subwarps   = 32 / W;
+            const int num_warps  = (plan.num_small + subwarps - 1) / subwarps;
+            const int num_blocks = (num_warps + WARPS_PER_BLOCK - 1) /
+                                   WARPS_PER_BLOCK;
+            const int N4 = N / 4;
+            switch (N4) {
+                case 8:
+                    zo_small_subwarp_vec4_kernel<8, 1><<<num_blocks, THREADS>>>(
+                        d_rowptr, d_colind, d_vals, d_B, d_C,
+                        plan.d_small_row_ids, plan.num_small, N);
+                    break;
+                case 16:
+                    zo_small_subwarp_vec4_kernel<16, 1><<<num_blocks, THREADS>>>(
+                        d_rowptr, d_colind, d_vals, d_B, d_C,
+                        plan.d_small_row_ids, plan.num_small, N);
+                    break;
+                case 32:
+                    zo_small_subwarp_vec4_kernel<32, 1><<<num_blocks, THREADS>>>(
+                        d_rowptr, d_colind, d_vals, d_B, d_C,
+                        plan.d_small_row_ids, plan.num_small, N);
+                    break;
+                case 64:
+                    zo_small_subwarp_vec4_kernel<32, 2><<<num_blocks, THREADS>>>(
+                        d_rowptr, d_colind, d_vals, d_B, d_C,
+                        plan.d_small_row_ids, plan.num_small, N);
+                    break;
+                default:
+                    zo_small_subwarp_vec4_kernel<32, 4><<<num_blocks, THREADS>>>(
+                        d_rowptr, d_colind, d_vals, d_B, d_C,
+                        plan.d_small_row_ids, plan.num_small, N);
+                    break;
             }
-            max_chunks = (max_nnz + kLongChunkSize - 1) / kLongChunkSize;
         } else {
-            max_chunks = kMaxChunksY;
+            const int num_blocks = (plan.num_small + WARPS_PER_BLOCK - 1) /
+                                   WARPS_PER_BLOCK;
+            if (use_vec4) {
+                zo_small_warp_vec4_kernel<<<num_blocks, THREADS>>>(
+                    d_rowptr, d_colind, d_vals, d_B, d_C,
+                    plan.d_small_row_ids, plan.num_small, N);
+            } else {
+                zo_small_warp_scalar_kernel<<<num_blocks, THREADS>>>(
+                    d_rowptr, d_colind, d_vals, d_B, d_C,
+                    plan.d_small_row_ids, plan.num_small, N);
+            }
         }
-        max_chunks = std::min(max_chunks, kMaxChunksY);
-        max_chunks = std::max(max_chunks, 1);
+    }
 
-        dim3 grid_long(plan.num_long, max_chunks);
+    // ----- Long rows: one block per real chunk -----
+    if (plan.num_chunks > 0) {
         if (use_vec4) {
-            zo_long_vec4_kernel<<<grid_long, kMediumThreads>>>(
+            zo_chunk_vec4_kernel<<<plan.num_chunks, THREADS>>>(
                 d_rowptr, d_colind, d_vals, d_B, d_C,
-                plan.d_long_row_ids, plan.num_long, N);
+                plan.d_chunk_rows, plan.d_chunk_starts, plan.num_chunks, N);
         } else {
-            zo_long_scalar_kernel<<<grid_long, kMediumThreads>>>(
+            zo_chunk_scalar_kernel<<<plan.num_chunks, THREADS>>>(
                 d_rowptr, d_colind, d_vals, d_B, d_C,
-                plan.d_long_row_ids, plan.num_long, N);
+                plan.d_chunk_rows, plan.d_chunk_starts, plan.num_chunks, N);
         }
     }
 
     CUDA_CHECK_KERNEL();
-    // NO cudaDeviceSynchronize -- sync happens at Python boundary
+    // Execution remains asynchronous with respect to the host.
 }
 
 // ============================================================================
 // free_ra_zero_overhead_plan: release GPU memory
 // ============================================================================
 void free_ra_zero_overhead_plan(RAZeroOverheadPlan& plan) {
-    if (plan.d_tiny_row_ids)   { cudaFree(plan.d_tiny_row_ids);   plan.d_tiny_row_ids   = nullptr; }
-    if (plan.d_short_row_ids)  { cudaFree(plan.d_short_row_ids);  plan.d_short_row_ids  = nullptr; }
-    if (plan.d_medium_row_ids) { cudaFree(plan.d_medium_row_ids); plan.d_medium_row_ids = nullptr; }
-    if (plan.d_long_row_ids)   { cudaFree(plan.d_long_row_ids);   plan.d_long_row_ids   = nullptr; }
-
-    plan.num_tiny   = 0;
-    plan.num_short  = 0;
-    plan.num_medium = 0;
-    plan.num_long   = 0;
-    plan.M = 0;
-    plan.K = 0;
+    if (plan.d_small_row_ids) { cudaFree(plan.d_small_row_ids); plan.d_small_row_ids = nullptr; }
+    if (plan.d_chunk_rows)    { cudaFree(plan.d_chunk_rows);    plan.d_chunk_rows    = nullptr; }
+    if (plan.d_chunk_starts)  { cudaFree(plan.d_chunk_starts);  plan.d_chunk_starts  = nullptr; }
+    if (plan.d_zero_row_ids)  { cudaFree(plan.d_zero_row_ids);  plan.d_zero_row_ids  = nullptr; }
+    plan.num_small = plan.num_chunks = plan.num_zero_rows = 0;
+    plan.num_tiny = plan.num_short = plan.num_medium = 0;
+    plan.num_long = plan.num_empty = plan.max_long_chunks = 0;
     plan.plan_bytes = 0;
 }

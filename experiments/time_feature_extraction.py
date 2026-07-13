@@ -1,29 +1,15 @@
-"""
-CPU-vs-GPU timing of router feature extraction.
+"""Time the deployed four-feature router and its CPU/GPU implementations.
 
-Measures whether feature extraction can be accelerated on the GPU.
-
-We extract the two router features that dominate feature-extraction cost:
-    d_bar = mean(degree)                       (degree = rowptr[i+1] - rowptr[i])
-    CV_d  = std(degree) / mean(degree)
-
-Two implementations are timed on the *same* CSR row-pointer array per graph:
-  (1) CPU pass   — the current reference (numpy, single pass over rowptr).
-  (2) GPU kernel — a custom ONE-PASS CUDA kernel that reads rowptr on-device and
-                   accumulates count / sum(deg) / sum(deg^2) via block reduction +
-                   atomics, then derives d_bar and CV_d. This is a single launch,
-                   single pass over the M+1 row-pointer entries.
-
-Both are timed with the paper protocol (warmup + many timed iters); GPU uses CUDA
-events, CPU uses perf_counter. We report per-graph CPU ms, GPU ms (kernel-only, and
-kernel+H2D-copy), and the GPU speedup.
-
-Output: fgcs_results/revision/featbreak/feature_extraction_gpu.csv
+The production measurements call ``ra_spmm.make_router_plan(..., "MAIN")``.
+That deployed path computes exactly the four values used by the eight rules:
+M, N, mean row degree, and population CV_d. The legacy 34-feature tile/locality
+extractor remains available through the explicitly diagnostic ``FULL`` portfolio.
 """
 from __future__ import annotations
 
 import argparse
 import csv
+import gc
 import json
 import os
 import sys
@@ -37,6 +23,7 @@ from torch.utils.cpp_extension import load_inline
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 from ra_real_graph_eval import load_dataset  # noqa: E402
+import ra_spmm  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # One-pass CUDA feature-extraction kernel (d_bar, CV_d from rowptr)
@@ -102,6 +89,8 @@ _CPP_SRC = "torch::Tensor deg_moments(torch::Tensor rowptr);"
 
 
 def build_ext():
+    venv_bin = str(Path(sys.executable).parent)
+    os.environ["PATH"] = venv_bin + os.pathsep + os.environ.get("PATH", "")
     return load_inline(
         name="ra_featext",
         cpp_sources=_CPP_SRC,
@@ -176,12 +165,29 @@ def time_gpu_with_copy(ext, rowptr_cpu, warmup, iters):
     return start.elapsed_time(end) / iters  # ms
 
 
+def time_production_router(rowptr, colind, vals, M, K, N, warmup, iters):
+    """Wall time of the actual binding, including required residency copies."""
+    for _ in range(warmup):
+        ra_spmm.make_router_plan(rowptr, colind, vals, M, K, N, "MAIN")
+    torch.cuda.synchronize()
+    start = time.perf_counter()
+    for _ in range(iters):
+        ra_spmm.make_router_plan(rowptr, colind, vals, M, K, N, "MAIN")
+    torch.cuda.synchronize()
+    return (time.perf_counter() - start) * 1e3 / max(1, iters)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--datasets-file", default=str(REPO_ROOT / "paper_datasets.json"))
     ap.add_argument("--output", default=str(REPO_ROOT / "fgcs_results/revision/featbreak/feature_extraction_gpu.csv"))
     ap.add_argument("--warmup", type=int, default=50)
     ap.add_argument("--iters", type=int, default=200)
+    ap.add_argument("--full-warmup", type=int, default=2)
+    ap.add_argument("--full-iters", type=int, default=10)
+    ap.add_argument("--N", type=int, default=128)
+    ap.add_argument("--datasets", default=None,
+                    help="Comma-separated dataset names; defaults to all enabled entries")
     args = ap.parse_args()
 
     assert torch.cuda.is_available(), "CUDA required"
@@ -191,18 +197,24 @@ def main():
     print("  built OK")
 
     manifest = json.loads(Path(args.datasets_file).read_text())["datasets"]
+    requested = (set(args.datasets.split(",")) if args.datasets else None)
     rows = []
     for entry in manifest:
         if not entry.get("enabled", True):
+            continue
+        if requested is not None and entry["name"] not in requested:
             continue
         mat = load_dataset(entry)
         if mat is None:
             print(f"  [skip] {entry['name']}: file not found")
             continue
         rowptr_cpu = mat["rowptr"].contiguous().int()
+        colind_cpu = mat["colind"].contiguous().int()
+        vals_cpu = mat["vals"].contiguous().float()
         rowptr_np = rowptr_cpu.numpy()
         rowptr_gpu = rowptr_cpu.cuda()
         M = rowptr_cpu.numel() - 1
+        K = int(mat.get("K", M))
         nnz = int(rowptr_np[-1])
 
         # Correctness cross-check CPU vs GPU
@@ -213,6 +225,12 @@ def main():
         ms_cpu = time_cpu(rowptr_np, args.warmup, args.iters)
         ms_gpu = time_gpu_kernel_only(ext, rowptr_gpu, args.warmup, args.iters)
         ms_gpu_copy = time_gpu_with_copy(ext, rowptr_cpu, args.warmup, args.iters)
+        production_cpu_input_ms = time_production_router(
+            rowptr_cpu, colind_cpu, vals_cpu, M, K, args.N,
+            args.full_warmup, args.full_iters)
+        production_gpu_input_ms = time_production_router(
+            rowptr_gpu, colind_cpu, vals_cpu, M, K, args.N,
+            args.full_warmup, args.full_iters)
         speedup_kernel = ms_cpu / ms_gpu if ms_gpu > 0 else 0.0
         speedup_with_copy = ms_cpu / ms_gpu_copy if ms_gpu_copy > 0 else 0.0
 
@@ -220,15 +238,22 @@ def main():
             "dataset": entry["name"], "category": entry.get("category", "?"),
             "M": M, "nnz": nnz,
             "d_bar": round(d_cpu, 4), "cv_d": round(cv_cpu, 4),
-            "cpu_ms": round(ms_cpu, 4),
-            "gpu_kernel_ms": round(ms_gpu, 5),
-            "gpu_with_h2d_ms": round(ms_gpu_copy, 5),
-            "speedup_kernel_only": round(speedup_kernel, 2),
-            "speedup_with_h2d": round(speedup_with_copy, 2),
-            "cpu_gpu_match": ok,
+            "production_4_cpu_input_ms": round(production_cpu_input_ms, 4),
+            "production_4_gpu_input_ms": round(production_gpu_input_ms, 4),
+            "production_4_backend": "OpenMP CPU; GPU input copies rowptr only",
+            "lightweight_cpu_ms": round(ms_cpu, 4),
+            "lightweight_gpu_kernel_ms": round(ms_gpu, 5),
+            "lightweight_gpu_with_h2d_ms": round(ms_gpu_copy, 5),
+            "lightweight_speedup_kernel_only": round(speedup_kernel, 2),
+            "lightweight_speedup_with_h2d": round(speedup_with_copy, 2),
+            "lightweight_cpu_gpu_match": ok,
         })
-        print(f"  {entry['name']:<22s} M={M:>9d}  CPU={ms_cpu:8.4f}ms  GPU={ms_gpu:8.5f}ms  "
-              f"({speedup_kernel:6.1f}x kernel, {speedup_with_copy:6.1f}x w/copy)  match={ok}")
+        print(f"  {entry['name']:<22s} M={M:>9d}  production-4(CPU input)={production_cpu_input_ms:9.3f}ms  "
+              f"production-4(GPU input+D2H)={production_gpu_input_ms:9.3f}ms  "
+              f"rowptr CPU/GPU={ms_cpu:.4f}/{ms_gpu:.5f}ms match={ok}")
+        del mat, rowptr_gpu, rowptr_cpu, colind_cpu, vals_cpu, rowptr_np
+        gc.collect()
+        torch.cuda.empty_cache()
 
     if rows:
         os.makedirs(os.path.dirname(args.output), exist_ok=True)
@@ -238,12 +263,14 @@ def main():
             w.writerows(rows)
         # Geomean of speedups
         import math
-        gk = math.exp(sum(math.log(max(1e-9, r["speedup_kernel_only"])) for r in rows) / len(rows))
-        gc = math.exp(sum(math.log(max(1e-9, r["speedup_with_h2d"])) for r in rows) / len(rows))
-        mean_cpu = sum(r["cpu_ms"] for r in rows) / len(rows)
+        gk = math.exp(sum(math.log(max(1e-9, r["lightweight_speedup_kernel_only"])) for r in rows) / len(rows))
+        gcopy = math.exp(sum(math.log(max(1e-9, r["lightweight_speedup_with_h2d"])) for r in rows) / len(rows))
+        mean_cpu = sum(r["production_4_cpu_input_ms"] for r in rows) / len(rows)
+        mean_gpu = sum(r["production_4_gpu_input_ms"] for r in rows) / len(rows)
         print(f"\nWrote {args.output}  ({len(rows)} graphs)")
-        print(f"Mean CPU feature-extraction time: {mean_cpu:.2f} ms")
-        print(f"Geomean GPU speedup: kernel-only={gk:.1f}x, with-H2D-copy={gc:.1f}x")
+        print(f"Mean deployed production-4 feature time: CPU input={mean_cpu:.2f} ms, "
+              f"GPU input={mean_gpu:.2f} ms")
+        print(f"Rowptr-only GPU speedup: kernel-only={gk:.1f}x, with-H2D-copy={gcopy:.1f}x")
 
 
 if __name__ == "__main__":

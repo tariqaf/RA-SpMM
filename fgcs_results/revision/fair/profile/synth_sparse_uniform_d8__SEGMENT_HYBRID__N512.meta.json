@@ -1,0 +1,11 @@
+{
+  "dataset": "synth_sparse_uniform_d8",
+  "category": "Sparse Uniform",
+  "synthetic": true,
+  "kernel": "SEGMENT_HYBRID",
+  "N": 512,
+  "gpu": 0,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "synth_sparse_uniform_d8__SEGMENT_HYBRID__N512.ncu-rep",
+  "raw_csv": "synth_sparse_uniform_d8__SEGMENT_HYBRID__N512.ncu.csv"
+}

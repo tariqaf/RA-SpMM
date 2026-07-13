@@ -1,0 +1,189 @@
+{
+  "schema_version": 1,
+  "training_csv": "fgcs_results/revision/fair/fair_sweep.csv",
+  "features": [
+    "bias",
+    "log1p_M",
+    "log1p_nnz",
+    "log1p_N",
+    "log1p_nnzN",
+    "log1p_avg_nnz",
+    "log1p_cv_d"
+  ],
+  "target_transform": "log(milliseconds)",
+  "ridge_alpha": 0.0001,
+  "validation": "graph-grouped out-of-fold predictions",
+  "cv_folds": 10,
+  "kernels": {
+    "CSR_DIRECT": {
+      "samples": 192,
+      "warm_coefficients": [
+        -19.753429303653615,
+        2.6801640723010003,
+        12.28901637686353,
+        15.108242648719392,
+        -13.989096956721177,
+        2.5544984423647112,
+        0.5420590647078958
+      ],
+      "setup_coefficients": [
+        -20.72326584023745,
+        3.8790012740608856e-10,
+        7.509822228277025e-08,
+        7.598116838516e-08,
+        -7.548366631386755e-08,
+        4.1254799546912623e-10,
+        1.2670188528397956e-11
+      ],
+      "warm_geomean_relative_error": 0.30597920854752036,
+      "setup_geomean_relative_error": 1.0963696617238838e-10,
+      "warm_grouped_cv_geomean_relative_error": 0.33577663561827986,
+      "setup_grouped_cv_geomean_relative_error": 3.442601759218178e-11
+    },
+    "RODE_ENHANCED": {
+      "samples": 192,
+      "warm_coefficients": [
+        -19.22283682039363,
+        2.749530822638319,
+        17.674170835689253,
+        20.502145651396056,
+        -19.44609165722451,
+        2.601654492618393,
+        0.36016368207819827
+      ],
+      "setup_coefficients": [
+        -12.38485807434064,
+        6.83520639908076,
+        -6.221417287378995,
+        -0.26097618188833555,
+        0.25907862975181983,
+        6.688701919653178,
+        0.37054123044693554
+      ],
+      "warm_geomean_relative_error": 0.28398531203065946,
+      "setup_geomean_relative_error": 0.18882907765748635,
+      "warm_grouped_cv_geomean_relative_error": 0.3038004727459369,
+      "setup_grouped_cv_geomean_relative_error": 0.209947053921542
+    },
+    "ZERO_OVERHEAD_CSR": {
+      "samples": 192,
+      "warm_coefficients": [
+        -19.932272081964733,
+        4.943476940796897,
+        15.812197450510588,
+        20.80908109674634,
+        -19.777431221762185,
+        4.99409902667341,
+        0.3782304289270526
+      ],
+      "setup_coefficients": [
+        -9.919042168356986,
+        -0.45999570458087247,
+        3.09279665964677,
+        1.8340329311700312,
+        -1.8016881476054287,
+        -1.4107700645331913,
+        0.48330396248265817
+      ],
+      "warm_geomean_relative_error": 0.3334166329954591,
+      "setup_geomean_relative_error": 0.24099816684500897,
+      "warm_grouped_cv_geomean_relative_error": 0.3718772992850612,
+      "setup_grouped_cv_geomean_relative_error": 0.26109346860548244
+    },
+    "TC_DIRECT": {
+      "samples": 192,
+      "warm_coefficients": [
+        -19.411607765700023,
+        1.837381032171254,
+        13.836162188373976,
+        15.835183819091638,
+        -14.72415432341346,
+        1.741138228497601,
+        0.5556008783212892
+      ],
+      "setup_coefficients": [
+        -2.7187252768798884,
+        5.274328019942188,
+        -7.567888648082477,
+        -2.768917947173451,
+        2.718457562593901,
+        5.440001610885548,
+        0.29785854453655325
+      ],
+      "warm_geomean_relative_error": 0.3775254403100108,
+      "setup_geomean_relative_error": 0.2568813642473422,
+      "warm_grouped_cv_geomean_relative_error": 0.4099073539959821,
+      "setup_grouped_cv_geomean_relative_error": 0.28324749482380973
+    },
+    "COMMUNITY_TC": {
+      "samples": 192,
+      "warm_coefficients": [
+        -19.47058000040242,
+        2.0725642506037096,
+        14.23060694052219,
+        16.470996725013315,
+        -15.36090026495536,
+        2.014320333694802,
+        0.5727330500880614
+      ],
+      "setup_coefficients": [
+        -6.844948020928532,
+        4.990451735486204,
+        -2.6697540066701713,
+        1.5274482882619926,
+        -1.539436169498252,
+        5.080469502835366,
+        0.4592513124404673
+      ],
+      "warm_geomean_relative_error": 0.39746716232097046,
+      "setup_geomean_relative_error": 0.4154424396058489,
+      "warm_grouped_cv_geomean_relative_error": 0.43008167403098585,
+      "setup_grouped_cv_geomean_relative_error": 0.46899758267739133
+    },
+    "SEGMENT_HYBRID": {
+      "samples": 192,
+      "warm_coefficients": [
+        -19.24057236621959,
+        2.7359565451509384,
+        17.66093727353701,
+        20.4724082674616,
+        -19.41655971855401,
+        2.580441207497035,
+        0.3668801835657666
+      ],
+      "setup_coefficients": [
+        -12.09703762203404,
+        4.992619552495696,
+        -3.8010982474765833,
+        0.23147390412676208,
+        -0.2320379792371899,
+        4.691712375321339,
+        0.23525163334590146
+      ],
+      "warm_geomean_relative_error": 0.28446588927127836,
+      "setup_geomean_relative_error": 0.17389152807722752,
+      "warm_grouped_cv_geomean_relative_error": 0.3048296904085537,
+      "setup_grouped_cv_geomean_relative_error": 0.20260706761812464
+    }
+  },
+  "grouped_cv_policy_validation": {
+    "K_1": {
+      "complete_configurations": 192,
+      "router_oracle_geomean": 0.9703320680231632,
+      "oracle_hits": 169,
+      "hit_rate": 0.8802083333333334,
+      "ratio_ge_0_85": 183,
+      "ratio_ge_0_99": 169,
+      "geomean_vs_matching_cusparse_including_feature_cost": 0.010701942182771316
+    },
+    "K_1000": {
+      "complete_configurations": 192,
+      "router_oracle_geomean": 0.9139344991041093,
+      "oracle_hits": 90,
+      "hit_rate": 0.46875,
+      "ratio_ge_0_85": 160,
+      "ratio_ge_0_99": 105,
+      "geomean_vs_matching_cusparse_including_feature_cost": 0.6619817314121356
+    }
+  }
+}

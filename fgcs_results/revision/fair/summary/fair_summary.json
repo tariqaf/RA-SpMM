@@ -1,0 +1,115 @@
+{
+  "configurations": 192,
+  "regimes": {
+    "warm": {
+      "router_policy": "production_rule_tree_no_lifecycle_cost",
+      "per_kernel_geomean_vs_cusparse": {
+        "CSR_DIRECT": 0.8174295783134233,
+        "RODE_ENHANCED": 0.7900248256815638,
+        "ZERO_OVERHEAD_CSR": 0.8057049290753914,
+        "TC_DIRECT": 0.9275410102946082,
+        "COMMUNITY_TC": 0.9431823858555679,
+        "SEGMENT_HYBRID": 0.789101710236423
+      },
+      "oracle_geomean_vs_cusparse": 1.0387485554513856,
+      "router_geomean_vs_cusparse": 1.007031053621817,
+      "router_oracle_geomean": 0.9694656597469001,
+      "router_hits": 143,
+      "router_hit_rate": 0.7447916666666666,
+      "empirical_ratio_ge_0_85": 181,
+      "empirical_ratio_ge_0_99": 164,
+      "oracle_counts": {
+        "COMMUNITY_TC": 67,
+        "CSR_DIRECT": 7,
+        "SEGMENT_HYBRID": 11,
+        "RODE_ENHANCED": 7,
+        "ZERO_OVERHEAD_CSR": 23,
+        "TC_DIRECT": 77
+      },
+      "oracle_counts_by_category": {
+        "Community": {
+          "COMMUNITY_TC": 8,
+          "ZERO_OVERHEAD_CSR": 3,
+          "TC_DIRECT": 20
+        },
+        "Dense Large-Scale": {
+          "TC_DIRECT": 5,
+          "RODE_ENHANCED": 3,
+          "SEGMENT_HYBRID": 1,
+          "COMMUNITY_TC": 2
+        },
+        "Dense Small": {
+          "ZERO_OVERHEAD_CSR": 9,
+          "TC_DIRECT": 8,
+          "COMMUNITY_TC": 23
+        },
+        "Mixed/Irregular": {
+          "CSR_DIRECT": 2,
+          "SEGMENT_HYBRID": 6,
+          "COMMUNITY_TC": 3,
+          "RODE_ENHANCED": 2,
+          "ZERO_OVERHEAD_CSR": 10,
+          "TC_DIRECT": 13
+        },
+        "Sparse Skewed": {
+          "CSR_DIRECT": 5,
+          "TC_DIRECT": 10,
+          "COMMUNITY_TC": 5,
+          "SEGMENT_HYBRID": 4,
+          "ZERO_OVERHEAD_CSR": 1,
+          "RODE_ENHANCED": 2
+        },
+        "Sparse Uniform": {
+          "COMMUNITY_TC": 26,
+          "TC_DIRECT": 21
+        }
+      }
+    },
+    "cold": {
+      "router_policy": "production_rule_tree_no_lifecycle_cost",
+      "per_kernel_geomean_vs_cusparse": {
+        "CSR_DIRECT": 2.269109677534296,
+        "RODE_ENHANCED": 0.94700527969983,
+        "ZERO_OVERHEAD_CSR": 1.355221439016727,
+        "TC_DIRECT": 0.048603447251484425,
+        "COMMUNITY_TC": 0.01710391196695814,
+        "SEGMENT_HYBRID": 0.5686775511576517
+      },
+      "oracle_geomean_vs_cusparse": 2.340051438183802,
+      "router_geomean_vs_cusparse": 0.06197473820095759,
+      "router_oracle_geomean": 0.026484348672719146,
+      "router_hits": 9,
+      "router_hit_rate": 0.046875,
+      "empirical_ratio_ge_0_85": 9,
+      "empirical_ratio_ge_0_99": 9,
+      "oracle_counts": {
+        "CSR_DIRECT": 178,
+        "ZERO_OVERHEAD_CSR": 14
+      },
+      "oracle_counts_by_category": {
+        "Community": {
+          "CSR_DIRECT": 30,
+          "ZERO_OVERHEAD_CSR": 1
+        },
+        "Dense Large-Scale": {
+          "CSR_DIRECT": 9,
+          "ZERO_OVERHEAD_CSR": 2
+        },
+        "Dense Small": {
+          "ZERO_OVERHEAD_CSR": 6,
+          "CSR_DIRECT": 34
+        },
+        "Mixed/Irregular": {
+          "CSR_DIRECT": 31,
+          "ZERO_OVERHEAD_CSR": 5
+        },
+        "Sparse Skewed": {
+          "CSR_DIRECT": 27
+        },
+        "Sparse Uniform": {
+          "CSR_DIRECT": 47
+        }
+      }
+    }
+  }
+}

@@ -1,12 +1,14 @@
 """
 ra_real_graph_eval.py - Evaluate all RA-SpMM kernels on real-world graphs
 
-Loads graphs from paper_datasets.json and tests all 7 new kernels + cuSPARSE + CSR_DIRECT.
+Loads graphs from paper_datasets.json and tests the six-kernel paper portfolio
+against cuSPARSE.
 Outputs CSV with per-graph, per-kernel, per-N performance.
 
 Usage:
     python ra_real_graph_eval.py                          # All enabled datasets
     python ra_real_graph_eval.py --category "hub-dominated power-law"  # Specific regime
+    python ra_real_graph_eval.py --datasets ogbn-arxiv,Reddit,Cora --N 128
     python ra_real_graph_eval.py --correctness-only       # Correctness only
     python ra_real_graph_eval.py --output real_results.csv
 """
@@ -16,6 +18,7 @@ import json
 import math
 import os
 import sys
+import time
 from collections import defaultdict
 from typing import Dict, List, Optional
 
@@ -33,17 +36,16 @@ except ImportError:
 # ---------------------------------------------------------------------------
 WARMUP = 50
 TIMED_ITERS = 200
+COLD_ITERS = 10
 
-# Tolerance is proportional to avg_nnz_per_row because FP32 accumulation order
-# differences grow with the number of additions per output element.
-# Base tolerance for sparse graphs (avg_nnz < 20): 1e-3
-# For denser graphs: scale linearly, e.g., avg_nnz=500 → tol ≈ 0.5
-# TC kernels using FP16 WMMA get additional 10x relaxation
+# Tolerance follows the existing square-root model for accumulation-order
+# differences: BASE_ATOL * sqrt(max row nnz). Tile kernels receive the existing
+# factor for configurations that can execute half-precision WMMA groups.
 BASE_ATOL = 1e-3
 TC_EXTRA_FACTOR = 10.0  # FP16 accumulation is less precise
 TC_KERNELS = {"TC_DIRECT", "COMMUNITY_TC", "SEGMENT_HYBRID"}
 
-# Hard failure threshold: errors > 1.0 are genuine bugs, not precision differences
+# Errors at or above this threshold are classified separately for diagnostics.
 HARD_FAIL_THRESHOLD = 1.0
 
 DATASET_FILE = "paper_datasets.json"
@@ -107,9 +109,8 @@ def load_edge_list(path: str, directed: bool, symmetrize: bool,
             colind[cursor[src]] = min(dst, n - 1)
             cursor[src] += 1
 
-    # Sort and DEDUPLICATE column indices per row.
-    # This prevents double-counting when symmetrize=true is used on
-    # already-bidirectional files.
+    # Sort and deduplicate column indices per row. This prevents double-counting
+    # when symmetrize=true is applied to already-bidirectional input files.
     new_colind = []
     new_vals = []
     new_rowptr = [0]
@@ -205,62 +206,159 @@ def measure_ms(run_fn, warmup=WARMUP, iters=TIMED_ITERS):
     return start.elapsed_time(end) / iters
 
 
-# ---------------------------------------------------------------------------
-# Kernel execution
-# ---------------------------------------------------------------------------
-def run_kernel(kernel_name: str, rowptr, colind, vals, B, plan_cache: dict, cache_key: str):
-    M = rowptr.shape[0] - 1
-    N = B.shape[1]
+def measure_one_ms(run_fn):
+    torch.cuda.synchronize()
+    start = torch.cuda.Event(enable_timing=True)
+    end = torch.cuda.Event(enable_timing=True)
+    start.record()
+    output = run_fn()
+    end.record()
+    end.synchronize()
+    return output, start.elapsed_time(end)
 
+
+def population_cv(degrees: torch.Tensor) -> float:
+    if degrees.numel() == 0:
+        return 0.0
+    mean = degrees.float().mean()
+    if float(mean.item()) == 0.0:
+        return 0.0
+    return float((degrees.float().std(correction=0) / mean).item())
+
+
+# ---------------------------------------------------------------------------
+# Kernel planning and execution
+# ---------------------------------------------------------------------------
+def build_kernel_plan(kernel_name: str, rowptr_cpu, colind_cpu, vals_cpu,
+                      M: int, K: int, N: int):
+    if kernel_name == "CSR_DIRECT":
+        return None
+    if kernel_name == "ZERO_OVERHEAD_CSR":
+        return ra_spmm.make_zero_overhead_plan(rowptr_cpu, M, K)
+    if kernel_name == "RODE_ENHANCED":
+        return ra_spmm.make_rode_enhanced_plan(rowptr_cpu, M, K)
+    if kernel_name == "TC_DIRECT":
+        return ra_spmm.make_tc_direct_plan(rowptr_cpu, colind_cpu, vals_cpu, M, K, N)
+    if kernel_name == "COMMUNITY_TC":
+        return ra_spmm.make_community_tc_plan(rowptr_cpu, colind_cpu, vals_cpu, M, K, N)
+    if kernel_name == "SEGMENT_HYBRID":
+        return ra_spmm.make_segment_hybrid_plan(rowptr_cpu, colind_cpu, vals_cpu, M, K, N)
+    raise ValueError(f"Kernel has no reusable custom plan: {kernel_name}")
+
+
+def run_planned_kernel(kernel_name: str, plan, rowptr, colind, vals, B):
     if kernel_name == "CSR_DIRECT":
         return ra_spmm.spmm_csr_direct(rowptr, colind, vals, B)
-    elif kernel_name == "CUSPARSE":
-        return ra_spmm.spmm_cusparse(rowptr, colind, vals, B)
-    elif kernel_name == "ZERO_OVERHEAD_CSR":
+    if kernel_name == "ZERO_OVERHEAD_CSR":
+        return ra_spmm.run_zero_overhead_plan(plan, rowptr, colind, vals, B)
+    if kernel_name == "RODE_ENHANCED":
+        return ra_spmm.run_rode_enhanced_plan(plan, colind, vals, B)
+    if kernel_name == "TC_DIRECT":
+        return ra_spmm.run_tc_direct_plan(plan, B)
+    if kernel_name == "COMMUNITY_TC":
+        return ra_spmm.run_community_tc_plan(plan, B)
+    if kernel_name == "SEGMENT_HYBRID":
+        return ra_spmm.run_segment_hybrid_plan(plan, colind, vals, B)
+    raise ValueError(f"Unknown planned kernel: {kernel_name}")
+
+
+def run_kernel(kernel_name: str, rowptr, colind, vals, B, plan_cache: dict, cache_key: str):
+    M = rowptr.shape[0] - 1
+    K = B.shape[0]
+    N = B.shape[1]
+
+    if kernel_name == "CUSPARSE":
         if cache_key not in plan_cache:
-            plan_cache[cache_key] = ra_spmm.make_zero_overhead_plan(rowptr.cpu(), M, M)
-        return ra_spmm.run_zero_overhead_plan(plan_cache[cache_key], rowptr, colind, vals, B)
-    elif kernel_name == "VECTORIZED_COARSE":
-        if cache_key not in plan_cache:
-            plan_cache[cache_key] = ra_spmm.make_vectorized_coarse_plan(rowptr.cpu(), M, M)
-        return ra_spmm.run_vectorized_coarse_plan(plan_cache[cache_key], rowptr, colind, vals, B)
-    elif kernel_name == "RODE_ENHANCED":
-        if cache_key not in plan_cache:
-            plan_cache[cache_key] = ra_spmm.make_rode_enhanced_plan(rowptr.cpu(), M, M)
-        return ra_spmm.run_rode_enhanced_plan(plan_cache[cache_key], colind, vals, B)
-    elif kernel_name == "TC_DIRECT":
-        if cache_key not in plan_cache:
-            plan_cache[cache_key] = ra_spmm.make_tc_direct_plan(rowptr.cpu(), colind.cpu(), vals.cpu(), M, M, N)
-        return ra_spmm.run_tc_direct_plan(plan_cache[cache_key], B)
-    elif kernel_name == "LOCALITY_TILED":
-        if cache_key not in plan_cache:
-            plan_cache[cache_key] = ra_spmm.make_locality_tiled_plan(rowptr.cpu(), colind.cpu(), vals.cpu(), M, M, N)
-        return ra_spmm.run_locality_tiled_plan(plan_cache[cache_key], B)
-    elif kernel_name == "COMMUNITY_TC":
-        if cache_key not in plan_cache:
-            plan_cache[cache_key] = ra_spmm.make_community_tc_plan(rowptr.cpu(), colind.cpu(), vals.cpu(), M, M, N)
-        return ra_spmm.run_community_tc_plan(plan_cache[cache_key], B)
-    elif kernel_name == "SEGMENT_HYBRID":
-        if cache_key not in plan_cache:
-            plan_cache[cache_key] = ra_spmm.make_segment_hybrid_plan(rowptr.cpu(), colind.cpu(), vals.cpu(), M, M, N)
-        return ra_spmm.run_segment_hybrid_plan(plan_cache[cache_key], colind, vals, B)
-    else:
-        raise ValueError(f"Unknown kernel: {kernel_name}")
+            plan_cache[cache_key] = ra_spmm.make_cusparse_plan(
+                rowptr, colind, vals, B)
+        return ra_spmm.run_cusparse_plan(plan_cache[cache_key], B)
+    if cache_key not in plan_cache:
+        plan_cache[cache_key] = build_kernel_plan(
+            kernel_name, rowptr.cpu(), colind.cpu(), vals.cpu(), M, K, N)
+    return run_planned_kernel(kernel_name, plan_cache[cache_key], rowptr, colind, vals, B)
+
+
+def benchmark_custom_cold(kernel_name: str, rowptr_cpu, colind_cpu, vals_cpu,
+                          rowptr, colind, vals, B, iters: int):
+    M = int(rowptr_cpu.numel() - 1)
+    K = int(B.shape[0])
+    N = int(B.shape[1])
+    plan_total = 0.0
+    exec_total = 0.0
+    if kernel_name == "CSR_DIRECT":
+        for _ in range(max(1, iters)):
+            output, exec_ms = measure_one_ms(
+                lambda: run_planned_kernel(
+                    kernel_name, None, rowptr, colind, vals, B))
+            exec_total += exec_ms
+            del output
+        cold_exec_ms = exec_total / float(max(1, iters))
+        return {
+            "preprocess_ms": 0.0,
+            "cold_exec_ms": cold_exec_ms,
+            "ms_cold": cold_exec_ms,
+        }
+    for _ in range(max(1, iters)):
+        torch.cuda.synchronize()
+        t0 = time.perf_counter()
+        plan = build_kernel_plan(kernel_name, rowptr_cpu, colind_cpu, vals_cpu, M, K, N)
+        torch.cuda.synchronize()
+        plan_total += (time.perf_counter() - t0) * 1000.0
+        output, exec_ms = measure_one_ms(
+            lambda: run_planned_kernel(kernel_name, plan, rowptr, colind, vals, B))
+        exec_total += exec_ms
+        del output
+        del plan
+        torch.cuda.synchronize()
+    count = float(max(1, iters))
+    preprocess_ms = plan_total / count
+    cold_exec_ms = exec_total / count
+    return {
+        "preprocess_ms": preprocess_ms,
+        "cold_exec_ms": cold_exec_ms,
+        "ms_cold": preprocess_ms + cold_exec_ms,
+    }
 
 
 # ---------------------------------------------------------------------------
 # Main evaluation
 # ---------------------------------------------------------------------------
 def main():
+    global WARMUP, TIMED_ITERS, COLD_ITERS
     parser = argparse.ArgumentParser(description="RA-SpMM Real Graph Evaluation")
     parser.add_argument("--correctness-only", action="store_true")
     parser.add_argument("--category", type=str, default=None,
                         help="Filter by dataset category")
     parser.add_argument("--dataset", type=str, default=None,
                         help="Run specific dataset by name")
+    parser.add_argument("--datasets", type=str, default=None,
+                        help="Comma-separated dataset names to run")
+    parser.add_argument("--N", "--Ns", dest="Ns", type=str, default=None,
+                        help="Comma-separated output feature dimensions")
     parser.add_argument("--output", type=str, default="real_graph_results.csv")
-    parser.add_argument("--datasets-file", type=str, default=DATASET_FILE)
+    parser.add_argument("--datasets-file", "--datasets-json", dest="datasets_file",
+                        type=str, default=DATASET_FILE)
+    parser.add_argument("--warmup", type=int, default=WARMUP)
+    parser.add_argument("--timed", type=int, default=TIMED_ITERS)
+    parser.add_argument("--cold-iters", type=int, default=COLD_ITERS,
+                        help="Independent setup-plus-one-execute repetitions")
+    parser.add_argument("--seed", type=int, default=123)
+    parser.add_argument("--kernels", default=",".join(ALL_KERNELS),
+                        help="Comma-separated custom kernels; cuSPARSE is always measured")
+    parser.add_argument("--correctness-report", default=None,
+                        help="CSV path for per-kernel strict correctness results")
     args = parser.parse_args()
+    WARMUP = int(args.warmup)
+    TIMED_ITERS = int(args.timed)
+    COLD_ITERS = int(args.cold_iters)
+
+    selected_Ns = None
+    if args.Ns:
+        selected_Ns = [int(x) for x in args.Ns.replace(",", " ").split()]
+    selected_kernels = [name.strip() for name in args.kernels.split(",") if name.strip()]
+    invalid_kernels = sorted(set(selected_kernels) - set(ALL_KERNELS))
+    if invalid_kernels:
+        raise ValueError(f"Unknown kernels: {invalid_kernels}")
 
     print("=" * 70)
     print("RA-SpMM Real Graph Evaluation — All Kernels")
@@ -281,8 +379,14 @@ def main():
     # Filter
     if args.category:
         datasets = [d for d in datasets if d.get('category', '') == args.category]
+    selected_names = []
     if args.dataset:
-        datasets = [d for d in datasets if d.get('name', '') == args.dataset]
+        selected_names.append(args.dataset)
+    if args.datasets:
+        selected_names.extend(x.strip() for x in args.datasets.split(",") if x.strip())
+    if selected_names:
+        selected = set(selected_names)
+        datasets = [d for d in datasets if d.get('name', '') in selected]
 
     # Only enabled datasets
     datasets = [d for d in datasets if d.get('enabled', True)]
@@ -292,11 +396,15 @@ def main():
         print(f"  [{d.get('category', '?')}] {d['name']} (M={d.get('M', '?')}, nnz={d.get('nnz', '?')})")
 
     all_results = []
+    correctness_rows = []
+    correctness_failures = 0
 
     for entry in datasets:
         name = entry['name']
         category = entry.get('category', 'unknown')
-        Ns = entry.get('Ns', [64, 128, 256])
+        declared_Ns = [int(value) for value in entry.get('Ns', [64, 128, 256])]
+        Ns = ([value for value in selected_Ns if value in declared_Ns]
+              if selected_Ns is not None else declared_Ns)
         max_N = entry.get('max_N', 512)
         Ns = [n for n in Ns if n <= max_N]
 
@@ -310,138 +418,233 @@ def main():
             continue
 
         M = mat['M']
-        rowptr = mat['rowptr'].cuda()
-        colind = mat['colind'].cuda()
-        vals = mat['vals'].cuda()
-        nnz = int(rowptr[-1].item())
-        print(f"  M={M}, nnz={nnz}, avg_deg={nnz/max(1,M):.1f}")
+        K = mat.get('K', M)
+        rowptr_cpu = mat['rowptr'].contiguous().int()
+        colind_cpu = mat['colind'].contiguous().int()
+        vals_cpu = mat['vals'].contiguous().float()
+        rowptr = rowptr_cpu.cuda()
+        colind = colind_cpu.cuda()
+        vals = vals_cpu.cuda()
+        nnz = int(rowptr_cpu[-1].item())
+        deg = (rowptr_cpu[1:] - rowptr_cpu[:-1]).float()
+        d_bar = nnz / max(1, M)
+        cv_d = population_cv(deg)
+        max_nnz_row = max(1, int(deg.max().item())) if M > 0 else 1
+        print(f"  M={M}, nnz={nnz}, avg_deg={d_bar:.1f}, cv_d={cv_d:.3f}")
 
-        # Warn if the loaded nnz differs from the manifest
+        # Warn if the loaded nnz differs from the manifest metadata.
         manifest_nnz = entry.get('nnz', None)
         if manifest_nnz is not None:
             ratio = nnz / max(1, manifest_nnz)
             if abs(ratio - 1.0) > 0.01:  # >1% discrepancy
-                print(f"  ⚠️  WARNING: loaded nnz={nnz} vs manifest nnz={manifest_nnz} "
+                print(f"  WARNING: loaded nnz={nnz} vs manifest nnz={manifest_nnz} "
                       f"(ratio={ratio:.2f}). Check symmetrize/directed flags!")
 
-        plan_cache = {}
-
         for N in Ns:
-            B = torch.randn(M, N, device='cuda')
+            torch.manual_seed(args.seed + M + N)
+            B = torch.randn(K, N, device='cuda')
             print(f"\n  N={N}:")
 
-            # Reference: cuSPARSE (vendor baseline — the standard correctness target)
-            C_ref = run_kernel("CUSPARSE", rowptr, colind, vals, B, plan_cache, "cusparse_ref")
-
-            for kname in ALL_KERNELS:
-                if kname == "CUSPARSE":
-                    continue  # skip: cuSPARSE is the reference, not a test target
-                cache_key = f"{kname}_{N}"
+            # The reference call is not used for performance measurement.
+            C_ref = ra_spmm.spmm_cusparse(rowptr, colind, vals, B)
+            measurements = {}
+            for kname in selected_kernels:
                 try:
-                    C_test = run_kernel(kname, rowptr, colind, vals, B, plan_cache, cache_key)
+                    plan = build_kernel_plan(
+                        kname, rowptr_cpu, colind_cpu, vals_cpu, M, K, N)
+                    C_test = run_planned_kernel(kname, plan, rowptr, colind, vals, B)
                     max_err = (C_test - C_ref).abs().max().item()
-
-                    # Adaptive tolerance: FP32 max_error scales with max row nnz,
-                    # not avg, because the hub row dominates the error bound.
-                    # Use sqrt(max_nnz_per_row) as the error model.
-                    max_nnz_row = max(1, int((rowptr[1:] - rowptr[:-1]).max().item()))
                     tol = BASE_ATOL * max(1.0, math.sqrt(max_nnz_row))
                     if kname in TC_KERNELS:
-                        tol *= TC_EXTRA_FACTOR  # FP16 WMMA needs more slack
-                    # Hard failures (errors > 1.0) are always bugs, not precision
-                    correct = max_err < tol or max_err < HARD_FAIL_THRESHOLD
+                        tol *= TC_EXTRA_FACTOR
+                    correct = max_err <= tol and max_err < HARD_FAIL_THRESHOLD
+                    soft_fail = tol < max_err < HARD_FAIL_THRESHOLD
                     hard_fail = max_err >= HARD_FAIL_THRESHOLD
+                    if not correct:
+                        correctness_failures += 1
 
-                    if args.correctness_only:
-                        if hard_fail:
-                            status = "HARD_FAIL"
-                        elif max_err < tol:
-                            status = "PASS"
-                        else:
-                            status = "SOFT_FAIL"  # precision difference, not a bug
-                        print(f"    [{status}] {kname}: max_error={max_err:.6f} (tol={tol:.6f})")
-                        continue
-
-                    # Performance
-                    ms_val = measure_ms(lambda: run_kernel(kname, rowptr, colind, vals, B, plan_cache, cache_key))
-
-                    # Get cuSPARSE baseline
-                    ms_cusparse = measure_ms(lambda: run_kernel("CUSPARSE", rowptr, colind, vals, B, plan_cache, "CUSPARSE"))
-                    ms_direct = measure_ms(lambda: run_kernel("CSR_DIRECT", rowptr, colind, vals, B, plan_cache, "direct"))
-
-                    speedup_cusparse = ms_cusparse / ms_val if ms_val > 0 else 0
-                    speedup_direct = ms_direct / ms_val if ms_val > 0 else 0
-
-                    all_results.append({
-                        "dataset": name, "category": category,
-                        "M": M, "nnz": nnz, "N": N,
-                        "kernel": kname,
-                        "ms": round(ms_val, 4),
-                        "ms_cusparse": round(ms_cusparse, 4),
-                        "ms_csr_direct": round(ms_direct, 4),
-                        "speedup_vs_cusparse": round(speedup_cusparse, 3),
-                        "speedup_vs_csr_direct": round(speedup_direct, 3),
+                    timing = {
                         "correct": correct,
-                        "max_error": round(max_err, 6),
-                    })
-
-                    print(f"    {kname}: {ms_val:.3f}ms (vs cuSPARSE: {speedup_cusparse:.2f}x, vs DIRECT: {speedup_direct:.2f}x)")
-
-                except Exception as e:
-                    print(f"    {kname}: ERROR — {e}")
-                    if not args.correctness_only:
-                        all_results.append({
+                        "soft_fail": soft_fail,
+                        "hard_fail": hard_fail,
+                        "max_error": max_err,
+                        "tolerance": tol,
+                        "error": "",
+                    }
+                    if args.correctness_only:
+                        correctness_rows.append({
                             "dataset": name, "category": category,
-                            "M": M, "nnz": nnz, "N": N,
-                            "kernel": kname,
-                            "ms": -1, "ms_cusparse": -1, "ms_csr_direct": -1,
-                            "speedup_vs_cusparse": 0, "speedup_vs_csr_direct": 0,
-                            "correct": False, "max_error": -1,
+                            "synthetic": bool(entry.get("synthetic", False)),
+                            "M": M, "K": K, "nnz": nnz, "N": N,
+                            "kernel": kname, **timing,
                         })
+                    if not args.correctness_only and correct:
+                        timing["ms_warm"] = measure_ms(
+                            lambda: run_planned_kernel(
+                                kname, plan, rowptr, colind, vals, B),
+                            WARMUP, TIMED_ITERS)
+                        timing.update(benchmark_custom_cold(
+                            kname, rowptr_cpu, colind_cpu, vals_cpu,
+                            rowptr, colind, vals, B, COLD_ITERS))
+                    measurements[kname] = timing
+                    status = "PASS" if correct else ("SOFT_FAIL" if soft_fail else "HARD_FAIL")
+                    print(f"    [{status}] {kname}: max_error={max_err:.6g} (tol={tol:.6g})")
+                    del C_test
+                    del plan
+                except Exception as exc:
+                    correctness_failures += 1
+                    measurements[kname] = {
+                        "correct": False, "soft_fail": False, "hard_fail": True,
+                        "max_error": None, "tolerance": None, "error": str(exc),
+                    }
+                    if args.correctness_only:
+                        correctness_rows.append({
+                            "dataset": name, "category": category,
+                            "synthetic": bool(entry.get("synthetic", False)),
+                            "M": M, "K": K, "nnz": nnz, "N": N,
+                            "kernel": kname, **measurements[kname],
+                        })
+                    print(f"    [ERROR] {kname}: {exc}")
+
+            if not args.correctness_only:
+                cus_warm = ra_spmm.benchmark_cusparse(
+                    rowptr, colind, vals, B, warmup=WARMUP, iters=TIMED_ITERS)
+                cus_cold = ra_spmm.benchmark_cusparse_cold(
+                    rowptr, colind, vals, B, max(1, COLD_ITERS))
+                measurements["CUSPARSE"] = {
+                    "correct": True, "soft_fail": False, "hard_fail": False,
+                    "max_error": 0.0, "tolerance": 0.0, "error": "",
+                    "ms_warm": float(cus_warm["exec_ms"]),
+                    "preprocess_ms": float(cus_cold["plan_ms"]),
+                    "cold_exec_ms": float(cus_cold["exec_ms"]),
+                    "ms_cold": float(cus_cold["total_ms"]),
+                }
+
+                # Precision-matched baseline: same algorithm and timing loops,
+                # A/B in fp16, C fp32, compute fp32 (the tile kernels' dtypes).
+                cus16_warm = ra_spmm.benchmark_cusparse_fp16(
+                    rowptr, colind, vals, B, warmup=WARMUP, iters=TIMED_ITERS)
+                cus16_cold = ra_spmm.benchmark_cusparse_fp16_cold(
+                    rowptr, colind, vals, B, max(1, COLD_ITERS))
+                ms_cusparse_fp16_warm = float(cus16_warm["exec_ms"])
+                ms_cusparse_fp16_cold = float(cus16_cold["total_ms"])
+
+                direct = measurements.get("CSR_DIRECT", {})
+                cusp = measurements["CUSPARSE"]
+                for kname in selected_kernels + ["CUSPARSE"]:
+                    timing = measurements[kname]
+                    eligible = bool(timing.get("correct"))
+                    warm = timing.get("ms_warm") if eligible else None
+                    cold = timing.get("ms_cold") if eligible else None
+                    all_results.append({
+                        "dataset": name,
+                        "category": category,
+                        "synthetic": bool(entry.get("synthetic", False)),
+                        "gpu_name": torch.cuda.get_device_name(0),
+                        "cuda_version": str(torch.version.cuda),
+                        "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES", ""),
+                        "warmup_iters": WARMUP,
+                        "timed_iters": TIMED_ITERS,
+                        "cold_iters": COLD_ITERS,
+                        "M": M, "K": K, "nnz": nnz, "N": N,
+                        "avg_nnz_per_row": round(d_bar, 6),
+                        "cv_d": round(cv_d, 6),
+                        "max_nnz_per_row": max_nnz_row,
+                        "kernel": kname,
+                        "ms_warm": round(warm, 6) if warm is not None else None,
+                        "preprocess_ms": round(timing.get("preprocess_ms", 0.0), 6) if eligible else None,
+                        "cold_exec_ms": round(timing.get("cold_exec_ms", 0.0), 6) if eligible else None,
+                        "ms_cold": round(cold, 6) if cold is not None else None,
+                        "ms_cusparse_warm": round(cusp["ms_warm"], 6),
+                        "ms_cusparse_cold": round(cusp["ms_cold"], 6),
+                        "ms_csr_direct_warm": round(direct.get("ms_warm", 0.0), 6),
+                        "ms_csr_direct_cold": round(direct.get("ms_cold", 0.0), 6),
+                        "speedup_vs_cusparse_warm": round(cusp["ms_warm"] / warm, 6) if warm else None,
+                        "speedup_vs_cusparse_cold": round(cusp["ms_cold"] / cold, 6) if cold else None,
+                        "speedup_vs_csr_direct_warm": round(direct["ms_warm"] / warm, 6)
+                            if warm and direct.get("ms_warm") else None,
+                        "speedup_vs_csr_direct_cold": round(direct["ms_cold"] / cold, 6)
+                            if cold and direct.get("ms_cold") else None,
+                        "ms_cusparse_fp16_warm": round(ms_cusparse_fp16_warm, 6),
+                        "ms_cusparse_fp16_cold": round(ms_cusparse_fp16_cold, 6),
+                        "speedup_precision_matched_warm":
+                            round(ms_cusparse_fp16_warm / warm, 6)
+                            if warm and kname in TC_KERNELS else None,
+                        "speedup_precision_matched_cold":
+                            round(ms_cusparse_fp16_cold / cold, 6)
+                            if cold and kname in TC_KERNELS else None,
+                        "correct": timing["correct"],
+                        "soft_fail": timing["soft_fail"],
+                        "hard_fail": timing["hard_fail"],
+                        "max_error": timing["max_error"],
+                        "tolerance": timing["tolerance"],
+                        "error": timing["error"],
+                    })
+                    if kname != "CUSPARSE" and warm is not None:
+                        print(f"      {kname}: warm={warm:.4f} ms "
+                              f"({cusp['ms_warm']/warm:.3f}x), cold={cold:.4f} ms "
+                              f"({cusp['ms_cold']/cold:.3f}x)")
 
             # Clear GPU memory between N values
+            del C_ref
             del B
             torch.cuda.empty_cache()
 
-        # Clear plan cache between datasets
-        del plan_cache
         torch.cuda.empty_cache()
 
     if args.correctness_only:
-        print("\nCorrectness-only mode complete.")
+        if args.correctness_report and correctness_rows:
+            report_path = os.path.abspath(args.correctness_report)
+            os.makedirs(os.path.dirname(report_path), exist_ok=True)
+            with open(report_path, 'w', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=list(correctness_rows[0].keys()))
+                writer.writeheader()
+                writer.writerows(correctness_rows)
+            print(f"Strict correctness report saved to {args.correctness_report}")
+        if correctness_failures:
+            print(f"\nStrict correctness failed for {correctness_failures} configurations.")
+            sys.exit(1)
+        print("\nStrict correctness passed for every loaded configuration.")
         return
 
     # Save CSV
     if all_results:
         fieldnames = list(all_results[0].keys())
+        output_dir = os.path.dirname(os.path.abspath(args.output))
+        os.makedirs(output_dir, exist_ok=True)
         with open(args.output, 'w', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(all_results)
         print(f"\nResults saved to {args.output}")
 
-    # Summary: geomean speedup vs cuSPARSE per kernel
+    # Summary: geomean speedup vs cuSPARSE per kernel and matching regime.
     print("\n" + "=" * 60)
-    print("SUMMARY: Geomean speedup vs cuSPARSE per kernel")
+    print("SUMMARY: Correct-only geomean speedup vs cuSPARSE")
     print("=" * 60)
-    by_kernel = defaultdict(list)
-    for r in all_results:
-        if r["speedup_vs_cusparse"] > 0 and r["kernel"] != "CUSPARSE":
-            by_kernel[r["kernel"]].append(math.log(r["speedup_vs_cusparse"]))
-    for k in ALL_KERNELS:
-        if k in by_kernel and by_kernel[k]:
-            logs = by_kernel[k]
-            geomean = math.exp(sum(logs) / len(logs))
-            print(f"  {k:25s}: {geomean:.3f}x ({len(logs)} datapoints)")
+    for regime in ("warm", "cold"):
+        speed_col = f"speedup_vs_cusparse_{regime}"
+        by_kernel = defaultdict(list)
+        for row in all_results:
+            speedup = row.get(speed_col)
+            if row["correct"] and row["kernel"] != "CUSPARSE" and speedup:
+                by_kernel[row["kernel"]].append(math.log(speedup))
+        print(f"  {regime.upper()}:")
+        for kernel in ALL_KERNELS:
+            logs = by_kernel.get(kernel, [])
+            if logs:
+                print(f"    {kernel:23s}: {math.exp(sum(logs) / len(logs)):.3f}x "
+                      f"({len(logs)} datapoints)")
 
     # Summary per category
     print("\n" + "=" * 60)
-    print("SUMMARY: Best kernel per category (geomean vs cuSPARSE)")
+    print("SUMMARY: Best warm kernel per category (correct rows only)")
     print("=" * 60)
     by_cat_kernel = defaultdict(lambda: defaultdict(list))
     for r in all_results:
-        if r["speedup_vs_cusparse"] > 0 and r["kernel"] != "CUSPARSE":
-            by_cat_kernel[r["category"]][r["kernel"]].append(math.log(r["speedup_vs_cusparse"]))
+        speedup = r.get("speedup_vs_cusparse_warm")
+        if r["correct"] and speedup and r["kernel"] != "CUSPARSE":
+            by_cat_kernel[r["category"]][r["kernel"]].append(math.log(speedup))
 
     for cat in sorted(by_cat_kernel.keys()):
         best_k, best_gm = "", 0
@@ -452,6 +655,8 @@ def main():
         print(f"  {cat:45s}: {best_k:25s} ({best_gm:.3f}x)")
 
     print("\nDone.")
+    if correctness_failures:
+        print(f"WARNING: {correctness_failures} incorrect rows were excluded from all statistics.")
 
 
 if __name__ == "__main__":

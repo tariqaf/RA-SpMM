@@ -1,0 +1,11 @@
+{
+  "dataset": "ca-GrQc",
+  "category": "Dense Small",
+  "synthetic": false,
+  "kernel": "ZERO_OVERHEAD_CSR",
+  "N": 128,
+  "gpu": 0,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "ca-GrQc__ZERO_OVERHEAD_CSR__N128.ncu-rep",
+  "raw_csv": "ca-GrQc__ZERO_OVERHEAD_CSR__N128.ncu.csv"
+}

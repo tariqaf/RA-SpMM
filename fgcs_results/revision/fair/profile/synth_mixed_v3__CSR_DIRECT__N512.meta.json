@@ -1,0 +1,11 @@
+{
+  "dataset": "synth_mixed_v3",
+  "category": "Mixed/Irregular",
+  "synthetic": true,
+  "kernel": "CSR_DIRECT",
+  "N": 512,
+  "gpu": 0,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "synth_mixed_v3__CSR_DIRECT__N512.ncu-rep",
+  "raw_csv": "synth_mixed_v3__CSR_DIRECT__N512.ncu.csv"
+}

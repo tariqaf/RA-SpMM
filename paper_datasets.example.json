@@ -10,7 +10,7 @@
       "symmetrize": true,
       "unit_values": true,
       "tags": ["SuiteSparse", "RoDe"],
-      "notes": "SuiteSparse-style power-law web graph placeholder. Strong row-skew / hub benchmark."
+      "notes": "SuiteSparse-style power-law web graph entry. Strong row-skew / hub benchmark."
     },
     {
       "name": "roadNet-CA",
@@ -25,7 +25,7 @@
       "one_indexed": false,
       "unit_values": true,
       "tags": ["SNAP"],
-      "notes": "Road-network placeholder for direct-friendly sparse-band structure."
+      "notes": "Road-network entry for direct-friendly sparse-band structure."
     },
     {
       "name": "Cora",

@@ -1,11 +1,11 @@
 // ============================================================================
 // ra_common.h - Shared types for regime-aware SpMM routing
 //
-// Core 6-kernel portfolio:
+// Paper-facing 6-kernel portfolio (cited in the FGCS paper):
 //   - CSR_DIRECT          (csr/csr_direct.cu)        warp-per-row baseline
 //   - RODE_ENHANCED       (csr/ra_rode_enhanced.cu)  block-residual decomposition
 //   - ZERO_OVERHEAD_CSR   (csr/ra_zero_overhead.cu)  degree-binned dispatch
-//   - TC_DIRECT           (tc/ra_tc_direct.cu)       single-pass Tensor Core
+//   - TC_DIRECT           (tc/ra_tc_direct.cu)       tile-packed hybrid path
 //   - COMMUNITY_TC        (tc/ra_community_tc.cu)    label-prop clustering + TC
 //   - SEGMENT_HYBRID      (tc/ra_segment_hybrid.cu)  row-level TC/CUDA partition
 // Plus: CUSPARSE (vendor baseline, dispatched when no custom kernel dominates)
@@ -75,7 +75,7 @@ enum class NextPath : int {
     HYBRID_TC_CUDA  = 6,
     CUSPARSE        = 7,
 
-    // --- New regime-specific kernels ---
+    // --- Specialized kernels used by the router ---
     RODE_ENHANCED     = 8,   // R1: Hub-dominated power-law
     VECTORIZED_COARSE = 9,   // R2: Ordered sparse / road-network
     LOCALITY_TILED    = 10,  // R3: Reordered locality
@@ -267,7 +267,7 @@ struct TCFeatures {
     int   total_tiles_checked;
     int   tc_candidate_tiles;
 
-    // Extended tile statistics
+    // Tile-level structural statistics.
     float tile_fill_median;
     float tile_fill_p90;
     float tile_fill_max;
@@ -419,7 +419,7 @@ struct TCReorderedPlan {
     uint16_t* d_group_tile_vals = nullptr; // device: packed 16x16 half tiles (opaque bits)
     float* d_workspace_C    = nullptr;  // reusable reordered output workspace
     bool active             = false;
-    bool placeholder_quality = true;    // honest marker for intermediate TC path
+    bool conservative_precision_guard = true; // legacy path uses guarded FP32 fallback groups
     int  num_groups         = 0;
     int  num_fp32_groups    = 0;
     int  num_fp32_rows      = 0;
@@ -489,20 +489,31 @@ struct HybridPlan {
 };
 
 // ===========================================================================
-// Plan structs for new regime-specific kernels
+// Plan structs for specialized router kernels.
 // ===========================================================================
 
 // R6: Zero-overhead CSR for dense co-purchase / overhead-sensitive regime
 struct RAZeroOverheadPlan {
-    // Degree-binned row lists
-    int* d_tiny_row_ids   = nullptr;  // rows with 1-4 nnz
-    int* d_short_row_ids  = nullptr;  // rows with 5-16 nnz
-    int* d_medium_row_ids = nullptr;  // rows with 17-64 nnz
-    int* d_long_row_ids   = nullptr;  // rows with 65+ nnz
+    // Unified small-row list (1-64 nnz), stored bin-ordered (tiny, short,
+    // medium) so warps scheduled together see similar row lengths.
+    int* d_small_row_ids  = nullptr;
+    int  num_small = 0;
+    // Flattened long-row chunk descriptors (rows with 65+ nnz, 256-nnz
+    // chunks). Bit 31 of d_chunk_rows marks a sole chunk (covers its whole
+    // row -> direct store, no atomics, no pre-zeroing).
+    int* d_chunk_rows     = nullptr;
+    int* d_chunk_starts   = nullptr;
+    int  num_chunks = 0;
+    // Rows whose C slice must be pre-zeroed (empty rows + multi-chunk rows).
+    int* d_zero_row_ids   = nullptr;
+    int  num_zero_rows = 0;
+    // Diagnostics
     int  num_tiny   = 0;
     int  num_short  = 0;
     int  num_medium = 0;
     int  num_long   = 0;
+    int  num_empty  = 0;
+    int  max_long_chunks = 0;          // exact max ceil(long-row nnz / chunk size)
     int  M = 0, K = 0;
     size_t plan_bytes = 0;
 };
@@ -539,7 +550,9 @@ struct RARodeEnhancedPlan {
     int* d_res_row_ids      = nullptr;
     int* d_res_starts       = nullptr;
     int* d_res_lengths      = nullptr;
+    uint8_t* d_res_has_regular = nullptr;
     int  num_residual       = 0;
+    int  num_empty          = 0;
 
     // Diagnostics
     int  M = 0, K = 0;
@@ -548,39 +561,29 @@ struct RARodeEnhancedPlan {
     size_t plan_bytes = 0;
 };
 
-// R4: Flash TC plan — fixed TC_REORDERED with single-pass tile iteration
+// R4: Flash TC plan — FlashSparse-style ME-BCRS 8x1-vector format executed
+// with swapped-operand mma.m16n8k8 (FP16 inputs, FP32 accumulate). Row
+// windows of height 8 in NATURAL row order (no reordering); per window the
+// distinct columns become 8x1 vectors, grouped into 8-vector mma blocks
+// whose values are stored directly in PTX B-fragment order.
 struct RATcDirectPlan {
-    // Row permutation (from reordering)
-    int* h_row_perm       = nullptr;  // host: reordered_row -> original_row
-    int* h_row_perm_inv   = nullptr;  // host: original_row -> reordered_row
-    int* d_perm_inv       = nullptr;  // device: reordered_row -> original_row
+    int*      d_block_offsets = nullptr;  // [num_windows+1] 8-vector block offsets
+    int*      d_atox          = nullptr;  // [num_blocks*8] B-row gather index per vector
+    uint16_t* d_vals_f16      = nullptr;  // [num_blocks*64] halves in fragment order
+    int       num_windows     = 0;
 
-    // Reordered CSR (for FP32 fallback rows)
-    int*   d_row_ptr_r    = nullptr;
-    int*   d_col_r        = nullptr;
-    float* d_val_r        = nullptr;
+    // Lazily allocated per-plan scratch for the half-precision copy of B.
+    mutable uint16_t* d_bhalf        = nullptr;
+    mutable size_t    bhalf_capacity = 0;
 
-    // Group descriptors (16-row groups)
-    int* d_group_offsets      = nullptr;
-    int* d_group_use_fp32     = nullptr;
-    int  num_groups           = 0;
-
-    // TC tile data (packed FP16 16×16 tiles)
-    int*      d_group_tile_offsets = nullptr;
-    int*      d_group_tile_k_ids  = nullptr;
-    uint16_t* d_group_tile_vals   = nullptr;
-    int       num_tc_tiles        = 0;
-
-    // FP32 fallback rows
-    int* d_fp32_rows      = nullptr;
-    int  num_fp32_rows    = 0;
-    int  num_fp32_groups  = 0;
-
-    // Diagnostics
+    // Diagnostics (num_groups = windows, num_tc_tiles = mma blocks)
+    int   num_groups            = 0;
+    int   num_tc_tiles          = 0;
+    int   num_fp32_rows         = 0;
     float avg_group_compactness = 0.f;
     float avg_group_similarity  = 0.f;
     float fp32_group_fraction   = 0.f;
-    float avg_tc_tile_density   = 0.f;
+    float avg_tc_tile_density   = 0.f;  // nnz / (vectors * 8)
 
     bool   active         = false;
     int    M = 0, K = 0;
@@ -615,36 +618,24 @@ struct RALocalityTiledPlan {
 };
 
 // R5: Community TC plan — community-aware permutation + TC execution
+// R5: ME-BCRS tile SpMM over LOCALITY-ORDERED row windows: rows are sorted
+// by leading neighbor column so rows sharing neighborhoods land in the same
+// 8-row window, raising per-window column reuse (fewer 8x1 vectors).
 struct RACommunityTCPlan {
-    // Row permutation (community-aware reordering)
-    int* h_row_perm       = nullptr;
-    int* h_row_perm_inv   = nullptr;
-    int* d_perm_inv       = nullptr;
+    int*      d_block_offsets = nullptr;  // [num_windows+1]
+    int*      d_atox          = nullptr;  // [num_blocks*8]
+    uint16_t* d_vals_f16      = nullptr;  // [num_blocks*64] fragment order
+    int*      d_win_rows      = nullptr;  // [num_windows*8] original row per slot (-1 pad)
+    int       num_windows     = 0;
 
-    // Reordered CSR (for residual inter-community edges)
-    int*   d_row_ptr_r    = nullptr;
-    int*   d_col_r        = nullptr;
-    float* d_val_r        = nullptr;
-
-    // Community descriptors
-    int* d_comm_offsets   = nullptr;
-    int  num_communities  = 0;
-
-    // TC tile data (intra-community tiles)
-    int* d_group_offsets       = nullptr;
-    int* d_group_use_fp32      = nullptr;
-    int* d_group_tile_offsets  = nullptr;
-    int* d_group_tile_k_ids   = nullptr;
-    uint16_t* d_group_tile_vals = nullptr;
-    int  num_groups            = 0;
-    int  num_tc_tiles          = 0;
-
-    // FP32 fallback rows
-    int* d_fp32_rows      = nullptr;
-    int  num_fp32_rows    = 0;
+    mutable uint16_t* d_bhalf        = nullptr;
+    mutable size_t    bhalf_capacity = 0;
 
     // Diagnostics
-    float intra_community_nnz_fraction = 0.f;
+    int   num_groups       = 0;
+    int   num_communities  = 0;   // = windows
+    int   num_tc_tiles     = 0;   // = mma blocks
+    float intra_community_nnz_fraction = 0.f;  // nnz / (vectors * 8)
     float avg_tc_tile_density          = 0.f;
 
     bool   active         = false;
@@ -652,51 +643,32 @@ struct RACommunityTCPlan {
     size_t plan_bytes     = 0;
 };
 
-// R7: Segment hybrid plan — per-row-segment TC/CUDA partitioning
+// R7: ME-BCRS tile SpMM with BALANCE-SPLIT windows: natural-order 8-row
+// windows whose mma-block list exceeds a fixed segment size are split into
+// equal segments merged with atomicAdd (FlashSparse "_balance"), so hub
+// windows on skewed graphs no longer serialize one warp.
 struct RASegmentHybridPlan {
-    // Row-level classification
-    int* d_tc_row_ids       = nullptr;
-    int* d_cuda_short_ids   = nullptr;
-    int* d_cuda_long_ids    = nullptr;
-    int  num_tc_rows = 0, num_cuda_short = 0, num_cuda_long = 0;
+    int*      d_block_offsets = nullptr;  // [num_windows+1]
+    int*      d_atox          = nullptr;  // [num_blocks*8]
+    uint16_t* d_vals_f16      = nullptr;  // [num_blocks*64] fragment order
+    // Segment descriptors: bit 31 of d_seg_window marks a sole segment.
+    int*      d_seg_window    = nullptr;  // [num_segments]
+    int*      d_seg_bbegin    = nullptr;  // [num_segments]
+    int*      d_seg_bend      = nullptr;  // [num_segments]
+    int       num_segments    = 0;
+    // Rows of split windows (pre-zeroed before the atomic merge).
+    int*      d_zero_rows     = nullptr;
+    int       num_zero_rows   = 0;
+    int       num_windows     = 0;
 
-    // TC partition (grouped tiles for WMMA)
-    int* d_tc_group_offsets     = nullptr;
-    int* d_tc_group_use_fp32   = nullptr;
-    int* d_tc_tile_offsets     = nullptr;
-    int* d_tc_tile_k_ids       = nullptr;
-    uint16_t* d_tc_tile_vals   = nullptr;
-    int  num_tc_groups = 0, num_tc_tiles = 0;
-
-    // TC reordering
-    int* d_tc_perm_inv     = nullptr;
-    int* d_tc_row_ptr_r    = nullptr;
-    int* d_tc_col_r        = nullptr;
-    float* d_tc_val_r      = nullptr;
-
-    // TC FP32 fallback
-    int* d_tc_fp32_rows    = nullptr;
-    int  num_tc_fp32_rows  = 0;
-
-    // CUDA partition (RoDe-style decomposition)
-    int* d_cuda_short_row_ids   = nullptr;
-    int* d_cuda_short_starts    = nullptr;
-    int* d_cuda_short_block_nnz = nullptr;
-    int  num_cuda_short_rows    = 0;
-
-    int* d_cuda_long_row_ids    = nullptr;
-    int* d_cuda_long_starts     = nullptr;
-    int* d_cuda_long_block_nnz  = nullptr;
-    int  num_cuda_long_rows     = 0;
-
-    int* d_cuda_res_row_ids     = nullptr;
-    int* d_cuda_res_starts      = nullptr;
-    int* d_cuda_res_lengths     = nullptr;
-    int  num_cuda_residual      = 0;
+    mutable uint16_t* d_bhalf        = nullptr;
+    mutable size_t    bhalf_capacity = 0;
 
     // Diagnostics
-    float tc_nnz_fraction       = 0.f;
-    float cuda_nnz_fraction     = 0.f;
+    int   num_tc_groups   = 0;   // = windows
+    int   num_tc_tiles    = 0;   // = mma blocks
+    float tc_nnz_fraction   = 1.f;
+    float cuda_nnz_fraction = 0.f;
 
     bool   active         = false;
     int    M = 0, K = 0;

@@ -1,20 +1,15 @@
 // ============================================================================
 // tc_reordered.cu - TC_REORDERED SpMM using TCReorderedPlan
 //
-// This path is an intermediate locality-aware TC import:
+// This legacy/ablation path evaluates locality-aware Tensor Core reordering:
 // - Rows are grouped by coarse column locality and span compactness.
 // - Reordered CSR and the reordered-output workspace are owned by the plan.
 // - Warm runs do not allocate or free large buffers.
 // - A conservative precision guard keeps long / high-depth groups out of the
-//   half-input WMMA path because FP16 tile materialization is not numerically
-//   robust enough yet for skewed graphs.
+//   half-input WMMA path on skewed graphs.
 //
-// Still missing relative to mature DTC / Acc / FlashSparse-style designs:
-// - a richer compressed tile format
-// - selector / policy learning for tile activation
-// - sparse double buffering
-// - shared-memory bypass optimizations
-// - reduced sparse granularity like FlashSparse
+// The paper-facing portfolio uses TC_DIRECT, COMMUNITY_TC, and SEGMENT_HYBRID
+// for Tensor Core execution; this file remains available for reproducibility.
 // ============================================================================
 #include "../ra_common.h"
 

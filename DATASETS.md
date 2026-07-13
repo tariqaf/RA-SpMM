@@ -1,6 +1,6 @@
 # RA-SpMM Benchmark Datasets
 
-The RA-SpMM evaluation suite consists of **51 sparse graphs** (26 real-world + 25 procedurally generated synthetic) used in the accompanying paper. To keep the GitHub repository lightweight (~2 MB), the actual graph data is hosted on Zenodo as a single archive.
+The RA-SpMM evaluation suite consists of **51 sparse graphs** (26 real-world + 25 procedurally generated synthetic) used in the FGCS paper. To keep the GitHub repository lightweight (~2 MB), the actual graph data is hosted on Zenodo as a single archive.
 
 ## Zenodo record
 

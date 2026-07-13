@@ -12,6 +12,7 @@ dist/
 *.dylib
 
 # Python
+.venv/
 __pycache__/
 *.pyc
 *.pyo
@@ -32,21 +33,32 @@ __pycache__/
 # Local data caches (not part of the public release)
 datasets/
 external/
+baselines/
 logs/
+cache/
+DTCSpMM_exe_time_and_throughput.csv
+
+# Reproducible Nsight intermediates; parsed per-pair metrics remain tracked.
+*.ncu-rep
+*.ncu.csv
 
 # Temporary
 *.tmp
 *.bak
 *.JACCARD_BACKUP
+SERVER_PROMPT*.md
 
-# Local Python virtual environments
-.venv/
-venv/
-env/
+# Local paper drafts / unrelated manuscripts
+/My Survey paper/
 
-# Local experiment outputs and scratch (regenerated locally; not shipped)
-fgcs_results/
-baselines/
-*_bundle.tar.gz
-*.patch
-*.diff
+# Large local FGCS experiment outputs
+/fgcs_results/revision/baseline_3090/
+/fgcs_results/revision/convaware/
+/fgcs_results/revision/cublas/
+/fgcs_results/revision/dense/
+/fgcs_results/revision/featbreak/
+/fgcs_results/revision/for_4090/
+/fgcs_results/revision/profile/
+/fgcs_results/spmm/
+/fgcs_results/summary/
+/fgcs_results/synthetic/

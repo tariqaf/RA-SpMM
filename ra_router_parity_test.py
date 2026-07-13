@@ -1,5 +1,5 @@
 """
-Parity test for the router recalibration. Asserts that the Python
+Parity test for the production router. Asserts that the Python
 simple_router() and the C++ make_router_plan() produce identical kernel
 selections for every (graph, N) pair in paper_combined_datasets.json.
 
@@ -12,6 +12,7 @@ Usage:
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -31,8 +32,24 @@ from ra_real_graph_eval import load_dataset  # noqa: E402
 N_VALUES = [64, 128, 256, 512]
 
 
+def population_cv(deg: torch.Tensor) -> float:
+    mean = deg.mean()
+    if deg.numel() == 0 or float(mean.item()) == 0.0:
+        return 0.0
+    return float((deg.std(correction=0) / mean).item())
+
+
 def main():
-    manifest_path = REPO_ROOT / "fgcs_results" / "paper_combined_datasets.json"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--expected", type=int, default=192)
+    parser.add_argument("--allow-partial", action="store_true")
+    parser.add_argument("--manifest", default=None)
+    parser.add_argument("--quiet", action="store_true")
+    parser.add_argument("--result-file", default=None,
+                        help="Optional path for the final one-line parity status")
+    args = parser.parse_args()
+
+    manifest_path = Path(args.manifest) if args.manifest else REPO_ROOT / "fgcs_results" / "paper_combined_datasets.json"
     if not manifest_path.exists():
         manifest_path = REPO_ROOT / "paper_datasets.json"
     manifest = json.loads(manifest_path.read_text())["datasets"]
@@ -59,11 +76,14 @@ def main():
         nnz = int(rowptr[-1].item())
         deg = (rowptr[1:] - rowptr[:-1]).float()
         d_bar = nnz / max(1, M)
-        cv_d = float((deg.std() / deg.mean()).item()) if d_bar > 0 else 0.0
+        cv_d = population_cv(deg)
 
         # Restrict to entry-allowed N values
         Ns = [int(n) for n in entry.get("Ns", N_VALUES)
               if int(n) <= int(entry.get("max_N", 512))]
+
+        if not args.quiet:
+            print(f"[check] {entry['name']} ({len(Ns)} widths)", flush=True)
 
         for N in Ns:
             py_pick = simple_router(d_bar, cv_d, M, N, nnz)
@@ -80,14 +100,22 @@ def main():
                     "N": N, "py": py_pick, "cpp": cpp_pick,
                 })
 
-    print(f"PARITY {'OK' if not mismatches else 'FAIL'} "
-          f"{n_match}/{n_total}")
+    incomplete = n_total != args.expected and not args.allow_partial
+    ok = not mismatches and not incomplete and n_total > 0
+    status = f"PARITY {'OK' if ok else 'FAIL'} {n_match}/{n_total}"
+    print(status)
+    if args.result_file:
+        Path(args.result_file).write_text(status + "\n")
+    if incomplete:
+        print(f"Expected {args.expected} loaded configurations; got {n_total}. "
+              "Use --allow-partial only for an explicitly partial dataset checkout.")
     if mismatches:
         print("\nMismatches:")
         for m in mismatches:
             print(f"  {m['dataset']:<32s} N={m['N']:>4d}  cat={m['category']:<22s}  "
                   f"M={m['M']:>9d}  d={m['d_bar']:>6.2f}  CV={m['cv_d']:>5.2f}  "
                   f"py={m['py']:<18s} cpp={m['cpp']:<18s}")
+    if not ok:
         sys.exit(1)
 
 

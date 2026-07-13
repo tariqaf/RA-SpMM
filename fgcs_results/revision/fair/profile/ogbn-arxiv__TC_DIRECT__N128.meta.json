@@ -1,0 +1,11 @@
+{
+  "dataset": "ogbn-arxiv",
+  "category": "Sparse Uniform",
+  "synthetic": false,
+  "kernel": "TC_DIRECT",
+  "N": 128,
+  "gpu": 0,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "ogbn-arxiv__TC_DIRECT__N128.ncu-rep",
+  "raw_csv": "ogbn-arxiv__TC_DIRECT__N128.ncu.csv"
+}

@@ -1,16 +1,9 @@
-"""
-Nsight Compute profiling driver: for each representative (kernel, graph, N) pair,
-runs `ncu --set full` over a single NVTX-tagged SpMM launch (via
-bench/profile_case_ra.py), writing <pair>.ncu-rep (full report, has roofline) and
-<pair>.csv (raw metric dump), then aggregates the five metric families (tensor-core
-pipe utilisation, occupancy, DRAM throughput, roofline, top warp stalls) into
-PROFILE_SUMMARY.md and profile_summary.csv under fgcs_results/revision/profile/.
-"""
+"""Collect warm-kernel Nsight Compute reports for the six paper kernels."""
+
 from __future__ import annotations
 
 import argparse
-import csv as csvmod
-import io
+import json
 import os
 import subprocess
 import sys
@@ -18,179 +11,133 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HARNESS = REPO_ROOT / "bench" / "profile_case_ra.py"
+DEFAULT_MANIFEST = REPO_ROOT / "fgcs_results" / "paper_combined_datasets.json"
+DEFAULT_OUT = REPO_ROOT / "fgcs_results" / "revision" / "fair" / "profile"
 NCU = os.environ.get("NCU", "ncu")
-
-# (label, kernel, dataset, N)
-PAIRS = [
-    ("a_TC_DIRECT_amazon-photo_N128",      "TC_DIRECT",     "amazon-photo",     128),
-    ("b_COMMUNITY_TC_com-DBLP_N128",       "COMMUNITY_TC",  "com-DBLP",         128),
-    ("c_SEGMENT_HYBRID_amazon-computers_N128", "SEGMENT_HYBRID", "amazon-computers", 128),
-    ("d1_cuSPARSE_amazon-photo_N128",      "CUSPARSE",      "amazon-photo",     128),
-    ("d2_cuSPARSE_com-DBLP_N128",          "CUSPARSE",      "com-DBLP",         128),
-    ("d3_cuSPARSE_amazon-computers_N128",  "CUSPARSE",      "amazon-computers", 128),
-    ("e_RODE_ENHANCED_soc-Pokec_N256",     "RODE_ENHANCED", "soc-Pokec",        256),
+KERNELS = [
+    "CSR_DIRECT", "RODE_ENHANCED", "ZERO_OVERHEAD_CSR",
+    "TC_DIRECT", "COMMUNITY_TC", "SEGMENT_HYBRID",
+]
+FLOP_METRICS = [
+    "sm__sass_thread_inst_executed_op_ffma_pred_on.sum",
+    "sm__sass_thread_inst_executed_op_fadd_pred_on.sum",
+    "sm__sass_thread_inst_executed_op_fmul_pred_on.sum",
+    "sm__sass_thread_inst_executed_op_hfma_pred_on.sum",
+    "sm__sass_thread_inst_executed_op_hadd_pred_on.sum",
+    "sm__sass_thread_inst_executed_op_hmul_pred_on.sum",
+    "sm__inst_executed_pipe_tensor_op_hmma.sum",
 ]
 
-STALL_PREFIX = "smsp__average_warps_issue_stalled_"
+# Two structural representatives per regime where synthetic data exists.
+# Dense Large-Scale has no synthetic generator, so it uses two real graphs.
+REPRESENTATIVE_DATASETS = [
+    "roadNet-PA", "synth_sparse_uniform_d8",
+    "twitter-combined", "synth_sparse_skewed_cv2p5",
+    "amazon-photo", "synth_dense_small_d70",
+    "gplus-combined", "ogbn-proteins",
+    "com-DBLP", "synth_community_nc100",
+    "Flickr", "synth_mixed_v3",
+]
 
 
-def run_ncu(label, kernel, dataset, N, outdir, gpu):
-    rep = outdir / f"{label}.ncu-rep"
+def csv_list(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def safe_label(dataset: str, kernel: str, N: int) -> str:
+    clean = dataset.replace("/", "_").replace(" ", "_")
+    return f"{clean}__{kernel}__N{N}"
+
+
+def collect_one(dataset: str, category: str, synthetic: bool, kernel: str,
+                N: int, manifest: Path, outdir: Path, gpu: int,
+                force: bool) -> bool:
+    label = safe_label(dataset, kernel, N)
+    report = outdir / f"{label}.ncu-rep"
+    raw_csv = outdir / f"{label}.ncu.csv"
+    meta_path = outdir / f"{label}.meta.json"
+    if report.exists() and raw_csv.exists() and not force:
+        print(f"[skip] {label}", flush=True)
+        return True
+
     env = dict(os.environ)
     env["CUDA_VISIBLE_DEVICES"] = str(gpu)
     cmd = [
         NCU, "--nvtx", "--nvtx-include", "SPMM_PROFILE/",
-        "--set", "full", "-f", "-o", str(rep.with_suffix("")),
+        "--set", "full", "--metrics", ",".join(FLOP_METRICS),
+        "--force-overwrite", "-o", str(report.with_suffix("")),
         sys.executable, str(HARNESS),
         "--dataset", dataset, "--kernel", kernel, "--N", str(N),
+        "--datasets-file", str(manifest), "--warmup", "10",
     ]
-    print(f"[ncu] {label} ...", flush=True)
-    r = subprocess.run(cmd, env=env, capture_output=True, text=True)
-    if r.returncode != 0:
-        print(f"  FAILED ({r.returncode}):\n{r.stdout[-1500:]}\n{r.stderr[-1500:]}")
-        return None
-    # Export raw CSV
-    csv_path = outdir / f"{label}.csv"
-    exp = subprocess.run([NCU, "--import", str(rep), "--csv", "--page", "raw"],
-                         capture_output=True, text=True)
-    if exp.returncode == 0 and exp.stdout.strip():
-        csv_path.write_text(exp.stdout)
-        return csv_path
-    print(f"  CSV export failed: {exp.stderr[-500:]}")
-    return None
+    print(f"[ncu] gpu={gpu} {label}", flush=True)
+    completed = subprocess.run(cmd, env=env, capture_output=True, text=True)
+    if completed.returncode != 0:
+        print(f"[fail] {label}\n{completed.stdout[-2000:]}\n{completed.stderr[-2000:]}")
+        return False
+
+    exported = subprocess.run(
+        [NCU, "--import", str(report), "--csv", "--page", "raw"],
+        capture_output=True, text=True)
+    if exported.returncode != 0 or not exported.stdout.strip():
+        print(f"[fail] export {label}: {exported.stderr[-1000:]}")
+        return False
+    raw_csv.write_text(exported.stdout)
+    meta_path.write_text(json.dumps({
+        "dataset": dataset, "category": category, "synthetic": synthetic,
+        "kernel": kernel, "N": N, "gpu": gpu,
+        "timing_regime": "warm execute-only; plan built before NVTX range",
+        "report": report.name, "raw_csv": raw_csv.name,
+    }, indent=2) + "\n")
+    return True
 
 
-def parse_metrics(csv_path):
-    """Return list of per-kernel-launch dicts of {metric_name: value} from raw ncu CSV."""
-    text = csv_path.read_text()
-    reader = csvmod.DictReader(io.StringIO(text))
-    launches = []
-    for row in reader:
-        # raw page: each row is one metric for one kernel launch; columns include
-        # 'ID','Kernel Name','Metric Name','Metric Value'. Group by ID.
-        launches.append(row)
-    # Detect schema
-    if launches and "Metric Name" in launches[0]:
-        by_id = {}
-        for row in launches:
-            kid = row.get("ID", "0")
-            by_id.setdefault(kid, {"__kernel__": row.get("Kernel Name", "?")})
-            val = row.get("Metric Value", "")
-            by_id[kid][row["Metric Name"]] = val
-        return list(by_id.values())
-    # Wide schema fallback: one row per launch, metrics as columns
-    return launches
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--datasets-file", default=str(DEFAULT_MANIFEST))
+    parser.add_argument("--outdir", default=str(DEFAULT_OUT))
+    parser.add_argument("--gpu", type=int, default=0)
+    parser.add_argument("--datasets", default=",".join(REPRESENTATIVE_DATASETS))
+    parser.add_argument("--kernels", default=",".join(KERNELS))
+    parser.add_argument("--Ns", default="128,512")
+    parser.add_argument("--all-real", action="store_true")
+    parser.add_argument("--shard-index", type=int, default=0)
+    parser.add_argument("--shard-count", type=int, default=1)
+    parser.add_argument("--force", action="store_true")
+    args = parser.parse_args()
 
+    manifest_path = Path(args.datasets_file)
+    manifest = json.loads(manifest_path.read_text())["datasets"]
+    by_name = {entry["name"]: entry for entry in manifest}
+    selected = ([entry["name"] for entry in manifest if not entry.get("synthetic", False)]
+                if args.all_real else csv_list(args.datasets))
+    kernels = csv_list(args.kernels)
+    invalid = sorted(set(kernels) - set(KERNELS))
+    if invalid:
+        raise SystemExit(f"Unsupported kernels: {invalid}")
+    Ns = [int(value) for value in csv_list(args.Ns)]
 
-def _f(d, key, default=0.0):
-    v = d.get(key, "")
-    if v in ("", None, "N/A", "nan"):
-        return default
-    try:
-        return float(str(v).replace(",", ""))
-    except ValueError:
-        return default
+    pairs: list[tuple[str, str, bool, str, int]] = []
+    for dataset in selected:
+        if dataset not in by_name:
+            raise SystemExit(f"Dataset not in manifest: {dataset}")
+        entry = by_name[dataset]
+        for kernel in kernels:
+            for N in Ns:
+                pairs.append((dataset, entry.get("category", "?"),
+                              bool(entry.get("synthetic", False)), kernel, N))
+    pairs = [pair for index, pair in enumerate(pairs)
+             if index % args.shard_count == args.shard_index]
 
-
-def summarize(launch, dataset, kernel, N):
-    tc = _f(launch, "sm__pipe_tensor_op_hmma_cycles_active.avg.pct_of_peak_sustained_active")
-    occ = _f(launch, "sm__warps_active.avg.pct_of_peak_sustained_active")
-    dram = _f(launch, "dram__throughput.avg.pct_of_peak_sustained_elapsed")
-    sol_sm = _f(launch, "sm__throughput.avg.pct_of_peak_sustained_elapsed")
-    dur_ns = _f(launch, "gpu__time_duration.sum")
-    dbytes = _f(launch, "dram__bytes.sum")
-    # FLOPs: FP32 fma counts 2, add/mul count 1; FP16 similarly; tensor hmma ops
-    ffma = _f(launch, "sm__sass_thread_inst_executed_op_ffma_pred_on.sum")
-    fadd = _f(launch, "sm__sass_thread_inst_executed_op_fadd_pred_on.sum")
-    fmul = _f(launch, "sm__sass_thread_inst_executed_op_fmul_pred_on.sum")
-    hfma = _f(launch, "sm__sass_thread_inst_executed_op_hfma_pred_on.sum")
-    hadd = _f(launch, "sm__sass_thread_inst_executed_op_hadd_pred_on.sum")
-    hmul = _f(launch, "sm__sass_thread_inst_executed_op_hmul_pred_on.sum")
-    hmma = _f(launch, "sm__inst_executed_pipe_tensor_op_hmma.sum")
-    # hmma instruction = 1 m16n8k8 or similar; approximate FLOPs via cycles pct is
-    # unreliable, so we report cuda-core FLOPs and note TC separately.
-    flops_cuda = 2 * ffma + fadd + fmul + 2 * hfma + hadd + hmul
-    achieved_gflops = flops_cuda / (dur_ns * 1e-9) / 1e9 if dur_ns > 0 else 0.0
-    ai = flops_cuda / dbytes if dbytes > 0 else 0.0
-    # Warp stalls
-    stalls = []
-    for k, v in launch.items():
-        if k.startswith(STALL_PREFIX) and k.endswith("_per_issue_active.ratio"):
-            name = k[len(STALL_PREFIX):-len("_per_issue_active.ratio")]
-            stalls.append((name, _f(launch, k)))
-    stalls.sort(key=lambda x: -x[1])
-    top2 = stalls[:2]
-    return {
-        "dataset": dataset, "kernel": kernel, "N": N,
-        "profiled_kernel": launch.get("__kernel__", "?")[:40],
-        "TC_pipe_pct": round(tc, 2), "occupancy_pct": round(occ, 2),
-        "DRAM_pct": round(dram, 2), "SM_SOL_pct": round(sol_sm, 2),
-        "dur_us": round(dur_ns / 1e3, 3), "dram_MB": round(dbytes / 1e6, 2),
-        "cuda_GFLOPs": round(achieved_gflops, 1), "AI_flop_per_byte": round(ai, 3),
-        "hmma_insts": int(hmma),
-        "top_stall_1": f"{top2[0][0]}={top2[0][1]:.2f}" if top2 else "",
-        "top_stall_2": f"{top2[1][0]}={top2[1][1]:.2f}" if len(top2) > 1 else "",
-    }
-
-
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--outdir", default=str(REPO_ROOT / "fgcs_results/revision/profile"))
-    ap.add_argument("--gpu", type=int, default=0)
-    ap.add_argument("--only", default=None, help="substring filter on pair label")
-    args = ap.parse_args()
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
-
-    summary_rows = []
-    for label, kernel, dataset, N in PAIRS:
-        if args.only and args.only not in label:
-            continue
-        csv_path = run_ncu(label, kernel, dataset, N, outdir, args.gpu)
-        if csv_path is None:
-            summary_rows.append({"dataset": dataset, "kernel": kernel, "N": N,
-                                 "profiled_kernel": "PROFILE_FAILED"})
-            continue
-        launches = parse_metrics(csv_path)
-        if not launches:
-            continue
-        # pick the longest-duration launch as the primary one for the summary
-        primary = max(launches, key=lambda L: _f(L, "gpu__time_duration.sum"))
-        summary_rows.append(summarize(primary, dataset, kernel, N))
-        for L in launches:
-            if L is not primary and _f(L, "gpu__time_duration.sum") > 0:
-                s = summarize(L, dataset, kernel, N)
-                s["profiled_kernel"] += " (aux)"
-                summary_rows.append(s)
-
-    # Write PROFILE_SUMMARY.md
-    md = outdir / "PROFILE_SUMMARY.md"
-    with open(md, "w") as f:
-        f.write("# Nsight Compute Profiling Summary (RTX 3090, SM 86)\n\n")
-        f.write("Five metric families per (kernel, graph, N). Full `.ncu-rep` reports "
-                "(with roofline) are alongside for the UI.\n\n")
-        cols = ["dataset", "kernel", "N", "profiled_kernel", "TC_pipe_pct", "occupancy_pct",
-                "DRAM_pct", "SM_SOL_pct", "AI_flop_per_byte", "cuda_GFLOPs", "dur_us",
-                "top_stall_1", "top_stall_2"]
-        f.write("| " + " | ".join(cols) + " |\n")
-        f.write("|" + "|".join(["---"] * len(cols)) + "|\n")
-        for r in summary_rows:
-            f.write("| " + " | ".join(str(r.get(c, "")) for c in cols) + " |\n")
-        f.write("\n_Note: AI/GFLOP/s reflect CUDA-core FP ops; tensor-core work is "
-                "shown via TC_pipe_pct and hmma_insts. Use the `.ncu-rep` roofline "
-                "section for the tensor-core achieved FLOP/s._\n")
-    print(f"\nWrote {md}")
-
-    # Also a machine-readable CSV
-    if summary_rows:
-        keys = ["dataset", "kernel", "N", "profiled_kernel", "TC_pipe_pct", "occupancy_pct",
-                "DRAM_pct", "SM_SOL_pct", "AI_flop_per_byte", "cuda_GFLOPs", "dram_MB",
-                "dur_us", "hmma_insts", "top_stall_1", "top_stall_2"]
-        with open(outdir / "profile_summary.csv", "w", newline="") as f:
-            w = csvmod.DictWriter(f, fieldnames=keys, extrasaction="ignore")
-            w.writeheader()
-            w.writerows(summary_rows)
-        print(f"Wrote {outdir / 'profile_summary.csv'}")
+    failures = 0
+    for pair in pairs:
+        if not collect_one(*pair, manifest_path, outdir, args.gpu, args.force):
+            failures += 1
+    print(f"Profiles complete: {len(pairs) - failures}/{len(pairs)}")
+    if failures:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

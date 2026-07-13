@@ -12,7 +12,7 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 import paper_eval_utils as pe
-import test_next as harness
+import test_ra as harness
 import ra_spmm
 
 
