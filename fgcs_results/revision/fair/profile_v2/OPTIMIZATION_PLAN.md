@@ -174,6 +174,36 @@ rises 1.380→1.513 vs FP32 cuSPARSE, and vs the FP16-precision-matched baseline
 CT/SH tf32 variants implemented and strict-gate-verified; full A/B sweep
 queued. GNN end-to-end accuracy run in progress.
 
+### E1b — CT/SH TF32 sweeps (2026-07-14)
+
+`fgcs_results/revision/tf32/e1_ctsh_full.csv`, zero gate failures. All three
+tile kernels show the SAME degree-gated pattern (warm tf32/fp16 geomean per
+degree bucket):
+
+| deg bucket | TC_DIRECT | COMMUNITY_TC | SEGMENT_HYBRID |
+|---|---|---|---|
+| <3   | 1.408 (12/12) | 1.323 (12/12) | 1.295 (12/12) |
+| 3–5  | 1.200 (8/8)   | 1.203 (8/8)   | 1.178 (8/8)   |
+| 5–8  | 1.095         | 1.083         | 1.077         |
+| 8–15 | 0.850 (4/24)  | 0.934 (8/24)  | 0.853 (4/24)  |
+| ≥15  | 0.68–0.69     | 0.69–0.70     | 0.69–0.70     |
+
+The uniform rule `deg<5 or (M<=25000 and deg<9)` routes with **0 mispicks on
+all three kernels**: family geomeans ×1.0468 / ×1.0433 / ×1.0363. The
+external-review hypothesis that COMMUNITY_TC's sort widens the TF32 win
+domain is visible (deg 8–15: 8/24 wins vs 4/24) but too small to justify
+per-kernel thresholds — R1 deploys ONE rule for the precision dimension.
+Community-regime tile paths vs cuSPARSE improve: CT 1.130→1.180, SH
+1.159→1.255 (tf32-routed).
+
+### E3 Step 1 — ZC-BCRS verification (2026-07-14)
+
+`experiments/zc_verify.py`: ZC output is **exactly bit-identical** to the
+baseline kernels on 12/12 graph×N checks, both fp16 and tf32 paths (same mma
+fragments → same accumulation order). Measured plan shrink 2.33–2.70×
+(e.g. roadNet-TX 77.2→29.4 MB). A/B benchmark sweep + ncu (regs, occupancy,
+DRAM, L2, stalls, per external review) in progress.
+
 ### E3 Step 0 — vector fill factors (2026-07-14)
 
 `fgcs_results/revision/tf32/zc_fill_report.csv`, all 51 graphs. **Average

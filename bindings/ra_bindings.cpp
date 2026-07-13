@@ -103,6 +103,8 @@ void free_ra_rode_enhanced_plan(RARodeEnhancedPlan& plan);
 // R4: Flash TC
 void make_ra_tc_direct_plan(RATcDirectPlan& plan, const int* h_rowptr, const int* h_col,
     const float* h_val, int M, int K, int N);
+void make_ra_tc_direct_zc_plan(RATcDirectPlan& plan, const int* h_rowptr, const int* h_col,
+                               const float* h_val, int M, int K, int N);
 void run_ra_tc_direct_plan_tf32(const RATcDirectPlan& plan, const float* d_B, float* d_C,
                                 int N, cudaStream_t stream);
 void run_ra_tc_direct_plan(const RATcDirectPlan& plan, const float* d_B, float* d_C,
@@ -2105,6 +2107,20 @@ torch::Tensor run_ra_tc_direct_plan_fn(
     return C;
 }
 
+std::shared_ptr<RATcDirectPlanWrapper> make_ra_tc_direct_zc_plan_fn(
+    torch::Tensor rowptr_cpu, torch::Tensor colind_cpu,
+    torch::Tensor vals_cpu, int M, int K, int N)
+{
+    auto rp = rowptr_cpu.cpu().contiguous().to(torch::kInt32);
+    auto ci = colind_cpu.cpu().contiguous().to(torch::kInt32);
+    auto vl = vals_cpu.cpu().contiguous().to(torch::kFloat32);
+    auto w = std::make_shared<RATcDirectPlanWrapper>();
+    make_ra_tc_direct_zc_plan(w->plan, rp.data_ptr<int>(), ci.data_ptr<int>(),
+                              vl.data_ptr<float>(), M, K, N);
+    w->valid = true;
+    return w;
+}
+
 torch::Tensor run_ra_tc_direct_plan_tf32_fn(
     std::shared_ptr<RATcDirectPlanWrapper> wrapper, torch::Tensor B)
 {
@@ -2733,6 +2749,12 @@ PYBIND11_MODULE(ra_spmm, m) {
     m.def("run_tc_direct_plan", &run_ra_tc_direct_plan_fn,
           "Run R4 Flash TC SpMM",
           pybind11::arg("plan"), pybind11::arg("B"));
+
+    m.def("make_tc_direct_zc_plan", &make_ra_tc_direct_zc_plan_fn,
+          "Build R4 Flash TC plan with zero-compressed values (ZC-BCRS)",
+          pybind11::arg("rowptr_cpu"), pybind11::arg("colind_cpu"),
+          pybind11::arg("vals_cpu"), pybind11::arg("M"), pybind11::arg("K"),
+          pybind11::arg("N"));
 
     m.def("run_tc_direct_plan_tf32", &run_ra_tc_direct_plan_tf32_fn,
           "Run R4 Flash TC SpMM on the TF32 path (B consumed in FP32, no convert pass)",

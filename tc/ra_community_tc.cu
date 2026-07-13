@@ -171,6 +171,34 @@ __global__ void ct_fs_tile_spmm_perm_kernel(
     }
 }
 
+// Expand ZC-packed values into the padded fragment-order array on device
+// (build-time only; the CPU never materializes the padded array).
+__global__ void ct_zc_expand_vals_kernel(
+    const unsigned long long* __restrict__ val_masks,
+    const int*                __restrict__ val_base,
+    const uint16_t*           __restrict__ vals_zc,
+    uint16_t*                 __restrict__ vals,
+    i64 total_vectors)
+{
+    for (i64 v = (i64)blockIdx.x * blockDim.x + threadIdx.x;
+         v < total_vectors; v += (i64)gridDim.x * blockDim.x) {
+        const i64 blk = v >> 3;
+        const int k   = (int)(v & 7);
+        const unsigned long long m64 = val_masks[blk];
+        const unsigned byte_k = static_cast<unsigned>(m64 >> (k * 8)) & 0xFFu;
+        if (!byte_k) continue;
+        const unsigned long long lo = k ? (~0ull >> (64 - 8 * k)) : 0ull;
+        int off = val_base[blk] + __popcll(m64 & lo);
+        uint16_t* out = vals + blk * 64;
+        for (int r = 0; r < kWindow; ++r) {
+            if ((byte_k >> r) & 1u) {
+                out[(static_cast<size_t>(r) * 4 + k / 2) * 2 + (k & 1)] =
+                    vals_zc[off++];
+            }
+        }
+    }
+}
+
 // TF32 variant of the permuted-window kernel: reads B in FP32 directly (no
 // convert pass, no half scratch). Same plan; the lane remaps its two sparse
 // half slots to the tf32 B-fragment layout (rows k = tid and tid+4 of column
@@ -284,8 +312,10 @@ void make_ra_community_tc_plan(
     for (int i = 0; i < M; ++i) win_rows[i] = order[i];
 
     std::vector<int> win_blocks(num_windows, 0);
+    std::vector<i64> win_nnz(num_windows, 0);
     std::vector<std::vector<int>>      w_atox(num_windows);
-    std::vector<std::vector<uint16_t>> w_vals(num_windows);
+    std::vector<std::vector<unsigned long long>> w_masks(num_windows);
+    std::vector<std::vector<uint16_t>> w_zc(num_windows);
 
     #pragma omp parallel
     {
@@ -313,11 +343,14 @@ void make_ra_community_tc_plan(
             }
             const int blocks = (nvec + kVecPerBlock - 1) / kVecPerBlock;
             win_blocks[w] = blocks;
+            win_nnz[w] = static_cast<i64>(entries.size());
 
             auto& atox = w_atox[w];
-            auto& vals = w_vals[w];
+            auto& masks = w_masks[w];
+            auto& zvals = w_zc[w];
             atox.assign(static_cast<size_t>(blocks) * kVecPerBlock, 0);
-            vals.assign(static_cast<size_t>(blocks) * 64, 0);
+            masks.assign(blocks, 0ull);
+            zvals.reserve(entries.size());
 
             int slot_v = -1;
             int prev_col = -1;
@@ -330,35 +363,61 @@ void make_ra_community_tc_plan(
                 const int blk = slot_v / kVecPerBlock;
                 const int k   = slot_v % kVecPerBlock;
                 const int r   = e.second.first;
-                // PTX B-fragment order (see ra_tc_direct.cu).
-                const size_t idx = static_cast<size_t>(blk) * 64 +
-                    (static_cast<size_t>(r) * 4 + k / 2) * 2 + (k & 1);
-                vals[idx] = float_to_half_bits(e.second.second);
+                // Packed (vector, row) order; the padded fragment-order array
+                // is expanded on device (ct_zc_expand_vals_kernel).
+                masks[blk] |= 1ull << (k * 8 + r);
+                zvals.push_back(float_to_half_bits(e.second.second));
             }
         }
     }
 
     std::vector<int> block_offsets(num_windows + 1, 0);
+    std::vector<i64> val_off(num_windows + 1, 0);
     for (int w = 0; w < num_windows; ++w) {
         block_offsets[w + 1] = block_offsets[w] + win_blocks[w];
+        val_off[w + 1] = val_off[w] + win_nnz[w];
     }
     const i64 total_blocks = block_offsets[num_windows];
 
-    std::vector<int>      atox_all(static_cast<size_t>(total_blocks) * kVecPerBlock);
-    std::vector<uint16_t> vals_all(static_cast<size_t>(total_blocks) * 64);
+    std::vector<int> atox_all(static_cast<size_t>(total_blocks) * kVecPerBlock);
+    std::vector<unsigned long long> masks_all(total_blocks, 0ull);
+    std::vector<int> base_all(total_blocks, 0);
+    std::vector<uint16_t> zc_all(static_cast<size_t>(val_off[num_windows]));
     #pragma omp parallel for schedule(dynamic, 256)
     for (int w = 0; w < num_windows; ++w) {
         std::copy(w_atox[w].begin(), w_atox[w].end(),
                   atox_all.begin() + static_cast<size_t>(block_offsets[w]) * kVecPerBlock);
-        std::copy(w_vals[w].begin(), w_vals[w].end(),
-                  vals_all.begin() + static_cast<size_t>(block_offsets[w]) * 64);
+        const int b0 = block_offsets[w];
+        std::copy(w_masks[w].begin(), w_masks[w].end(), masks_all.begin() + b0);
+        i64 base = val_off[w];
+        std::copy(w_zc[w].begin(), w_zc[w].end(), zc_all.begin() + base);
+        for (int j = 0; j < win_blocks[w]; ++j) {
+            base_all[b0 + j] = static_cast<int>(base);
+            base += __builtin_popcountll(w_masks[w][j]);
+        }
     }
     const i64 total_vectors = total_blocks * kVecPerBlock;
 
     plan.d_block_offsets = upload_vec_ct(block_offsets);
     plan.d_atox          = upload_vec_ct(atox_all);
-    plan.d_vals_f16      = upload_vec_ct(vals_all);
     plan.d_win_rows      = upload_vec_ct(win_rows);
+    {
+        unsigned long long* d_masks = upload_vec_ct(masks_all);
+        int*      d_base   = upload_vec_ct(base_all);
+        uint16_t* d_packed = upload_vec_ct(zc_all);
+        const size_t vals_bytes = static_cast<size_t>(total_blocks) * 64 * sizeof(uint16_t);
+        CUDA_CHECK_NEXT(cudaMalloc(&plan.d_vals_f16, vals_bytes));
+        CUDA_CHECK_NEXT(cudaMemset(plan.d_vals_f16, 0, vals_bytes));
+        const int threads = 256;
+        const int blocks_g = static_cast<int>(
+            std::min<i64>((total_vectors + threads - 1) / threads, 65535));
+        ct_zc_expand_vals_kernel<<<blocks_g, threads>>>(
+            d_masks, d_base, d_packed, plan.d_vals_f16, total_vectors);
+        CUDA_CHECK_NEXT(cudaDeviceSynchronize());
+        cudaFree(d_masks);
+        cudaFree(d_base);
+        cudaFree(d_packed);
+    }
 
     plan.num_windows     = num_windows;
     plan.num_groups      = num_windows;
@@ -372,7 +431,7 @@ void make_ra_community_tc_plan(
     plan.plan_bytes = block_offsets.size() * sizeof(int) +
                       atox_all.size() * sizeof(int) +
                       win_rows.size() * sizeof(int) +
-                      vals_all.size() * sizeof(uint16_t);
+                      static_cast<size_t>(total_blocks) * 64 * sizeof(uint16_t);
     plan.active = true;
 }
 

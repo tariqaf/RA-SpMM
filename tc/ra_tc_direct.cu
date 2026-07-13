@@ -259,21 +259,248 @@ __global__ void fs_tile_spmm_tf32_kernel(
     }
 }
 
+// ---------------------------------------------------------------------------
+// ZC-BCRS value lookup: masks u64 = 8 per-vector occupancy bytes; the packed
+// value of (vector k, row r) sits at base + popc(masks below k) + popc(bits
+// below r in byte k). Absent slots are zero.
+// ---------------------------------------------------------------------------
+__device__ __forceinline__ uint16_t zc_val_bits(
+    unsigned long long m64, int base, const uint16_t* __restrict__ vals_zc,
+    int k, int r)
+{
+    const unsigned byte_k = static_cast<unsigned>(m64 >> (k * 8)) & 0xFFu;
+    if (!((byte_k >> r) & 1u)) return 0;
+    const unsigned long long lo = k ? (~0ull >> (64 - 8 * k)) : 0ull;
+    const int off = base + __popcll(m64 & lo) +
+                    __popc(byte_k & ((1u << r) - 1u));
+    return __ldg(vals_zc + off);
+}
+
+// Expand ZC-packed values into the padded fragment-order array on device:
+// one thread per vector writes its <=8 values to their fragment slots.
+// Used at build time so the CPU never materializes the padded array.
+__global__ void zc_expand_vals_kernel(
+    const unsigned long long* __restrict__ val_masks,
+    const int*                __restrict__ val_base,
+    const uint16_t*           __restrict__ vals_zc,
+    uint16_t*                 __restrict__ vals,
+    i64 total_vectors)
+{
+    for (i64 v = (i64)blockIdx.x * blockDim.x + threadIdx.x;
+         v < total_vectors; v += (i64)gridDim.x * blockDim.x) {
+        const i64 blk = v >> 3;
+        const int k   = (int)(v & 7);
+        const unsigned long long m64 = val_masks[blk];
+        const unsigned byte_k = static_cast<unsigned>(m64 >> (k * 8)) & 0xFFu;
+        if (!byte_k) continue;
+        const unsigned long long lo = k ? (~0ull >> (64 - 8 * k)) : 0ull;
+        int off = val_base[blk] + __popcll(m64 & lo);
+        uint16_t* out = vals + blk * 64;
+        for (int r = 0; r < kWindow; ++r) {
+            if ((byte_k >> r) & 1u) {
+                out[(static_cast<size_t>(r) * 4 + k / 2) * 2 + (k & 1)] =
+                    vals_zc[off++];
+            }
+        }
+    }
+}
+
+// ZC variant of the swapped-operand mma kernel (fp16 gather path).
+__global__ void fs_tile_spmm_zc_kernel(
+    const int*                __restrict__ block_offsets,
+    const int*                __restrict__ atox,
+    const unsigned long long* __restrict__ val_masks,
+    const int*                __restrict__ val_base,
+    const uint16_t*           __restrict__ vals_zc,
+    const __half*             __restrict__ Bh,
+    float*                    __restrict__ C,
+    int M, int N, int num_windows)
+{
+    const int w    = blockIdx.x;
+    const int warp = threadIdx.x >> 5;
+    const int lane = threadIdx.x & 31;
+    const int n0   = (blockIdx.y * 4 + warp) * 16;
+    if (w >= num_windows || n0 >= N) return;
+
+    const int g   = lane >> 2;
+    const int tid = lane & 3;
+
+    const bool p_lo = (n0 + g)     < N;
+    const bool p_hi = (n0 + g + 8) < N;
+
+    const int b_begin = block_offsets[w];
+    const int b_end   = block_offsets[w + 1];
+
+    float d0 = 0.f, d1 = 0.f, d2 = 0.f, d3 = 0.f;
+
+    // Software-pipeline the mask/base metadata one block ahead so the
+    // dependent packed-value loads can issue at the top of each iteration
+    // (otherwise mask -> popc -> value forms a two-deep latency chain).
+    unsigned long long m64 = 0ull;
+    int vb = 0;
+    if (b_begin < b_end) {
+        m64 = __ldg(val_masks + b_begin);
+        vb  = __ldg(val_base + b_begin);
+    }
+
+    for (int b = b_begin; b < b_end; ++b) {
+        const unsigned long long m_cur = m64;
+        const int vb_cur = vb;
+        if (b + 1 < b_end) {
+            m64 = __ldg(val_masks + b + 1);
+            vb  = __ldg(val_base + b + 1);
+        }
+        const uint16_t h0 = zc_val_bits(m_cur, vb_cur, vals_zc, tid * 2,     g);
+        const uint16_t h1 = zc_val_bits(m_cur, vb_cur, vals_zc, tid * 2 + 1, g);
+        const uint32_t bfrag = (static_cast<uint32_t>(h1) << 16) | h0;
+
+        const int vbase = b * kVecPerBlock + tid * 2;
+        const int c0 = __ldg(atox + vbase);
+        const int c1 = __ldg(atox + vbase + 1);
+
+        __half a0 = __float2half(0.f), a1 = a0, a2 = a0, a3 = a0;
+        if (p_lo) {
+            a0 = __ldg(Bh + (i64)c0 * N + n0 + g);
+            a1 = __ldg(Bh + (i64)c1 * N + n0 + g);
+        }
+        if (p_hi) {
+            a2 = __ldg(Bh + (i64)c0 * N + n0 + g + 8);
+            a3 = __ldg(Bh + (i64)c1 * N + n0 + g + 8);
+        }
+        const uint32_t afrag0 =
+            (static_cast<uint32_t>(__half_as_ushort(a1)) << 16) |
+            __half_as_ushort(a0);
+        const uint32_t afrag1 =
+            (static_cast<uint32_t>(__half_as_ushort(a3)) << 16) |
+            __half_as_ushort(a2);
+
+        asm volatile(
+            "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32 "
+            "{%0,%1,%2,%3}, {%4,%5}, {%6}, {%0,%1,%2,%3};\n"
+            : "+f"(d0), "+f"(d1), "+f"(d2), "+f"(d3)
+            : "r"(afrag0), "r"(afrag1), "r"(bfrag));
+    }
+
+    const int r0 = w * kWindow + tid * 2;
+    const int r1 = r0 + 1;
+    if (p_lo) {
+        if (r0 < M) C[(i64)r0 * N + n0 + g] = d0;
+        if (r1 < M) C[(i64)r1 * N + n0 + g] = d1;
+    }
+    if (p_hi) {
+        if (r0 < M) C[(i64)r0 * N + n0 + g + 8] = d2;
+        if (r1 < M) C[(i64)r1 * N + n0 + g + 8] = d3;
+    }
+}
+
+// ZC variant of the TF32 kernel (B consumed in FP32, no convert pass).
+__global__ void fs_tile_spmm_zc_tf32_kernel(
+    const int*                __restrict__ block_offsets,
+    const int*                __restrict__ atox,
+    const unsigned long long* __restrict__ val_masks,
+    const int*                __restrict__ val_base,
+    const uint16_t*           __restrict__ vals_zc,
+    const float*              __restrict__ Bf,
+    float*                    __restrict__ C,
+    int M, int N, int num_windows)
+{
+    const int w    = blockIdx.x;
+    const int warp = threadIdx.x >> 5;
+    const int lane = threadIdx.x & 31;
+    const int n0   = (blockIdx.y * 4 + warp) * 16;
+    if (w >= num_windows || n0 >= N) return;
+
+    const int g   = lane >> 2;
+    const int tid = lane & 3;
+
+    const bool p_lo = (n0 + g)     < N;
+    const bool p_hi = (n0 + g + 8) < N;
+
+    const int b_begin = block_offsets[w];
+    const int b_end   = block_offsets[w + 1];
+
+    float d0 = 0.f, d1 = 0.f, d2 = 0.f, d3 = 0.f;
+
+    // Same metadata software pipeline as the fp16 ZC kernel.
+    unsigned long long m64 = 0ull;
+    int vb = 0;
+    if (b_begin < b_end) {
+        m64 = __ldg(val_masks + b_begin);
+        vb  = __ldg(val_base + b_begin);
+    }
+
+    for (int b = b_begin; b < b_end; ++b) {
+        const unsigned long long m_cur = m64;
+        const int vb_cur = vb;
+        if (b + 1 < b_end) {
+            m64 = __ldg(val_masks + b + 1);
+            vb  = __ldg(val_base + b + 1);
+        }
+        const uint16_t h0 = zc_val_bits(m_cur, vb_cur, vals_zc, tid,     g);
+        const uint16_t h1 = zc_val_bits(m_cur, vb_cur, vals_zc, tid + 4, g);
+        uint32_t rb0 = __float_as_uint(__half2float(__ushort_as_half(h0)));
+        uint32_t rb1 = __float_as_uint(__half2float(__ushort_as_half(h1)));
+
+        const int vbase = b * kVecPerBlock + tid;
+        const int c_lo = __ldg(atox + vbase);
+        const int c_hi = __ldg(atox + vbase + 4);
+
+        float a0 = 0.f, a1 = 0.f, a2 = 0.f, a3 = 0.f;
+        if (p_lo) {
+            a0 = __ldg(Bf + (i64)c_lo * N + n0 + g);
+            a2 = __ldg(Bf + (i64)c_hi * N + n0 + g);
+        }
+        if (p_hi) {
+            a1 = __ldg(Bf + (i64)c_lo * N + n0 + g + 8);
+            a3 = __ldg(Bf + (i64)c_hi * N + n0 + g + 8);
+        }
+        uint32_t ra0 = __float_as_uint(a0), ra1 = __float_as_uint(a1);
+        uint32_t ra2 = __float_as_uint(a2), ra3 = __float_as_uint(a3);
+        asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra0));
+        asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra1));
+        asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra2));
+        asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra3));
+
+        asm volatile(
+            "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32 "
+            "{%0,%1,%2,%3}, {%4,%5,%6,%7}, {%8,%9}, {%0,%1,%2,%3};\n"
+            : "+f"(d0), "+f"(d1), "+f"(d2), "+f"(d3)
+            : "r"(ra0), "r"(ra1), "r"(ra2), "r"(ra3), "r"(rb0), "r"(rb1));
+    }
+
+    const int r0 = w * kWindow + tid * 2;
+    const int r1 = r0 + 1;
+    if (p_lo) {
+        if (r0 < M) C[(i64)r0 * N + n0 + g] = d0;
+        if (r1 < M) C[(i64)r1 * N + n0 + g] = d1;
+    }
+    if (p_hi) {
+        if (r0 < M) C[(i64)r0 * N + n0 + g + 8] = d2;
+        if (r1 < M) C[(i64)r1 * N + n0 + g + 8] = d3;
+    }
+}
+
 }  // anonymous namespace
 
 // ============================================================================
-// make_ra_tc_direct_plan: parallel per-window column condensation, O(nnz)
+// Plan build: parallel per-window column condensation, O(nnz). With zc set,
+// values are stored zero-compressed: packed nonzero halves in (vector, row)
+// order plus one 8-bit row-occupancy mask per vector (8 masks = one u64 per
+// block). A window's packed values start at h_rowptr[window*8], so the build
+// stays one parallel pass with no extra prefix scan.
 // ============================================================================
-void make_ra_tc_direct_plan(
+static void build_ra_tc_direct_plan_impl(
     RATcDirectPlan& plan,
     const int* h_rowptr,
     const int* h_col,
     const float* h_val,
-    int M, int K, int N)
+    int M, int K, int N,
+    bool zc)
 {
     plan = RATcDirectPlan{};
     plan.M = M;
     plan.K = K;
+    plan.zc = zc;
 
     if (M <= 0 || K <= 0 || N < 16) {
         return;
@@ -286,7 +513,8 @@ void make_ra_tc_direct_plan(
     const int num_windows = (M + kWindow - 1) / kWindow;
     std::vector<int> win_blocks(num_windows, 0);
     std::vector<std::vector<int>>      w_atox(num_windows);
-    std::vector<std::vector<uint16_t>> w_vals(num_windows);
+    std::vector<std::vector<unsigned long long>> w_masks(num_windows);
+    std::vector<std::vector<uint16_t>> w_zc(num_windows);
 
     #pragma omp parallel
     {
@@ -317,9 +545,11 @@ void make_ra_tc_direct_plan(
             win_blocks[w] = blocks;
 
             auto& atox = w_atox[w];
-            auto& vals = w_vals[w];
             atox.assign(static_cast<size_t>(blocks) * kVecPerBlock, 0);
-            vals.assign(static_cast<size_t>(blocks) * 64, 0);
+            auto& masks = w_masks[w];
+            auto& zvals = w_zc[w];
+            masks.assign(blocks, 0ull);
+            zvals.reserve(entries.size());
 
             int slot = -1;
             int prev_col = -1;
@@ -332,11 +562,11 @@ void make_ra_tc_direct_plan(
                 const int blk = slot / kVecPerBlock;
                 const int k   = slot % kVecPerBlock;
                 const int r   = e.second.first;
-                // PTX B-fragment order: lane t = r*4 + k/2 holds slots
-                // {t*2, t*2+1} = vectors {k = 2*(t%4), +1} at row t/4.
-                const size_t idx = static_cast<size_t>(blk) * 64 +
-                    (static_cast<size_t>(r) * 4 + k / 2) * 2 + (k & 1);
-                vals[idx] = host_float_to_half_bits(e.second.second);
+                // Packed (vector, row) order = entry iteration order. The
+                // padded fragment-order array, when needed, is expanded on
+                // device (zc_expand_vals_kernel) — the CPU never writes it.
+                masks[blk] |= 1ull << (k * 8 + r);
+                zvals.push_back(host_float_to_half_bits(e.second.second));
             }
         }
     }
@@ -348,20 +578,52 @@ void make_ra_tc_direct_plan(
     }
     const i64 total_blocks = block_offsets[num_windows];
 
-    std::vector<int>      atox_all(static_cast<size_t>(total_blocks) * kVecPerBlock);
-    std::vector<uint16_t> vals_all(static_cast<size_t>(total_blocks) * 64);
+    std::vector<int> atox_all(static_cast<size_t>(total_blocks) * kVecPerBlock);
+    std::vector<unsigned long long> masks_all(total_blocks, 0ull);
+    std::vector<int> base_all(total_blocks, 0);
+    std::vector<uint16_t> zc_all(static_cast<size_t>(total_nnz));
+
     #pragma omp parallel for schedule(dynamic, 256)
     for (int w = 0; w < num_windows; ++w) {
         std::copy(w_atox[w].begin(), w_atox[w].end(),
                   atox_all.begin() + static_cast<size_t>(block_offsets[w]) * kVecPerBlock);
-        std::copy(w_vals[w].begin(), w_vals[w].end(),
-                  vals_all.begin() + static_cast<size_t>(block_offsets[w]) * 64);
+        const int b0 = block_offsets[w];
+        std::copy(w_masks[w].begin(), w_masks[w].end(), masks_all.begin() + b0);
+        // Window w's packed values start at h_rowptr[w*8].
+        int base = h_rowptr[w * kWindow];
+        std::copy(w_zc[w].begin(), w_zc[w].end(), zc_all.begin() + base);
+        for (int j = 0; j < win_blocks[w]; ++j) {
+            base_all[b0 + j] = base;
+            base += __builtin_popcountll(w_masks[w][j]);
+        }
     }
     const i64 total_vectors = total_blocks * kVecPerBlock;
 
     plan.d_block_offsets = upload_vec(block_offsets);
     plan.d_atox          = upload_vec(atox_all);
-    plan.d_vals_f16      = upload_vec(vals_all);
+    if (zc) {
+        plan.d_val_masks = upload_vec(masks_all);
+        plan.d_val_base  = upload_vec(base_all);
+        plan.d_vals_zc   = upload_vec(zc_all);
+    } else {
+        // Upload the compact arrays and expand into the padded fragment-order
+        // array on device — the padded array never crosses PCIe or CPU RAM.
+        unsigned long long* d_masks = upload_vec(masks_all);
+        int*      d_base   = upload_vec(base_all);
+        uint16_t* d_packed = upload_vec(zc_all);
+        const size_t vals_bytes = static_cast<size_t>(total_blocks) * 64 * sizeof(uint16_t);
+        CUDA_CHECK_NEXT(cudaMalloc(&plan.d_vals_f16, vals_bytes));
+        CUDA_CHECK_NEXT(cudaMemset(plan.d_vals_f16, 0, vals_bytes));
+        const int threads = 256;
+        const int blocks_g = static_cast<int>(
+            std::min<i64>((total_vectors + threads - 1) / threads, 65535));
+        zc_expand_vals_kernel<<<blocks_g, threads>>>(
+            d_masks, d_base, d_packed, plan.d_vals_f16, total_vectors);
+        CUDA_CHECK_NEXT(cudaDeviceSynchronize());
+        cudaFree(d_masks);
+        cudaFree(d_base);
+        cudaFree(d_packed);
+    }
 
     plan.num_windows  = num_windows;
     plan.num_groups   = num_windows;
@@ -371,9 +633,35 @@ void make_ra_tc_direct_plan(
                              (static_cast<double>(total_vectors) * kWindow))
         : 0.f;
     plan.plan_bytes = block_offsets.size() * sizeof(int) +
-                      atox_all.size() * sizeof(int) +
-                      vals_all.size() * sizeof(uint16_t);
+                      atox_all.size() * sizeof(int);
+    if (zc) {
+        plan.plan_bytes += masks_all.size() * sizeof(unsigned long long) +
+                           base_all.size() * sizeof(int) +
+                           zc_all.size() * sizeof(uint16_t);
+    } else {
+        plan.plan_bytes += static_cast<size_t>(total_blocks) * 64 * sizeof(uint16_t);
+    }
     plan.active = true;
+}
+
+void make_ra_tc_direct_plan(
+    RATcDirectPlan& plan,
+    const int* h_rowptr,
+    const int* h_col,
+    const float* h_val,
+    int M, int K, int N)
+{
+    build_ra_tc_direct_plan_impl(plan, h_rowptr, h_col, h_val, M, K, N, false);
+}
+
+void make_ra_tc_direct_zc_plan(
+    RATcDirectPlan& plan,
+    const int* h_rowptr,
+    const int* h_col,
+    const float* h_val,
+    int M, int K, int N)
+{
+    build_ra_tc_direct_plan_impl(plan, h_rowptr, h_col, h_val, M, K, N, true);
 }
 
 // ============================================================================
@@ -412,10 +700,18 @@ void run_ra_tc_direct_plan(
     }
 
     dim3 grid(plan.num_windows, (N + 63) / 64);
-    fs_tile_spmm_kernel<<<grid, 128, 0, stream>>>(
-        plan.d_block_offsets, plan.d_atox, plan.d_vals_f16,
-        reinterpret_cast<const __half*>(plan.d_bhalf), d_C,
-        plan.M, N, plan.num_windows);
+    if (plan.zc) {
+        fs_tile_spmm_zc_kernel<<<grid, 128, 0, stream>>>(
+            plan.d_block_offsets, plan.d_atox,
+            plan.d_val_masks, plan.d_val_base, plan.d_vals_zc,
+            reinterpret_cast<const __half*>(plan.d_bhalf), d_C,
+            plan.M, N, plan.num_windows);
+    } else {
+        fs_tile_spmm_kernel<<<grid, 128, 0, stream>>>(
+            plan.d_block_offsets, plan.d_atox, plan.d_vals_f16,
+            reinterpret_cast<const __half*>(plan.d_bhalf), d_C,
+            plan.M, N, plan.num_windows);
+    }
 
     CUDA_CHECK_KERNEL();
 }
@@ -433,9 +729,16 @@ void run_ra_tc_direct_plan_tf32(
     if (!plan.active || plan.M <= 0 || N <= 0) return;
 
     dim3 grid(plan.num_windows, (N + 63) / 64);
-    fs_tile_spmm_tf32_kernel<<<grid, 128, 0, stream>>>(
-        plan.d_block_offsets, plan.d_atox, plan.d_vals_f16,
-        d_B, d_C, plan.M, N, plan.num_windows);
+    if (plan.zc) {
+        fs_tile_spmm_zc_tf32_kernel<<<grid, 128, 0, stream>>>(
+            plan.d_block_offsets, plan.d_atox,
+            plan.d_val_masks, plan.d_val_base, plan.d_vals_zc,
+            d_B, d_C, plan.M, N, plan.num_windows);
+    } else {
+        fs_tile_spmm_tf32_kernel<<<grid, 128, 0, stream>>>(
+            plan.d_block_offsets, plan.d_atox, plan.d_vals_f16,
+            d_B, d_C, plan.M, N, plan.num_windows);
+    }
 
     CUDA_CHECK_KERNEL();
 }
@@ -447,6 +750,10 @@ void free_ra_tc_direct_plan(RATcDirectPlan& plan) {
     if (plan.d_block_offsets) { cudaFree(plan.d_block_offsets); plan.d_block_offsets = nullptr; }
     if (plan.d_atox)          { cudaFree(plan.d_atox);          plan.d_atox          = nullptr; }
     if (plan.d_vals_f16)      { cudaFree(plan.d_vals_f16);      plan.d_vals_f16      = nullptr; }
+    if (plan.d_val_masks)     { cudaFree(plan.d_val_masks);     plan.d_val_masks     = nullptr; }
+    if (plan.d_val_base)      { cudaFree(plan.d_val_base);      plan.d_val_base      = nullptr; }
+    if (plan.d_vals_zc)       { cudaFree(plan.d_vals_zc);       plan.d_vals_zc       = nullptr; }
+    plan.zc = false;
     if (plan.d_bhalf)         { cudaFree(plan.d_bhalf);         plan.d_bhalf         = nullptr; }
     plan.bhalf_capacity = 0;
     plan.num_windows = plan.num_groups = plan.num_tc_tiles = 0;

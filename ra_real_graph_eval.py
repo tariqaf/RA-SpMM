@@ -63,7 +63,8 @@ ALL_KERNELS = [
 ]
 
 # Experimental variants selectable via --kernels but not in the default roster.
-EXPERIMENTAL_KERNELS = ["TC_DIRECT_TF32", "COMMUNITY_TC_TF32", "SEGMENT_HYBRID_TF32"]
+EXPERIMENTAL_KERNELS = ["TC_DIRECT_TF32", "COMMUNITY_TC_TF32", "SEGMENT_HYBRID_TF32",
+                        "TC_DIRECT_ZC", "TC_DIRECT_ZC_TF32"]
 
 
 # ---------------------------------------------------------------------------
@@ -243,6 +244,8 @@ def build_kernel_plan(kernel_name: str, rowptr_cpu, colind_cpu, vals_cpu,
         return ra_spmm.make_rode_enhanced_plan(rowptr_cpu, M, K)
     if kernel_name in ("TC_DIRECT", "TC_DIRECT_TF32"):
         return ra_spmm.make_tc_direct_plan(rowptr_cpu, colind_cpu, vals_cpu, M, K, N)
+    if kernel_name in ("TC_DIRECT_ZC", "TC_DIRECT_ZC_TF32"):
+        return ra_spmm.make_tc_direct_zc_plan(rowptr_cpu, colind_cpu, vals_cpu, M, K, N)
     if kernel_name in ("COMMUNITY_TC", "COMMUNITY_TC_TF32"):
         return ra_spmm.make_community_tc_plan(rowptr_cpu, colind_cpu, vals_cpu, M, K, N)
     if kernel_name in ("SEGMENT_HYBRID", "SEGMENT_HYBRID_TF32"):
@@ -257,9 +260,9 @@ def run_planned_kernel(kernel_name: str, plan, rowptr, colind, vals, B):
         return ra_spmm.run_zero_overhead_plan(plan, rowptr, colind, vals, B)
     if kernel_name == "RODE_ENHANCED":
         return ra_spmm.run_rode_enhanced_plan(plan, colind, vals, B)
-    if kernel_name == "TC_DIRECT":
+    if kernel_name in ("TC_DIRECT", "TC_DIRECT_ZC"):
         return ra_spmm.run_tc_direct_plan(plan, B)
-    if kernel_name == "TC_DIRECT_TF32":
+    if kernel_name in ("TC_DIRECT_TF32", "TC_DIRECT_ZC_TF32"):
         return ra_spmm.run_tc_direct_plan_tf32(plan, B)
     if kernel_name == "COMMUNITY_TC":
         return ra_spmm.run_community_tc_plan(plan, B)

@@ -572,6 +572,14 @@ struct RATcDirectPlan {
     uint16_t* d_vals_f16      = nullptr;  // [num_blocks*64] halves in fragment order
     int       num_windows     = 0;
 
+    // Zero-compressed value storage (ZC-BCRS): packed nonzero halves plus one
+    // 8-bit row-occupancy mask per vector (a block's 8 masks form one u64).
+    // When zc is true, d_vals_f16 is null and the zc kernels are dispatched.
+    bool                zc          = false;
+    unsigned long long* d_val_masks = nullptr;  // [num_blocks] 8x8-bit masks
+    int*                d_val_base  = nullptr;  // [num_blocks] packed-value offset
+    uint16_t*           d_vals_zc   = nullptr;  // [nnz] packed halves
+
     // Lazily allocated per-plan scratch for the half-precision copy of B.
     mutable uint16_t* d_bhalf        = nullptr;
     mutable size_t    bhalf_capacity = 0;
