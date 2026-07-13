@@ -1,19 +1,15 @@
-"""Time the deployed full router extractor and a labeled lightweight variant.
+"""Time the deployed four-feature router and its CPU/GPU implementations.
 
-The production measurements call ``ra_spmm.make_router_plan`` and therefore
-include the complete tile/locality feature set. CPU-resident and GPU-resident
-inputs are reported separately; the latter includes the binding's device-to-host
-copies before the CPU extractor. There is currently no GPU implementation of the
-full feature set, which is stated in the output instead of being inferred from a
-different algorithm.
-
-The custom GPU degree-moment kernel is retained as an explicitly labeled
-``lightweight (d_bar,CV_d only)`` experiment.
+The production measurements call ``ra_spmm.make_router_plan(..., "MAIN")``.
+That deployed path computes exactly the four values used by the eight rules:
+M, N, mean row degree, and population CV_d. The legacy 34-feature tile/locality
+extractor remains available through the explicitly diagnostic ``FULL`` portfolio.
 """
 from __future__ import annotations
 
 import argparse
 import csv
+import gc
 import json
 import os
 import sys
@@ -169,7 +165,7 @@ def time_gpu_with_copy(ext, rowptr_cpu, warmup, iters):
     return start.elapsed_time(end) / iters  # ms
 
 
-def time_production_full(rowptr, colind, vals, M, K, N, warmup, iters):
+def time_production_router(rowptr, colind, vals, M, K, N, warmup, iters):
     """Wall time of the actual binding, including required residency copies."""
     for _ in range(warmup):
         ra_spmm.make_router_plan(rowptr, colind, vals, M, K, N, "MAIN")
@@ -190,6 +186,8 @@ def main():
     ap.add_argument("--full-warmup", type=int, default=2)
     ap.add_argument("--full-iters", type=int, default=10)
     ap.add_argument("--N", type=int, default=128)
+    ap.add_argument("--datasets", default=None,
+                    help="Comma-separated dataset names; defaults to all enabled entries")
     args = ap.parse_args()
 
     assert torch.cuda.is_available(), "CUDA required"
@@ -199,9 +197,12 @@ def main():
     print("  built OK")
 
     manifest = json.loads(Path(args.datasets_file).read_text())["datasets"]
+    requested = (set(args.datasets.split(",")) if args.datasets else None)
     rows = []
     for entry in manifest:
         if not entry.get("enabled", True):
+            continue
+        if requested is not None and entry["name"] not in requested:
             continue
         mat = load_dataset(entry)
         if mat is None:
@@ -212,8 +213,6 @@ def main():
         vals_cpu = mat["vals"].contiguous().float()
         rowptr_np = rowptr_cpu.numpy()
         rowptr_gpu = rowptr_cpu.cuda()
-        colind_gpu = colind_cpu.cuda()
-        vals_gpu = vals_cpu.cuda()
         M = rowptr_cpu.numel() - 1
         K = int(mat.get("K", M))
         nnz = int(rowptr_np[-1])
@@ -226,11 +225,11 @@ def main():
         ms_cpu = time_cpu(rowptr_np, args.warmup, args.iters)
         ms_gpu = time_gpu_kernel_only(ext, rowptr_gpu, args.warmup, args.iters)
         ms_gpu_copy = time_gpu_with_copy(ext, rowptr_cpu, args.warmup, args.iters)
-        full_cpu_input_ms = time_production_full(
+        production_cpu_input_ms = time_production_router(
             rowptr_cpu, colind_cpu, vals_cpu, M, K, args.N,
             args.full_warmup, args.full_iters)
-        full_gpu_input_ms = time_production_full(
-            rowptr_gpu, colind_gpu, vals_gpu, M, K, args.N,
+        production_gpu_input_ms = time_production_router(
+            rowptr_gpu, colind_cpu, vals_cpu, M, K, args.N,
             args.full_warmup, args.full_iters)
         speedup_kernel = ms_cpu / ms_gpu if ms_gpu > 0 else 0.0
         speedup_with_copy = ms_cpu / ms_gpu_copy if ms_gpu_copy > 0 else 0.0
@@ -239,10 +238,9 @@ def main():
             "dataset": entry["name"], "category": entry.get("category", "?"),
             "M": M, "nnz": nnz,
             "d_bar": round(d_cpu, 4), "cv_d": round(cv_cpu, 4),
-            "production_full_cpu_input_ms": round(full_cpu_input_ms, 4),
-            "production_full_gpu_input_ms": round(full_gpu_input_ms, 4),
-            "production_full_backend": "CPU",
-            "production_full_gpu_implementation": False,
+            "production_4_cpu_input_ms": round(production_cpu_input_ms, 4),
+            "production_4_gpu_input_ms": round(production_gpu_input_ms, 4),
+            "production_4_backend": "OpenMP CPU; GPU input copies rowptr only",
             "lightweight_cpu_ms": round(ms_cpu, 4),
             "lightweight_gpu_kernel_ms": round(ms_gpu, 5),
             "lightweight_gpu_with_h2d_ms": round(ms_gpu_copy, 5),
@@ -250,9 +248,12 @@ def main():
             "lightweight_speedup_with_h2d": round(speedup_with_copy, 2),
             "lightweight_cpu_gpu_match": ok,
         })
-        print(f"  {entry['name']:<22s} M={M:>9d}  full(CPU input)={full_cpu_input_ms:9.3f}ms  "
-              f"full(GPU input+D2H)={full_gpu_input_ms:9.3f}ms  "
-              f"lightweight CPU/GPU={ms_cpu:.4f}/{ms_gpu:.5f}ms match={ok}")
+        print(f"  {entry['name']:<22s} M={M:>9d}  production-4(CPU input)={production_cpu_input_ms:9.3f}ms  "
+              f"production-4(GPU input+D2H)={production_gpu_input_ms:9.3f}ms  "
+              f"rowptr CPU/GPU={ms_cpu:.4f}/{ms_gpu:.5f}ms match={ok}")
+        del mat, rowptr_gpu, rowptr_cpu, colind_cpu, vals_cpu, rowptr_np
+        gc.collect()
+        torch.cuda.empty_cache()
 
     if rows:
         os.makedirs(os.path.dirname(args.output), exist_ok=True)
@@ -263,11 +264,13 @@ def main():
         # Geomean of speedups
         import math
         gk = math.exp(sum(math.log(max(1e-9, r["lightweight_speedup_kernel_only"])) for r in rows) / len(rows))
-        gc = math.exp(sum(math.log(max(1e-9, r["lightweight_speedup_with_h2d"])) for r in rows) / len(rows))
-        mean_cpu = sum(r["production_full_cpu_input_ms"] for r in rows) / len(rows)
+        gcopy = math.exp(sum(math.log(max(1e-9, r["lightweight_speedup_with_h2d"])) for r in rows) / len(rows))
+        mean_cpu = sum(r["production_4_cpu_input_ms"] for r in rows) / len(rows)
+        mean_gpu = sum(r["production_4_gpu_input_ms"] for r in rows) / len(rows)
         print(f"\nWrote {args.output}  ({len(rows)} graphs)")
-        print(f"Mean production full feature time (CPU input): {mean_cpu:.2f} ms")
-        print(f"Lightweight-only GPU speedup: kernel-only={gk:.1f}x, with-H2D-copy={gc:.1f}x")
+        print(f"Mean deployed production-4 feature time: CPU input={mean_cpu:.2f} ms, "
+              f"GPU input={mean_gpu:.2f} ms")
+        print(f"Rowptr-only GPU speedup: kernel-only={gk:.1f}x, with-H2D-copy={gcopy:.1f}x")
 
 
 if __name__ == "__main__":

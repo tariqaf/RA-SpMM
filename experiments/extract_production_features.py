@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Export the exact feature vector produced by the C++ router."""
+"""Export the full diagnostic C++ feature vector for selector experiments.
+
+The deployed MAIN router intentionally computes only its four rule inputs.
+This exporter uses the separate FULL portfolio so learned-selector experiments
+retain the documented 34-feature diagnostic input space.
+"""
 
 from __future__ import annotations
 
@@ -24,6 +29,7 @@ def main() -> None:
     parser.add_argument("--datasets-file", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--N", type=int, default=128)
+    parser.add_argument("--portfolio", choices=("FULL",), default="FULL")
     args = parser.parse_args()
 
     entries = json.loads(Path(args.datasets_file).read_text())["datasets"]
@@ -38,14 +44,15 @@ def main() -> None:
         colind = matrix["colind"].contiguous().int()
         vals = matrix["vals"].contiguous().float()
         M, K = int(matrix["M"]), int(matrix["K"])
-        plan = ra_spmm.make_router_plan(rowptr, colind, vals, M, K, args.N, "MAIN")
+        plan = ra_spmm.make_router_plan(
+            rowptr, colind, vals, M, K, args.N, args.portfolio)
         features = {f"feature_{key}": value for key, value in dict(plan["feature_values"]).items()}
         rows.append({
             "dataset": entry["name"], "category": entry.get("category", ""),
             "M": M, "K": K, "nnz": int(colind.numel()), "feature_N": args.N,
             **features,
         })
-        print(f"  {entry['name']}: {len(features)} production features", flush=True)
+        print(f"  {entry['name']}: {len(features)} diagnostic features", flush=True)
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)

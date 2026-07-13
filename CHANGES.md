@@ -157,3 +157,178 @@ No optimization is accepted until strict correctness, 192/192 router parity, and
 - **TC_DIRECT:** Because HMMA is not reached, the priority is not tuning Tensor Core occupancy. Packing and eligibility should be redesigned to form sufficiently dense 16x16 groups, then validated under the strict numerical gate. If that cannot be achieved on the target graphs, the implementation and paper should continue to describe this as an FP32 tile path.
 - **COMMUNITY_TC:** Community ordering should be optimized for packed-tile density and dense-feature reuse, with conversion cached across GNN layers. Any revised ordering must demonstrate nonzero HMMA counters before claiming Tensor Core execution; otherwise coalesced FP32 tile gathers remain the relevant target.
 - **SEGMENT_HYBRID:** In addition to active-warp sizing, disjoint tile/direct partitions could be scheduled on separate streams and their metadata compacted. Partition thresholds should be calibrated by N and measured conversion cost, with strict output checks because concurrency and partition-boundary errors have a wide blast radius.
+
+### Deployed Four-Feature Router
+
+- **Why:** The production eight-rule router uses only `M`, `N`, mean row degree, and population `CV_d`, but `make_router_plan(..., MAIN)` previously copied all CSR arrays and computed the legacy 34-feature tile/locality vector. The old measured full path averaged `2958.23 ms` and reached approximately `63.39 s` on ogbn-products.
+- **Change:** MAIN now reads `rowptr` only and computes the four exact rule inputs. CPU-resident input uses an OpenMP row-degree reduction. GPU-resident input uses a current-stream CUDA reduction and transfers only two double-precision moments; diagnostic `FULL` retains the 34-feature extractor for ablations and learned-selector experiments.
+- **Verification:** A representative CPU/Python comparison on roadNet-CA selected `COMMUNITY_TC` in both implementations with population-CV agreement to the displayed precision. On ogbn-products, the new deployed path measures `1.808 ms` for CPU-resident CSR and `0.158 ms` for GPU-resident CSR, including dispatch-required synchronization. The old 34-feature vector is now exported only through `experiments/extract_production_features.py --portfolio FULL`.
+- **Interpretation:** This is a removal of unused production work, not an approximation or a learned substitute. The 192-configuration parity check remains a release gate.
+- **Final verification:** `ra_router_parity_test.py --manifest fgcs_results/paper_combined_datasets.json` reports `PARITY OK 192/192`.
+
+### CSR Output Initialization
+
+- **Why:** CSR_DIRECT cleared every output twice: allocation used `torch::zeros` and the launcher performed a second `cudaMemset`, although the kernel writes every element. ZERO_OVERHEAD_CSR similarly cleared outputs unnecessarily when every row is dispatched to a non-atomic bin.
+- **Change:** CSR_DIRECT receives `nnz` from the binding, removing a cached device-to-host metadata read and redundant output initialization. ZERO_OVERHEAD_CSR records empty-row count and skips initialization only when there are neither empty rows nor atomic long rows; all other plans keep the clear.
+- **Before/after:** On `synth_sparse_uniform_d8, N=128`, strict-correct warm execution changed from `1.918766 ms` to `1.5706 ms` for CSR_DIRECT and from `1.916739 ms` to `1.5686 ms` for ZERO_OVERHEAD_CSR, approximately `1.22x` in both cases. The matching cuSPARSE run measured `1.868616 ms`; the resulting warm speedups are approximately `1.19x`, not 2x.
+- **Verification:** The 70,000-nnz long-row regression and `M=150000, N=8` fallback both remain exact. Cora, Twitter, and the uniform synthetic case pass the strict adaptive gate after the change.
+- **Complete strict gate:** `strict_correctness_after_opt.csv` contains all `1,152 = 192 x 6` custom-kernel rows: 1,152 correct, zero soft failures, zero hard failures, and zero execution errors.
+
+### RODE Output And Warp Mapping
+
+- **Why:** RODE used a full output clear even though regular prefixes write their output. Its float4 short/residual CTAs also carried idle warps at `N=64/128/256`.
+- **Change:** Residual descriptors record whether a regular prefix exists. Residual-only rows write their result; residual tails add to their already-written prefix. Empty-row matrices retain initialization. Short/residual float4 paths compact one, two, or four row-owned warps into a CTA according to output width; the long-row shared-memory pipeline is unchanged.
+- **Verification:** Strict checks pass on Cora and Twitter at N=128/256. On Cora N=256, RODE warm time changed from `0.037330 ms` to `0.0308 ms`; on Twitter N=256 it changed from `1.212785 ms` to `1.1717 ms`. The Cora N=128 result changed from `0.033331 ms` to `0.0320 ms`, while Twitter N=128 is effectively unchanged (`0.660859 ms` to `0.6586 ms`). These cases do not justify a whole-regime speedup claim until the complete fair sweep is rerun.
+
+### Rejected Wide-CTA CSR Experiment
+
+- **Attempt:** A no-conversion, multi-warp CTA-per-row float4 kernel was evaluated for dense rows at wide N, following the output-tiling direction used in prior CSR SpMM work.
+- **Result:** It was strict-correct but slower on Amazon Photo N=256 (`0.3925 ms`) than the prior CSR_DIRECT measurement (`0.360678 ms`).
+- **Status:** Reverted. The released code does not include this experiment.
+
+### Tensor-Core Conversion Finding
+
+- **Finding:** The existing TC plans perform row reordering and CSR repacking despite often emitting no WMMA-eligible tiles. Direct measurements at N=128 found zero TC tiles for Cora, Amazon Photo, Reddit, and ogbn-products; their plan-build times were `3316.679 ms`, `19.627 ms`, `734.653 ms`, and `1470.870 ms`, respectively.
+- **Implication:** A one-pass row ordering alone cannot create dense 16x16 blocks absent from the original sparsity pattern. A graph-wide row-and-column reordering/conversion under a 60 ms budget is not supported by this evidence, and no HMMA utilization claim is added.
+
+## Kernel Redesign Round Two (Sputnik / Swift / FlashSparse ports, 2026-07-13)
+
+All changes in this section were gated by the strict adaptive correctness
+tolerance on a ten-dataset cross-regime subset before acceptance; per-change
+before/after warm geomeans below are from that subset against the
+`fair_after_opt` baselines on the same GPU and protocol (50 warmup, 200 timed).
+Sources analyzed: google-research/sputnik, MinttHu/Swift, ParCIS/FlashSparse
+(clones under `external/`).
+
+### CSR_DIRECT: subwarp + register-tile engine (Sputnik-style) — ACCEPTED
+
+- **Why:** At N=64 the float4 warp-per-row kernel idled 16 of 32 lanes; at
+  N=256/512 it re-read the entire A row once per 32-wide N stride; A
+  values/indices were loaded scalar and redundantly by every lane.
+- **Change:** New `csr_direct_subwarp_vec4_kernel<W,S>`: a W-lane subwarp owns
+  one row (2 rows per warp at N=64), S float4 accumulators per lane cover all
+  of N in one A pass, and colind/vals chunks are loaded coalesced (one element
+  per lane) and distributed with `__shfl_sync`. Exact-fit dispatch for
+  N ∈ {32,64,128,256,512}; other shapes keep the previous kernels.
+- **Result:** subset geomean `1.0564x`; roadNet-CA `1.20-1.34x`
+  (2.02x vs cuSPARSE at N=128); zero correctness failures.
+
+### ZERO_OVERHEAD_CSR: unified small-row launch + flattened chunks — ACCEPTED
+
+- **Why:** Three sequential launches for tiny/short/medium bins; a rectangular
+  `(num_long x max_chunks)` long-row grid that was mostly empty blocks; a full
+  M x N memset whenever any empty or long row existed; 4 scalar atomicAdds per
+  float4 for every long-row chunk.
+- **Change:** One bin-ordered small-row list executed by the subwarp engine in
+  a single launch; long rows become a flattened list of 256-nnz chunk
+  descriptors (one block per real chunk) where sole chunks store directly
+  (no atomics); only empty rows and multi-chunk rows are pre-zeroed by a slice
+  kernel (full memset only when they exceed M/4). Binding no longer allocates
+  `torch::zeros`.
+- **Result:** subset geomean `1.2807x`; com-youtube N=64 `3.10x` faster
+  (0.32x -> 1.19x vs cuSPARSE); roadNet-CA `2.20-2.32x`; zero failures.
+
+### RODE_ENHANCED: dead plan arrays removed; shuffle port REJECTED
+
+- The unused `d_long_sub_starts/counts/row_map` descriptors are no longer
+  generated or uploaded (plan memory and build time only; no kernel change).
+- A Sputnik-style coalesced-A/shuffle rewrite of the short and residual
+  kernels measured `0.9979x` subset geomean (regressions at N=64 from
+  predication overhead) and was reverted. The kernels are unchanged.
+
+### TC_DIRECT: FlashSparse ME-BCRS + swapped-operand mma rewrite — ACCEPTED
+
+- **Why:** The previous 16x16 dense-tile design measured zero executed HMMA
+  instructions across the whole corpus (median achievable tile density
+  0.004-0.008 versus the 0.08 gate) and paid a multi-second row-reordering
+  plan for an FP32 fallback.
+- **Change:** Complete rewrite in the FlashSparse (PPoPP'25) style: 8-row
+  windows in NATURAL order (no reordering), per-window column condensation
+  into 8x1 vectors, 8-vector mma blocks whose values are stored directly in
+  PTX B-fragment order, executed with
+  `mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32` (FP16 inputs, FP32
+  accumulate) using the swap-and-transpose operand mapping. B is converted
+  once per call to a lazily allocated half buffer, halving gather traffic.
+  Tensor cores now genuinely execute; accuracy is gated by the existing
+  strict tolerance (TC factor) and passes on all subset configurations
+  (relative error ~2-4e-4).
+- **Result:** subset geomean `1.5765x` over the previous TC_DIRECT; subset
+  geomean vs cuSPARSE `1.3755x`, including wins on Mixed/Irregular
+  (`1.76-1.83x`) and Sparse Skewed (`1.81-1.87x`) where no custom kernel
+  previously beat cuSPARSE.
+
+### COMMUNITY_TC: same engine over locality-ordered windows — ACCEPTED
+
+- Rows are sorted by leading neighbor column (single deterministic parallel
+  sort; label propagation, CSC build, and CSR rebuild are removed) before
+  windowing; the kernel scatters window slots to original C rows.
+- **Result:** subset geomean `1.3498x` over the previous COMMUNITY_TC
+  (`1.2709x` vs cuSPARSE); zero failures. Plan cost drops from label
+  propagation seconds to a sort plus format build.
+
+### SEGMENT_HYBRID: same engine with FlashSparse balance splitting — ACCEPTED
+
+- Natural-order windows whose mma-block count exceeds 64 are split into equal
+  segments merged with atomicAdd (sole segments store directly; only split
+  windows' rows are pre-zeroed). Replaces the previous TC/CUDA row
+  partitioning.
+- **Result:** subset geomean `1.6829x` over the previous SEGMENT_HYBRID
+  (`1.2603x` vs cuSPARSE); zero failures.
+
+### Known open items
+
+- ME-BCRS plan construction is CPU/OpenMP; on 14 cores it measures ~135-220 ms
+  on million-row graphs and ~1.4-2.1 s on Reddit-class dense-large graphs
+  (the plan itself is gigabyte-scale there). A GPU-side format build in the
+  FlashSparse style is the identified follow-up if the router assigns tile
+  kernels to that regime.
+- The FP16-input/FP32-accumulate mma path relies on the strict gate's
+  documented TC tolerance (BASE_ATOL * sqrt(max row nnz) * 10); every
+  accepted configuration passes it.
+- The router rules predate this landscape and must be recalibrated (Python +
+  C++ + parity) once the full two-GPU fair sweep completes.
+
+## Precision-Fairness Closure (2026-07-14)
+
+- **Baseline:** `benchmark_cusparse_fp16[_cold]` runs the identical cuSPARSE
+  algorithm and warm/cold timing loops with A and B in `CUDA_R_16F`, C in
+  FP32, compute `CUDA_R_32F` — the exact dtypes the ME-BCRS tile kernels
+  consume. `ra_real_graph_eval.py` records `ms_cusparse_fp16_{warm,cold}` and
+  `speedup_precision_matched_{warm,cold}` (tile kernels only). Current-sweep
+  measurements: `fgcs_results/revision/fair/precision_matched.csv` (all 51
+  graphs x 4 N, warm 50/200, cold 10).
+- **Speed (192 sweep configs, warm geomean):** TC_DIRECT `1.4405x` vs FP32
+  cuSPARSE but `0.9352x` vs FP16 cuSPARSE; COMMUNITY_TC `1.3338x`/`0.8659x`;
+  SEGMENT_HYBRID `1.2858x`/`0.8348x`. Per-regime best-tile vs FP16 cuSPARSE:
+  Dense Large-Scale `1.421x`, Mixed/Irregular `1.055x`, Sparse Skewed
+  `0.994x`, Community `0.963x`, Sparse Uniform `0.972x`, Dense Small
+  `0.844x`. A substantial share of the tile kernels' gain over FP32 cuSPARSE
+  is therefore attributable to reduced-precision inputs; the format itself
+  wins only on Dense Large-Scale and Mixed/Irregular.
+- **Accuracy:** zero strict-gate failures across all 204 measured configs
+  (including highest-degree x N=512). Median max-relative-error 2.73e-4 for
+  both TC_DIRECT and FP16 cuSPARSE; worst case 4.73e-4 (identical for both).
+  The tile kernels trade no additional accuracy relative to the
+  precision-matched vendor baseline.
+- **GNN end-to-end (GCN, cusparse vs tc_direct backends):** all validations
+  pass; aggregation max errors 0.061/0.102/0.064 vs tolerances
+  1.15/1.47/0.88 on ogbn-arxiv/Reddit/ogbn-proteins; training-step speedup
+  vs FP32 cuSPARSE 0.96x/1.79x/1.84x. Final-accuracy training comparison on
+  labeled small graphs remains available via the existing bench.
+
+## Router Recalibration v2 (2026-07-14)
+
+- **Why:** The eight rules predated the round-two kernel redesign; on the
+  fair sweep v2 landscape they scored 40/192 oracle hits.
+- **Change:** Rules refit to the measured v2 oracle in lockstep in
+  `ra_router_eval.py::route_with_rules` and `router/router_dispatch.cpp`
+  (same thresholds, same order). The router is now preprocessing-aware:
+  estimated ME-BCRS plan-build time (~20 ms per 1e6 nnz measured on the
+  reference host) above a 20 s amortization budget withdraws tile kernels
+  and falls back to a CSR kernel chosen by skew. No graph in the current
+  corpus exceeds the budget (max measured build 2.4 s on ogbn-products);
+  the gate exists for larger inputs.
+- **Result (192 configs, warm):** router `1.571x` vs cuSPARSE (oracle
+  `1.581x` over the six custom kernels), Router/Oracle `0.9938`, hit rate
+  `181/192` (94.3%). `ra_router_parity_test.py`: `PARITY OK 192/192`.
+  Data: `fgcs_results/revision/fair/router_quality_v2.csv`.

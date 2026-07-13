@@ -44,6 +44,9 @@ def main():
     parser.add_argument("--expected", type=int, default=192)
     parser.add_argument("--allow-partial", action="store_true")
     parser.add_argument("--manifest", default=None)
+    parser.add_argument("--quiet", action="store_true")
+    parser.add_argument("--result-file", default=None,
+                        help="Optional path for the final one-line parity status")
     args = parser.parse_args()
 
     manifest_path = Path(args.manifest) if args.manifest else REPO_ROOT / "fgcs_results" / "paper_combined_datasets.json"
@@ -79,6 +82,9 @@ def main():
         Ns = [int(n) for n in entry.get("Ns", N_VALUES)
               if int(n) <= int(entry.get("max_N", 512))]
 
+        if not args.quiet:
+            print(f"[check] {entry['name']} ({len(Ns)} widths)", flush=True)
+
         for N in Ns:
             py_pick = simple_router(d_bar, cv_d, M, N, nnz)
             plan = ra_spmm.make_router_plan(
@@ -96,7 +102,10 @@ def main():
 
     incomplete = n_total != args.expected and not args.allow_partial
     ok = not mismatches and not incomplete and n_total > 0
-    print(f"PARITY {'OK' if ok else 'FAIL'} {n_match}/{n_total}")
+    status = f"PARITY {'OK' if ok else 'FAIL'} {n_match}/{n_total}"
+    print(status)
+    if args.result_file:
+        Path(args.result_file).write_text(status + "\n")
     if incomplete:
         print(f"Expected {args.expected} loaded configurations; got {n_total}. "
               "Use --allow-partial only for an explicitly partial dataset checkout.")

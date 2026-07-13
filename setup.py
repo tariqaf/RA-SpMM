@@ -38,6 +38,7 @@ sources = [
     'tc/ra_segment_hybrid.cu',       # R7: Hybrid/mixed
     # --- Infrastructure ---
     'router/router_features.cpp',
+    'router/router_features_cuda.cu',
     'router/router_scores.cpp',
     'router/router_dispatch.cpp',
     'graph/generators.cpp',

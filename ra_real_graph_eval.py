@@ -345,6 +345,8 @@ def main():
     parser.add_argument("--seed", type=int, default=123)
     parser.add_argument("--kernels", default=",".join(ALL_KERNELS),
                         help="Comma-separated custom kernels; cuSPARSE is always measured")
+    parser.add_argument("--correctness-report", default=None,
+                        help="CSV path for per-kernel strict correctness results")
     args = parser.parse_args()
     WARMUP = int(args.warmup)
     TIMED_ITERS = int(args.timed)
@@ -394,6 +396,7 @@ def main():
         print(f"  [{d.get('category', '?')}] {d['name']} (M={d.get('M', '?')}, nnz={d.get('nnz', '?')})")
 
     all_results = []
+    correctness_rows = []
     correctness_failures = 0
 
     for entry in datasets:
@@ -468,6 +471,13 @@ def main():
                         "tolerance": tol,
                         "error": "",
                     }
+                    if args.correctness_only:
+                        correctness_rows.append({
+                            "dataset": name, "category": category,
+                            "synthetic": bool(entry.get("synthetic", False)),
+                            "M": M, "K": K, "nnz": nnz, "N": N,
+                            "kernel": kname, **timing,
+                        })
                     if not args.correctness_only and correct:
                         timing["ms_warm"] = measure_ms(
                             lambda: run_planned_kernel(
@@ -487,6 +497,13 @@ def main():
                         "correct": False, "soft_fail": False, "hard_fail": True,
                         "max_error": None, "tolerance": None, "error": str(exc),
                     }
+                    if args.correctness_only:
+                        correctness_rows.append({
+                            "dataset": name, "category": category,
+                            "synthetic": bool(entry.get("synthetic", False)),
+                            "M": M, "K": K, "nnz": nnz, "N": N,
+                            "kernel": kname, **measurements[kname],
+                        })
                     print(f"    [ERROR] {kname}: {exc}")
 
             if not args.correctness_only:
@@ -502,6 +519,15 @@ def main():
                     "cold_exec_ms": float(cus_cold["exec_ms"]),
                     "ms_cold": float(cus_cold["total_ms"]),
                 }
+
+                # Precision-matched baseline: same algorithm and timing loops,
+                # A/B in fp16, C fp32, compute fp32 (the tile kernels' dtypes).
+                cus16_warm = ra_spmm.benchmark_cusparse_fp16(
+                    rowptr, colind, vals, B, warmup=WARMUP, iters=TIMED_ITERS)
+                cus16_cold = ra_spmm.benchmark_cusparse_fp16_cold(
+                    rowptr, colind, vals, B, max(1, COLD_ITERS))
+                ms_cusparse_fp16_warm = float(cus16_warm["exec_ms"])
+                ms_cusparse_fp16_cold = float(cus16_cold["total_ms"])
 
                 direct = measurements.get("CSR_DIRECT", {})
                 cusp = measurements["CUSPARSE"]
@@ -539,6 +565,14 @@ def main():
                             if warm and direct.get("ms_warm") else None,
                         "speedup_vs_csr_direct_cold": round(direct["ms_cold"] / cold, 6)
                             if cold and direct.get("ms_cold") else None,
+                        "ms_cusparse_fp16_warm": round(ms_cusparse_fp16_warm, 6),
+                        "ms_cusparse_fp16_cold": round(ms_cusparse_fp16_cold, 6),
+                        "speedup_precision_matched_warm":
+                            round(ms_cusparse_fp16_warm / warm, 6)
+                            if warm and kname in TC_KERNELS else None,
+                        "speedup_precision_matched_cold":
+                            round(ms_cusparse_fp16_cold / cold, 6)
+                            if cold and kname in TC_KERNELS else None,
                         "correct": timing["correct"],
                         "soft_fail": timing["soft_fail"],
                         "hard_fail": timing["hard_fail"],
@@ -559,6 +593,14 @@ def main():
         torch.cuda.empty_cache()
 
     if args.correctness_only:
+        if args.correctness_report and correctness_rows:
+            report_path = os.path.abspath(args.correctness_report)
+            os.makedirs(os.path.dirname(report_path), exist_ok=True)
+            with open(report_path, 'w', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=list(correctness_rows[0].keys()))
+                writer.writeheader()
+                writer.writerows(correctness_rows)
+            print(f"Strict correctness report saved to {args.correctness_report}")
         if correctness_failures:
             print(f"\nStrict correctness failed for {correctness_failures} configurations.")
             sys.exit(1)

@@ -76,6 +76,40 @@ inline float safe_div(float num, float den) {
 
 }  // namespace
 
+RouterFeatures compute_production_router_features(
+    const int* rowptr,
+    int M, int K, int N)
+{
+    RouterFeatures f{};
+    f.matrix_M = M;
+    f.matrix_K = K;
+    f.output_dim_N = N;
+    if (rowptr == nullptr || M <= 0 || K <= 0) {
+        return f;
+    }
+
+    const int nnz = rowptr[M] - rowptr[0];
+    f.total_nnz = nnz;
+    const double avg = static_cast<double>(nnz) / static_cast<double>(M);
+    f.avg_nnz_per_row = static_cast<float>(avg);
+    if (nnz <= 0) {
+        return f;
+    }
+
+    double squared_deviation_sum = 0.0;
+#pragma omp parallel for reduction(+:squared_deviation_sum) if(M >= 131072)
+    for (int row = 0; row < M; ++row) {
+        const double degree = static_cast<double>(rowptr[row + 1] - rowptr[row]);
+        const double delta = degree - avg;
+        squared_deviation_sum += delta * delta;
+    }
+
+    const double std_dev = std::sqrt(squared_deviation_sum / static_cast<double>(M));
+    f.std_nnz_per_row = static_cast<float>(std_dev);
+    f.degree_cv = (avg > 1e-6) ? static_cast<float>(std_dev / avg) : 0.0f;
+    return f;
+}
+
 RouterFeatures compute_router_features(
     const int* rowptr,
     const int* colind,

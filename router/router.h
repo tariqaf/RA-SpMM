@@ -15,6 +15,19 @@ RouterFeatures compute_router_features(
     const int*   colind,
     int M, int K, int N);
 
+// Exact feature set used by the production eight-rule router. This path is
+// O(M), reads rowptr only, and deliberately omits diagnostic tile/locality
+// features that do not participate in MAIN routing decisions.
+RouterFeatures compute_production_router_features(
+    const int* rowptr,
+    int M, int K, int N);
+
+// CUDA implementation for GPU-resident CSR input. It reads rowptr on the
+// current CUDA stream and transfers only reduction results to the host.
+RouterFeatures compute_production_router_features_gpu(
+    const int* rowptr,
+    int M, int K, int N);
+
 // ---------------------------------------------------------------------------
 // Score computation (diagnostic only -- not used for routing decisions)
 // ---------------------------------------------------------------------------

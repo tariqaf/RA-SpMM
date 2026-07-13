@@ -170,6 +170,16 @@ class GraphBackend:
             if int(ncols) < 16:
                 executor = ("CSR_DIRECT", None)
             else:
+                # The ME-BCRS plan is N-independent: reuse one plan per
+                # transpose direction instead of one per ncols (a Reddit plan
+                # is 2.2 GB). Plan buffers use raw cudaMalloc, which cannot
+                # draw from torch's caching allocator; release the cache
+                # before building.
+                for (b_k, t_k, n_k), ex in list(self.exec_cache.items()):
+                    if b_k == "tc_direct" and t_k == transpose and n_k >= 16:
+                        self.exec_cache[key] = ex
+                        return ex
+                torch.cuda.empty_cache()
                 wrapper = spmm_next.make_tc_direct_plan(
                     tensors["rowptr_cpu"],
                     tensors["colind_cpu"],

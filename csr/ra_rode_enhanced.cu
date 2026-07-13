@@ -140,6 +140,53 @@ __global__ void rode_short_vec4_kernel(
     }
 }
 
+// For widths up to 512, assign only the warps that own a distinct float4
+// output strip and pack independent rows into a CTA. The original CTA-per-row
+// kernel leaves otherwise-idle warps at N=64/128/256.
+template <int WARPS_PER_ROW>
+__global__ void rode_short_vec4_compact_kernel(
+    const int*   __restrict__ d_col,
+    const float* __restrict__ d_val,
+    const float* __restrict__ B,
+    float*       __restrict__ C,
+    const int*   __restrict__ row_ids,
+    const int*   __restrict__ starts,
+    const int*   __restrict__ block_nnz_list,
+    int num_rows,
+    int N)
+{
+    const int global_warp = (blockIdx.x * blockDim.x + threadIdx.x) / 32;
+    const int row_idx = global_warp / WARPS_PER_ROW;
+    if (row_idx >= num_rows) return;
+
+    const int row_warp = global_warp % WARPS_PER_ROW;
+    const int lane = threadIdx.x % 32;
+    const int row = row_ids[row_idx];
+    const int start = starts[row_idx];
+    const int block_nnz = block_nnz_list[row_idx];
+    const int N4 = N / 4;
+
+    for (int n4 = row_warp * 32 + lane; n4 < N4; n4 += WARPS_PER_ROW * 32) {
+        float4 acc = make_float4(0.f, 0.f, 0.f, 0.f);
+        for (int seg = 0; seg < block_nnz; seg += 32) {
+#pragma unroll
+            for (int e = 0; e < 32; ++e) {
+                const int p = start + seg + e;
+                const float4* b_ptr =
+                    reinterpret_cast<const float4*>(B + (i64)d_col[p] * N);
+                const float4 b4 = __ldg(b_ptr + n4);
+                const float a = d_val[p];
+                acc.x += a * b4.x;
+                acc.y += a * b4.y;
+                acc.z += a * b4.z;
+                acc.w += a * b4.w;
+            }
+        }
+        float4* c_ptr = reinterpret_cast<float4*>(C + (i64)row * N);
+        c_ptr[n4] = acc;
+    }
+}
+
 // ============================================================================
 // Kernel 2: Long-row pipelined scalar kernel (regular_nnz >= 128)
 //
@@ -362,9 +409,9 @@ __global__ void rode_long_pipelined_vec4_kernel(
 // ============================================================================
 // Kernel 3: Residual scalar kernel (0-31 nnz tail per row)
 //
-// Lightweight warp-per-row handler. Adds into already-computed regular output.
-// No atomics needed: residual kernel runs after short/long kernels, and each
-// row is owned by exactly one residual descriptor.
+// Lightweight warp-per-row handler. Residual-only rows write their output;
+// rows with a regular prefix add their tail after the regular kernel. No
+// atomics are needed because each row has exactly one residual descriptor.
 // ============================================================================
 __global__ void rode_residual_scalar_kernel(
     const int*   __restrict__ d_col,
@@ -374,6 +421,7 @@ __global__ void rode_residual_scalar_kernel(
     const int*   __restrict__ d_res_row_ids,
     const int*   __restrict__ d_res_starts,
     const int*   __restrict__ d_res_lengths,
+    const uint8_t* __restrict__ d_res_has_regular,
     int num_residual,
     int N)
 {
@@ -387,13 +435,15 @@ __global__ void rode_residual_scalar_kernel(
     const int row   = d_res_row_ids[residual_idx];
     const int start = d_res_starts[residual_idx];
     const int len   = d_res_lengths[residual_idx];
+    const bool add_to_regular = d_res_has_regular[residual_idx] != 0;
 
     for (int n = warp * 32 + lane; n < N; n += warps_per_block * 32) {
         float acc = 0.f;
         for (int p = 0; p < len; ++p) {
             acc += d_val[start + p] * __ldg(&B[(i64)d_col[start + p] * N + n]);
         }
-        C[(i64)row * N + n] += acc;
+        float* c = C + (i64)row * N + n;
+        *c = add_to_regular ? (*c + acc) : acc;
     }
 }
 
@@ -408,6 +458,7 @@ __global__ void rode_residual_vec4_kernel(
     const int*   __restrict__ d_res_row_ids,
     const int*   __restrict__ d_res_starts,
     const int*   __restrict__ d_res_lengths,
+    const uint8_t* __restrict__ d_res_has_regular,
     int num_residual,
     int N)
 {
@@ -422,6 +473,7 @@ __global__ void rode_residual_vec4_kernel(
     const int row   = d_res_row_ids[residual_idx];
     const int start = d_res_starts[residual_idx];
     const int len   = d_res_lengths[residual_idx];
+    const bool add_to_regular = d_res_has_regular[residual_idx] != 0;
 
     for (int n4 = warp * 32 + lane; n4 < N4; n4 += warps_per_block * 32) {
         float4 acc = make_float4(0.f, 0.f, 0.f, 0.f);
@@ -436,12 +488,67 @@ __global__ void rode_residual_vec4_kernel(
             acc.w += a * b4.w;
         }
         float4* c_ptr = reinterpret_cast<float4*>(C + (i64)row * N);
-        float4 cur = c_ptr[n4];
-        cur.x += acc.x;
-        cur.y += acc.y;
-        cur.z += acc.z;
-        cur.w += acc.w;
-        c_ptr[n4] = cur;
+        if (add_to_regular) {
+            float4 cur = c_ptr[n4];
+            cur.x += acc.x;
+            cur.y += acc.y;
+            cur.z += acc.z;
+            cur.w += acc.w;
+            c_ptr[n4] = cur;
+        } else {
+            c_ptr[n4] = acc;
+        }
+    }
+}
+
+template <int WARPS_PER_ROW>
+__global__ void rode_residual_vec4_compact_kernel(
+    const int*   __restrict__ d_col,
+    const float* __restrict__ d_val,
+    const float* __restrict__ B,
+    float*       __restrict__ C,
+    const int*   __restrict__ d_res_row_ids,
+    const int*   __restrict__ d_res_starts,
+    const int*   __restrict__ d_res_lengths,
+    const uint8_t* __restrict__ d_res_has_regular,
+    int num_residual,
+    int N)
+{
+    const int global_warp = (blockIdx.x * blockDim.x + threadIdx.x) / 32;
+    const int residual_idx = global_warp / WARPS_PER_ROW;
+    if (residual_idx >= num_residual) return;
+
+    const int row_warp = global_warp % WARPS_PER_ROW;
+    const int lane = threadIdx.x % 32;
+    const int row = d_res_row_ids[residual_idx];
+    const int start = d_res_starts[residual_idx];
+    const int len = d_res_lengths[residual_idx];
+    const bool add_to_regular = d_res_has_regular[residual_idx] != 0;
+    const int N4 = N / 4;
+
+    for (int n4 = row_warp * 32 + lane; n4 < N4; n4 += WARPS_PER_ROW * 32) {
+        float4 acc = make_float4(0.f, 0.f, 0.f, 0.f);
+        for (int p = 0; p < len; ++p) {
+            const float4* b_ptr =
+                reinterpret_cast<const float4*>(B + (i64)d_col[start + p] * N);
+            const float4 b4 = __ldg(b_ptr + n4);
+            const float a = d_val[start + p];
+            acc.x += a * b4.x;
+            acc.y += a * b4.y;
+            acc.z += a * b4.z;
+            acc.w += a * b4.w;
+        }
+        float4* c_ptr = reinterpret_cast<float4*>(C + (i64)row * N);
+        if (add_to_regular) {
+            float4 cur = c_ptr[n4];
+            cur.x += acc.x;
+            cur.y += acc.y;
+            cur.z += acc.z;
+            cur.w += acc.w;
+            c_ptr[n4] = cur;
+        } else {
+            c_ptr[n4] = acc;
+        }
     }
 }
 
@@ -471,12 +578,13 @@ void make_ra_rode_enhanced_plan(RARodeEnhancedPlan& plan,
     // Host-side descriptor vectors
     std::vector<int> short_row_ids, short_starts, short_block_nnz;
     std::vector<int> long_row_ids,  long_starts,  long_block_nnz;
-    std::vector<int> long_sub_starts, long_sub_counts, long_sub_row_map;
     std::vector<int> res_row_ids, res_starts, res_lengths;
+    std::vector<uint8_t> res_has_regular;
 
     i64 total_nnz     = 0;
     i64 regular_total = 0;
     i64 long_nnz      = 0;
+    int num_empty     = 0;
 
     // ---- Row classification ----
     for (int row = 0; row < M; ++row) {
@@ -484,6 +592,10 @@ void make_ra_rode_enhanced_plan(RARodeEnhancedPlan& plan,
         const int nnz_i = h_rowptr[row + 1] - start;
         const int regular_nnz  = (nnz_i / kSubBlockSize) * kSubBlockSize;
         const int residual_nnz = nnz_i - regular_nnz;
+
+        if (nnz_i == 0) {
+            ++num_empty;
+        }
 
         total_nnz += nnz_i;
         regular_total += regular_nnz;
@@ -496,14 +608,6 @@ void make_ra_rode_enhanced_plan(RARodeEnhancedPlan& plan,
                 long_starts.push_back(start);
                 long_block_nnz.push_back(regular_nnz);
                 long_nnz += regular_nnz;
-
-                // Generate sub-block descriptors
-                const int num_sub = regular_nnz / kSubBlockSize;
-                for (int sb = 0; sb < num_sub; ++sb) {
-                    long_sub_starts.push_back(start + sb * kSubBlockSize);
-                    long_sub_counts.push_back(kSubBlockSize);
-                    long_sub_row_map.push_back(row);
-                }
             } else {
                 // Short row: standard CTA-per-row
                 short_row_ids.push_back(row);
@@ -517,14 +621,16 @@ void make_ra_rode_enhanced_plan(RARodeEnhancedPlan& plan,
             res_row_ids.push_back(row);
             res_starts.push_back(start + regular_nnz);
             res_lengths.push_back(residual_nnz);
+            res_has_regular.push_back(regular_nnz > 0 ? 1u : 0u);
         }
     }
 
     // ---- Fill plan counts ----
     plan.num_short_rows     = static_cast<int>(short_row_ids.size());
     plan.num_long_rows      = static_cast<int>(long_row_ids.size());
-    plan.num_long_sub_blocks = static_cast<int>(long_sub_starts.size());
+    plan.num_long_sub_blocks = 0;
     plan.num_residual       = static_cast<int>(res_row_ids.size());
+    plan.num_empty          = num_empty;
 
     // ---- Diagnostics ----
     plan.regular_nnz_fraction = (total_nnz > 0)
@@ -543,13 +649,11 @@ void make_ra_rode_enhanced_plan(RARodeEnhancedPlan& plan,
     plan.d_long_starts     = ra_upload(long_starts);
     plan.d_long_block_nnz  = ra_upload(long_block_nnz);
 
-    plan.d_long_sub_starts  = ra_upload(long_sub_starts);
-    plan.d_long_sub_counts  = ra_upload(long_sub_counts);
-    plan.d_long_sub_row_map = ra_upload(long_sub_row_map);
 
     plan.d_res_row_ids  = ra_upload(res_row_ids);
     plan.d_res_starts   = ra_upload(res_starts);
     plan.d_res_lengths  = ra_upload(res_lengths);
+    plan.d_res_has_regular = ra_upload(res_has_regular);
 
     // ---- Plan memory accounting ----
     plan.plan_bytes =
@@ -559,22 +663,18 @@ void make_ra_rode_enhanced_plan(RARodeEnhancedPlan& plan,
         long_row_ids.size()    * sizeof(int) +
         long_starts.size()     * sizeof(int) +
         long_block_nnz.size()  * sizeof(int) +
-        long_sub_starts.size() * sizeof(int) +
-        long_sub_counts.size() * sizeof(int) +
-        long_sub_row_map.size() * sizeof(int) +
         res_row_ids.size()     * sizeof(int) +
         res_starts.size()      * sizeof(int) +
-        res_lengths.size()     * sizeof(int);
+        res_lengths.size()     * sizeof(int) +
+        res_has_regular.size() * sizeof(uint8_t);
 }
 
 // ============================================================================
 // run_ra_rode_enhanced_plan
 //
-// Execution order (all on default stream, sequentially dependent):
-//   1. cudaMemset C to zero
-//   2. Short-row kernel   (regular_nnz < 128): writes C[row] directly
-//   3. Long-row kernel    (regular_nnz >= 128): writes C[row] directly
-//   4. Residual kernel    (0-31 nnz tail):     adds into C[row]
+// Execution order is sequential on the current stream. Regular kernels write
+// their rows, and the residual kernel writes or adds according to its plan
+// descriptor. Only matrices with empty rows require output initialization.
 // ============================================================================
 void run_ra_rode_enhanced_plan(
     const RARodeEnhancedPlan& plan,
@@ -586,8 +686,9 @@ void run_ra_rode_enhanced_plan(
 {
     if (plan.M <= 0 || N <= 0) return;
 
-    // Zero the output matrix
-    CUDA_CHECK_NEXT(cudaMemset(d_C, 0, (i64)plan.M * N * sizeof(float)));
+    if (plan.num_empty > 0) {
+        CUDA_CHECK_NEXT(cudaMemset(d_C, 0, (i64)plan.M * N * sizeof(float)));
+    }
 
     // Alignment checks for vectorized path
     const bool b_aligned = (reinterpret_cast<std::uintptr_t>(d_B) % 16u) == 0u;
@@ -598,13 +699,22 @@ void run_ra_rode_enhanced_plan(
     if (plan.num_short_rows > 0) {
         constexpr int kShortThreads = 128;  // 4 warps
         if (use_vec4) {
-            rode_short_vec4_kernel<<<plan.num_short_rows, kShortThreads>>>(
-                d_colind, d_vals, d_B, d_C,
-                plan.d_short_row_ids,
-                plan.d_short_starts,
-                plan.d_short_block_nnz,
-                plan.num_short_rows,
-                N);
+            const int warps_per_row = std::min(4, std::max(1, (N / 4 + 31) / 32));
+            const int rows_per_block = 4 / warps_per_row;
+            const int blocks = (plan.num_short_rows + rows_per_block - 1) / rows_per_block;
+            if (warps_per_row == 1) {
+                rode_short_vec4_compact_kernel<1><<<blocks, kShortThreads>>>(
+                    d_colind, d_vals, d_B, d_C, plan.d_short_row_ids,
+                    plan.d_short_starts, plan.d_short_block_nnz, plan.num_short_rows, N);
+            } else if (warps_per_row == 2) {
+                rode_short_vec4_compact_kernel<2><<<blocks, kShortThreads>>>(
+                    d_colind, d_vals, d_B, d_C, plan.d_short_row_ids,
+                    plan.d_short_starts, plan.d_short_block_nnz, plan.num_short_rows, N);
+            } else {
+                rode_short_vec4_compact_kernel<4><<<blocks, kShortThreads>>>(
+                    d_colind, d_vals, d_B, d_C, plan.d_short_row_ids,
+                    plan.d_short_starts, plan.d_short_block_nnz, plan.num_short_rows, N);
+            }
         } else {
             rode_short_scalar_kernel<<<plan.num_short_rows, kShortThreads>>>(
                 d_colind, d_vals, d_B, d_C,
@@ -649,19 +759,32 @@ void run_ra_rode_enhanced_plan(
     if (plan.num_residual > 0) {
         constexpr int kResThreads = 128;
         if (use_vec4) {
-            rode_residual_vec4_kernel<<<plan.num_residual, kResThreads>>>(
-                d_colind, d_vals, d_B, d_C,
-                plan.d_res_row_ids,
-                plan.d_res_starts,
-                plan.d_res_lengths,
-                plan.num_residual,
-                N);
+            const int warps_per_row = std::min(4, std::max(1, (N / 4 + 31) / 32));
+            const int rows_per_block = 4 / warps_per_row;
+            const int blocks = (plan.num_residual + rows_per_block - 1) / rows_per_block;
+            if (warps_per_row == 1) {
+                rode_residual_vec4_compact_kernel<1><<<blocks, kResThreads>>>(
+                    d_colind, d_vals, d_B, d_C, plan.d_res_row_ids,
+                    plan.d_res_starts, plan.d_res_lengths, plan.d_res_has_regular,
+                    plan.num_residual, N);
+            } else if (warps_per_row == 2) {
+                rode_residual_vec4_compact_kernel<2><<<blocks, kResThreads>>>(
+                    d_colind, d_vals, d_B, d_C, plan.d_res_row_ids,
+                    plan.d_res_starts, plan.d_res_lengths, plan.d_res_has_regular,
+                    plan.num_residual, N);
+            } else {
+                rode_residual_vec4_compact_kernel<4><<<blocks, kResThreads>>>(
+                    d_colind, d_vals, d_B, d_C, plan.d_res_row_ids,
+                    plan.d_res_starts, plan.d_res_lengths, plan.d_res_has_regular,
+                    plan.num_residual, N);
+            }
         } else {
             rode_residual_scalar_kernel<<<plan.num_residual, kResThreads>>>(
                 d_colind, d_vals, d_B, d_C,
                 plan.d_res_row_ids,
                 plan.d_res_starts,
                 plan.d_res_lengths,
+                plan.d_res_has_regular,
                 plan.num_residual,
                 N);
         }
@@ -687,20 +810,19 @@ void free_ra_rode_enhanced_plan(RARodeEnhancedPlan& plan)
     if (plan.d_long_block_nnz)  { cudaFree(plan.d_long_block_nnz);  plan.d_long_block_nnz  = nullptr; }
 
     // Long-row sub-block descriptors
-    if (plan.d_long_sub_starts)  { cudaFree(plan.d_long_sub_starts);  plan.d_long_sub_starts  = nullptr; }
-    if (plan.d_long_sub_counts)  { cudaFree(plan.d_long_sub_counts);  plan.d_long_sub_counts  = nullptr; }
-    if (plan.d_long_sub_row_map) { cudaFree(plan.d_long_sub_row_map); plan.d_long_sub_row_map = nullptr; }
 
     // Residual descriptors
     if (plan.d_res_row_ids)  { cudaFree(plan.d_res_row_ids);  plan.d_res_row_ids  = nullptr; }
     if (plan.d_res_starts)   { cudaFree(plan.d_res_starts);   plan.d_res_starts   = nullptr; }
     if (plan.d_res_lengths)  { cudaFree(plan.d_res_lengths);  plan.d_res_lengths  = nullptr; }
+    if (plan.d_res_has_regular) { cudaFree(plan.d_res_has_regular); plan.d_res_has_regular = nullptr; }
 
     // Reset counts and diagnostics
     plan.num_short_rows      = 0;
     plan.num_long_rows       = 0;
     plan.num_long_sub_blocks = 0;
     plan.num_residual        = 0;
+    plan.num_empty           = 0;
     plan.M = 0;
     plan.K = 0;
     plan.regular_nnz_fraction  = 0.f;

@@ -29,97 +29,82 @@ DEFAULT_RESULTS = "results/spmm/all_graphs_results.csv"
 
 def route_with_rules(avg_nnz, degree_cv, M, N, nnz, *, disabled_rules=()):
     """
-    Python mirror of the production six-kernel router.
+    Python mirror of the production six-kernel router (recalibrated on the
+    fair sweep v2 after the ME-BCRS/subwarp kernel redesign).
 
-    Tuned for the label-propagation COMMUNITY_TC path, which dominates
-    most low-to-moderate-degree workloads. Eight rules, evaluated top-to-
-    bottom (first match wins). Default fallthrough is TC_DIRECT.
+    Eight rules, evaluated top-to-bottom; first match wins. Default
+    fallthrough is TC_DIRECT. Features: avg_nnz_per_row (d), population
+    degree CV (cv), M, N, nnz.
 
-    Features used: avg_nnz_per_row (d), degree_cv (cv), M, N.
+    Preprocessing-aware tile gate: the ME-BCRS plan build measures about
+    20 ms per 1e6 nnz on the reference host, so tile kernels are withheld
+    whenever the estimated build exceeds the 20 s amortization budget
+    (or N < 16, where the mma path is infeasible); such configs fall back
+    to a CSR kernel chosen by skew.
     """
     disabled = frozenset(disabled_rules)
     d = avg_nnz
     cv = degree_cv
 
-    # 1. Sub-tiny graphs (Cora, CiteSeer, PPI; ca-GrQc is M=5242, just
-    #    above the threshold). Two SEGMENT_HYBRID pockets at wide N:
-    #      - mid-degree tinies (PPI, d=18)
-    #      - very-low-degree tinies (Cora d=3.9, CiteSeer d=2.7)
-    #    Everything else falls through to TC_DIRECT where launch overhead
-    #    dominates and the dense fully-resident A tile wins.
+    tile_ok = (N >= 16) and (float(nnz) * 2e-8 <= 20.0)
+
+    def tile(kernel):
+        if tile_ok:
+            return kernel
+        return "CSR_DIRECT" if cv < 1.5 else "ZERO_OVERHEAD_CSR"
+
+    # 1. Sub-tiny graphs (Cora, CiteSeer, PPI): launch-bound; the dense
+    #    fully-resident window plan wins across N.
     if 1 not in disabled and M < 5000:
-        if N >= 256 and (d >= 12.0 or d <= 6.0):
-            return "SEGMENT_HYBRID"
-        return "TC_DIRECT"
+        return tile("TC_DIRECT")
 
-    # 2. Sparse-tail (com-youtube, very-skewed sparse): low d, very high
-    #    CV. Wide-N benefits from row-split RODE; small N stays on
-    #    TC_DIRECT where the kernel-launch overhead matters most.
-    if 2 not in disabled and M >= 100_000 and d < 8.0 and cv > 4.0:
-        return "RODE_ENHANCED" if N >= 256 else "TC_DIRECT"
-
-    # 3. Dense-small with d >= 25 (amazon-computers/photo and synthetic
-    #    dense-small). Placed BEFORE the skewed-mid rule so that
-    #    amazon-photo (M=7.6K, d=31, CV=1.52) is captured here rather
-    #    than being mis-classified as a power-law sparse graph.
-    if 3 not in disabled and M <= 15_000 and d >= 25.0:
-        return "SEGMENT_HYBRID" if cv >= 1.0 else "COMMUNITY_TC"
-
-    # 4. Heavily skewed sparse mid-degree. Sub-cases by M:
-    #      twitter-combined (M~80K) -> CSR_DIRECT/RODE depending on N
-    #      soc-Pokec (M~1.6M)        -> CSR_DIRECT
-    #      synth_mixed_v* (M=200K)  -> falls through to TC_DIRECT default
-    if 4 not in disabled and 12.0 <= d <= 40.0 and cv >= 1.5:
-        if M <= 100_000:
-            return "RODE_ENHANCED" if N >= 256 else "CSR_DIRECT"
-        if M >= 1_000_000:
-            return "CSR_DIRECT"
-
-    # 5. Dense-large (Reddit, ogbn-proteins, gplus-combined). TC kernels
-    #    win on arithmetic intensity. RODE for extreme-skew + wide-N.
-    if 5 not in disabled and d >= 96.0:
-        if cv >= 2.5 and N >= 256:
-            return "RODE_ENHANCED"
-        return "TC_DIRECT"
-
-    # 6. Huge mid-density sparse (ogbn-products): M >= 1M, d in [40, 96),
-    #    mild skew. Label-prop COMMUNITY_TC reorders the column layout
-    #    well enough to beat TC_DIRECT.
-    if 6 not in disabled and M >= 1_000_000 and 40.0 <= d < 96.0 and cv <= 2.5:
-        return "COMMUNITY_TC"
-
-    # 7. Medium-scale low-d irregular pocket (Flickr-class). M ~ 50-150K
-    #    with d ~ 9-12 sits in a sweet spot for ZERO_OVERHEAD_CSR which
-    #    avoids any preprocessing cost.
-    if 7 not in disabled and 50_000 <= M <= 150_000 and 9.0 <= d <= 12.0:
+    # 2. Extreme-skew sparse tails (com-youtube, cv ~ 9.7): the binned CSR
+    #    kernel with flattened hub chunks dominates every tile variant.
+    if 2 not in disabled and cv >= 5.0:
         return "ZERO_OVERHEAD_CSR"
 
-    # 8. COMMUNITY_TC sweet spot (label-propagation variant). Three OR
-    #    branches catch distinct sub-regimes:
-    #      (a) M >= 150K, d <= 10, CV in [0.5, 4.0], N <= 256:
-    #          web-Google, web-Stanford, com-DBLP, com-Amazon, ogbn-arxiv.
-    #          The N <= 256 cap prevents COMMUNITY_TC from over-firing at
-    #          N=512 where its plan-build overhead can dominate (e.g.,
-    #          ogbn-arxiv N=512 prefers TC_DIRECT).
-    #      (b) M >= 250K, d <= 9, CV > 0.1:
-    #          Amazon0601 (CV=0.33), roadNet-* family. CV > 0.1 keeps
-    #          natural-clustering real graphs while excluding pure-
-    #          uniform synthetics (synth_sparse_uniform_d5/8/12/18 have
-    #          CV = 0 exactly).
-    #      (c) M >= 150K, d <= 4:
-    #          synth_sparse_uniform_d3 and any very-sparse graph where
-    #          even random reordering pays off.
-    #    synth_community_nc* (M=200K, d=5.5, CV=0.42) deliberately
-    #    excluded: fails (a) on CV, (b) on M, (c) on d.
-    if 8 not in disabled and ((M >= 150_000 and d <= 10.0 and 0.5 <= cv <= 4.0 and N <= 256) or \
-       (M >= 250_000 and d <= 9.0 and cv > 0.1) or \
-       (M >= 150_000 and d <= 4.0)):
-        return "COMMUNITY_TC"
+    # 3. Uniform / near-uniform family (road networks, synthetic uniform,
+    #    synthetic communities, uniform dense-small).
+    if 3 not in disabled and cv < 0.7:
+        if d < 4.5:
+            return "CSR_DIRECT"          # roadNet-*, uniform d=3
+        if cv < 0.2 and N <= 64 and d >= 25.0:
+            return "CSR_DIRECT"          # uniform dense-small at narrow N
+        if cv >= 0.2 and d < 7.0:
+            return "CSR_DIRECT"          # synth_community_nc*
+        return tile("TC_DIRECT")
 
-    # Fallthrough: TC_DIRECT catches synth_community_nc*, synth_mixed_v*,
-    # synth_sparse_uniform_d5/8/12/18, synth_sparse_skewed_cv1p5..4p0,
-    # ca-HepTh, ca-CondMat, Yelp, gplus-combined remainders, etc.
-    return "TC_DIRECT"
+    # 4. Very skewed (cv >= 3): Yelp-class large -> COMMUNITY_TC,
+    #    Flickr-class medium -> balance-split SEGMENT_HYBRID.
+    if 4 not in disabled and cv >= 3.0:
+        return tile("COMMUNITY_TC") if M >= 250000 else tile("SEGMENT_HYBRID")
+
+    # 5. Dense rows (Reddit, ogbn-proteins, gplus, high-d skewed synth):
+    #    locality-ordered windows maximize vector reuse.
+    if 5 not in disabled and d >= 40.0:
+        return tile("COMMUNITY_TC")
+
+    # 6. Small dense (amazon-photo/computers): cuSPARSE at narrow N,
+    #    balance-split at mid N, locality windows at wide N.
+    if 6 not in disabled and M < 20000 and d >= 25.0:
+        if N < 96:
+            return "CUSPARSE"
+        if N < 384:
+            return tile("SEGMENT_HYBRID")
+        return tile("COMMUNITY_TC")
+
+    # 7. Heavy mixed (synth_mixed_v2..v5: d >= 25, cv >= 1.8).
+    if 7 not in disabled and d >= 25.0 and cv >= 1.8:
+        return tile("COMMUNITY_TC")
+
+    # 8. Web-locality sparse (web-Google, web-Stanford): large M, low d,
+    #    moderate cv.
+    if 8 not in disabled and d < 9.0 and 1.10 <= cv <= 1.45 and M >= 250000:
+        return tile("COMMUNITY_TC")
+
+    # Fallthrough: TC_DIRECT (arxiv, Amazon0601, com-DBLP/Amazon, Pokec,
+    # twitter, mid-degree skewed/mixed synthetics, ...).
+    return tile("TC_DIRECT")
 
 
 def simple_router(avg_nnz, degree_cv, M, N, nnz):
@@ -199,9 +184,10 @@ def main():
         cusparse_ms = meta['cusparse_ms']
         oracle_speed = cusparse_ms / oracle_ms
 
-        # Router: what would our router pick?
+        # Router: what would our router pick? (Rule 6 may pick CUSPARSE.)
         router_kernel = simple_router(avg_nnz, degree_cv, M, N, nnz)
-        router_ms = kernel_times[router_kernel]
+        router_ms = (cusparse_ms if router_kernel == "CUSPARSE"
+                     else kernel_times[router_kernel])
         router_speed = cusparse_ms / router_ms
         ratio = oracle_ms / router_ms
         ratios.append(ratio)
