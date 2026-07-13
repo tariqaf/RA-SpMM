@@ -43,7 +43,8 @@ COLD_ITERS = 10
 # factor for configurations that can execute half-precision WMMA groups.
 BASE_ATOL = 1e-3
 TC_EXTRA_FACTOR = 10.0  # FP16 accumulation is less precise
-TC_KERNELS = {"TC_DIRECT", "COMMUNITY_TC", "SEGMENT_HYBRID"}
+TC_KERNELS = {"TC_DIRECT", "COMMUNITY_TC", "SEGMENT_HYBRID",
+              "TC_DIRECT_TF32", "COMMUNITY_TC_TF32", "SEGMENT_HYBRID_TF32"}
 
 # Errors at or above this threshold are classified separately for diagnostics.
 HARD_FAIL_THRESHOLD = 1.0
@@ -60,6 +61,9 @@ ALL_KERNELS = [
     "COMMUNITY_TC",
     "SEGMENT_HYBRID",
 ]
+
+# Experimental variants selectable via --kernels but not in the default roster.
+EXPERIMENTAL_KERNELS = ["TC_DIRECT_TF32", "COMMUNITY_TC_TF32", "SEGMENT_HYBRID_TF32"]
 
 
 # ---------------------------------------------------------------------------
@@ -237,11 +241,11 @@ def build_kernel_plan(kernel_name: str, rowptr_cpu, colind_cpu, vals_cpu,
         return ra_spmm.make_zero_overhead_plan(rowptr_cpu, M, K)
     if kernel_name == "RODE_ENHANCED":
         return ra_spmm.make_rode_enhanced_plan(rowptr_cpu, M, K)
-    if kernel_name == "TC_DIRECT":
+    if kernel_name in ("TC_DIRECT", "TC_DIRECT_TF32"):
         return ra_spmm.make_tc_direct_plan(rowptr_cpu, colind_cpu, vals_cpu, M, K, N)
-    if kernel_name == "COMMUNITY_TC":
+    if kernel_name in ("COMMUNITY_TC", "COMMUNITY_TC_TF32"):
         return ra_spmm.make_community_tc_plan(rowptr_cpu, colind_cpu, vals_cpu, M, K, N)
-    if kernel_name == "SEGMENT_HYBRID":
+    if kernel_name in ("SEGMENT_HYBRID", "SEGMENT_HYBRID_TF32"):
         return ra_spmm.make_segment_hybrid_plan(rowptr_cpu, colind_cpu, vals_cpu, M, K, N)
     raise ValueError(f"Kernel has no reusable custom plan: {kernel_name}")
 
@@ -255,10 +259,16 @@ def run_planned_kernel(kernel_name: str, plan, rowptr, colind, vals, B):
         return ra_spmm.run_rode_enhanced_plan(plan, colind, vals, B)
     if kernel_name == "TC_DIRECT":
         return ra_spmm.run_tc_direct_plan(plan, B)
+    if kernel_name == "TC_DIRECT_TF32":
+        return ra_spmm.run_tc_direct_plan_tf32(plan, B)
     if kernel_name == "COMMUNITY_TC":
         return ra_spmm.run_community_tc_plan(plan, B)
+    if kernel_name == "COMMUNITY_TC_TF32":
+        return ra_spmm.run_community_tc_plan_tf32(plan, B)
     if kernel_name == "SEGMENT_HYBRID":
         return ra_spmm.run_segment_hybrid_plan(plan, colind, vals, B)
+    if kernel_name == "SEGMENT_HYBRID_TF32":
+        return ra_spmm.run_segment_hybrid_plan_tf32(plan, colind, vals, B)
     raise ValueError(f"Unknown planned kernel: {kernel_name}")
 
 
@@ -356,7 +366,8 @@ def main():
     if args.Ns:
         selected_Ns = [int(x) for x in args.Ns.replace(",", " ").split()]
     selected_kernels = [name.strip() for name in args.kernels.split(",") if name.strip()]
-    invalid_kernels = sorted(set(selected_kernels) - set(ALL_KERNELS))
+    invalid_kernels = sorted(
+        set(selected_kernels) - set(ALL_KERNELS) - set(EXPERIMENTAL_KERNELS))
     if invalid_kernels:
         raise ValueError(f"Unknown kernels: {invalid_kernels}")
 

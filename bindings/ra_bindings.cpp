@@ -103,6 +103,8 @@ void free_ra_rode_enhanced_plan(RARodeEnhancedPlan& plan);
 // R4: Flash TC
 void make_ra_tc_direct_plan(RATcDirectPlan& plan, const int* h_rowptr, const int* h_col,
     const float* h_val, int M, int K, int N);
+void run_ra_tc_direct_plan_tf32(const RATcDirectPlan& plan, const float* d_B, float* d_C,
+                                int N, cudaStream_t stream);
 void run_ra_tc_direct_plan(const RATcDirectPlan& plan, const float* d_B, float* d_C,
     int N, cudaStream_t stream);
 void free_ra_tc_direct_plan(RATcDirectPlan& plan);
@@ -119,12 +121,16 @@ void make_ra_community_tc_plan(RACommunityTCPlan& plan, const int* h_rowptr,
     const int* h_col, const float* h_val, int M, int K, int N);
 void run_ra_community_tc_plan(const RACommunityTCPlan& plan, const float* d_B,
     float* d_C, int N, cudaStream_t stream);
+void run_ra_community_tc_plan_tf32(const RACommunityTCPlan& plan, const float* d_B,
+    float* d_C, int N, cudaStream_t stream);
 void free_ra_community_tc_plan(RACommunityTCPlan& plan);
 
 // R7: Segment hybrid
 void make_ra_segment_hybrid_plan(RASegmentHybridPlan& plan, const int* h_rowptr,
     const int* h_col, const float* h_val, int M, int K, int N);
 void run_ra_segment_hybrid_plan(const RASegmentHybridPlan& plan, const int* d_colind,
+    const float* d_vals, const float* d_B, float* d_C, int N, cudaStream_t stream);
+void run_ra_segment_hybrid_plan_tf32(const RASegmentHybridPlan& plan, const int* d_colind,
     const float* d_vals, const float* d_B, float* d_C, int N, cudaStream_t stream);
 void free_ra_segment_hybrid_plan(RASegmentHybridPlan& plan);
 
@@ -2099,6 +2105,20 @@ torch::Tensor run_ra_tc_direct_plan_fn(
     return C;
 }
 
+torch::Tensor run_ra_tc_direct_plan_tf32_fn(
+    std::shared_ptr<RATcDirectPlanWrapper> wrapper, torch::Tensor B)
+{
+    check_gpu_tensor(B, "B");
+    TORCH_CHECK(wrapper && wrapper->valid, "Invalid TcDirect plan");
+    int M = wrapper->plan.M;
+    int N = (int)B.size(1);
+    // fs_tile_spmm_tf32_kernel writes every element of C.
+    auto C = torch::empty({M, N}, B.options());
+    run_ra_tc_direct_plan_tf32(wrapper->plan, B.data_ptr<float>(), C.data_ptr<float>(), N,
+                               at::cuda::getCurrentCUDAStream().stream());
+    return C;
+}
+
 // --- R3: Locality-tiled ---
 std::shared_ptr<RALocalityTiledPlanWrapper> make_ra_locality_tiled_plan_fn(
     torch::Tensor rowptr_cpu, torch::Tensor colind_cpu,
@@ -2155,6 +2175,19 @@ torch::Tensor run_ra_community_tc_plan_fn(
     return C;
 }
 
+torch::Tensor run_ra_community_tc_plan_tf32_fn(
+    std::shared_ptr<RACommunityTCPlanWrapper> wrapper, torch::Tensor B)
+{
+    check_gpu_tensor(B, "B");
+    TORCH_CHECK(wrapper && wrapper->valid, "Invalid CommunityTC plan");
+    int M = wrapper->plan.M;
+    int N = (int)B.size(1);
+    auto C = torch::zeros({M, N}, B.options());
+    run_ra_community_tc_plan_tf32(wrapper->plan, B.data_ptr<float>(), C.data_ptr<float>(), N,
+                                  at::cuda::getCurrentCUDAStream().stream());
+    return C;
+}
+
 // --- R7: Segment hybrid ---
 std::shared_ptr<RASegmentHybridPlanWrapper> make_ra_segment_hybrid_plan_fn(
     torch::Tensor rowptr_cpu, torch::Tensor colind_cpu,
@@ -2181,6 +2214,23 @@ torch::Tensor run_ra_segment_hybrid_plan_fn(
     int N = (int)B.size(1);
     auto C = torch::zeros({M, N}, B.options());
     run_ra_segment_hybrid_plan(wrapper->plan,
+        colind.data_ptr<int>(), vals.data_ptr<float>(),
+        B.data_ptr<float>(), C.data_ptr<float>(), N,
+        at::cuda::getCurrentCUDAStream().stream());
+    return C;
+}
+
+torch::Tensor run_ra_segment_hybrid_plan_tf32_fn(
+    std::shared_ptr<RASegmentHybridPlanWrapper> wrapper,
+    torch::Tensor colind, torch::Tensor vals, torch::Tensor B)
+{
+    check_gpu_tensor(colind, "colind"); check_gpu_tensor(vals, "vals");
+    check_gpu_tensor(B, "B");
+    TORCH_CHECK(wrapper && wrapper->valid, "Invalid SegmentHybrid plan");
+    int M = wrapper->plan.M;
+    int N = (int)B.size(1);
+    auto C = torch::zeros({M, N}, B.options());
+    run_ra_segment_hybrid_plan_tf32(wrapper->plan,
         colind.data_ptr<int>(), vals.data_ptr<float>(),
         B.data_ptr<float>(), C.data_ptr<float>(), N,
         at::cuda::getCurrentCUDAStream().stream());
@@ -2684,6 +2734,10 @@ PYBIND11_MODULE(ra_spmm, m) {
           "Run R4 Flash TC SpMM",
           pybind11::arg("plan"), pybind11::arg("B"));
 
+    m.def("run_tc_direct_plan_tf32", &run_ra_tc_direct_plan_tf32_fn,
+          "Run R4 Flash TC SpMM on the TF32 path (B consumed in FP32, no convert pass)",
+          pybind11::arg("plan"), pybind11::arg("B"));
+
     // --- R3: Locality-tiled ---
     pybind11::class_<RALocalityTiledPlanWrapper, std::shared_ptr<RALocalityTiledPlanWrapper>>(
         m, "RALocalityTiledPlan")
@@ -2722,6 +2776,10 @@ PYBIND11_MODULE(ra_spmm, m) {
           pybind11::arg("vals_cpu"), pybind11::arg("M"), pybind11::arg("K"),
           pybind11::arg("N"));
 
+    m.def("run_community_tc_plan_tf32", &run_ra_community_tc_plan_tf32_fn,
+          "Run R5 Community TC SpMM on the TF32 path (B consumed in FP32, no convert pass)",
+          pybind11::arg("plan"), pybind11::arg("B"));
+
     m.def("run_community_tc_plan", &run_ra_community_tc_plan_fn,
           "Run R5 community TC SpMM",
           pybind11::arg("plan"), pybind11::arg("B"));
@@ -2743,6 +2801,10 @@ PYBIND11_MODULE(ra_spmm, m) {
           pybind11::arg("rowptr_cpu"), pybind11::arg("colind_cpu"),
           pybind11::arg("vals_cpu"), pybind11::arg("M"), pybind11::arg("K"),
           pybind11::arg("N"));
+
+    m.def("run_segment_hybrid_plan_tf32", &run_ra_segment_hybrid_plan_tf32_fn,
+          "Run R7 Segment Hybrid SpMM on the TF32 path (B consumed in FP32, no convert pass)",
+          pybind11::arg("plan"), pybind11::arg("colind"), pybind11::arg("vals"), pybind11::arg("B"));
 
     m.def("run_segment_hybrid_plan", &run_ra_segment_hybrid_plan_fn,
           "Run R7 segment hybrid SpMM",

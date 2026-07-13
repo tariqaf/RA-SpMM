@@ -166,6 +166,100 @@ __global__ void sh_fs_tile_spmm_seg_kernel(
     }
 }
 
+// TF32 variant of the segment kernel: reads B in FP32 directly (no convert
+// pass, no half scratch). Same plan; each lane remaps its two sparse half
+// slots to the tf32 B-fragment layout (rows k = tid and tid+4 of column g) —
+// fp16 -> tf32 is exact. Dense loads are rounded with cvt.rna. Sole/split
+// epilogue identical to the f16 kernel.
+__global__ void sh_fs_tile_spmm_seg_tf32_kernel(
+    const int*      __restrict__ seg_window,
+    const int*      __restrict__ seg_bbegin,
+    const int*      __restrict__ seg_bend,
+    const int*      __restrict__ atox,
+    const uint16_t* __restrict__ vals,
+    const float*    __restrict__ Bf,
+    float*          __restrict__ C,
+    int M, int N, int num_segments)
+{
+    const int s    = blockIdx.x;
+    const int warp = threadIdx.x >> 5;
+    const int lane = threadIdx.x & 31;
+    const int n0   = (blockIdx.y * 4 + warp) * 16;
+    if (s >= num_segments || n0 >= N) return;
+
+    const unsigned tag = static_cast<unsigned>(seg_window[s]);
+    const bool sole = (tag & kSoleSegFlag) != 0u;
+    const int  w    = static_cast<int>(tag & ~kSoleSegFlag);
+
+    const int g   = lane >> 2;
+    const int tid = lane & 3;
+
+    const bool p_lo = (n0 + g)     < N;
+    const bool p_hi = (n0 + g + 8) < N;
+
+    const int b_begin = seg_bbegin[s];
+    const int b_end   = seg_bend[s];
+
+    // f16-order slot of (row r = g, vec k = tid); k = tid+4 lives at +4.
+    const int vslot = (g * 4 + (tid >> 1)) * 2 + (tid & 1);
+
+    float d0 = 0.f, d1 = 0.f, d2 = 0.f, d3 = 0.f;
+
+    for (int b = b_begin; b < b_end; ++b) {
+        const __half* vblk = reinterpret_cast<const __half*>(vals + (i64)b * 64);
+        uint32_t rb0 = __float_as_uint(__half2float(__ldg(vblk + vslot)));
+        uint32_t rb1 = __float_as_uint(__half2float(__ldg(vblk + vslot + 4)));
+
+        const int vbase = b * kVecPerBlock + tid;
+        const int c_lo = __ldg(atox + vbase);
+        const int c_hi = __ldg(atox + vbase + 4);
+
+        float a0 = 0.f, a1 = 0.f, a2 = 0.f, a3 = 0.f;
+        if (p_lo) {
+            a0 = __ldg(Bf + (i64)c_lo * N + n0 + g);
+            a2 = __ldg(Bf + (i64)c_hi * N + n0 + g);
+        }
+        if (p_hi) {
+            a1 = __ldg(Bf + (i64)c_lo * N + n0 + g + 8);
+            a3 = __ldg(Bf + (i64)c_hi * N + n0 + g + 8);
+        }
+        uint32_t ra0 = __float_as_uint(a0), ra1 = __float_as_uint(a1);
+        uint32_t ra2 = __float_as_uint(a2), ra3 = __float_as_uint(a3);
+        asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra0));
+        asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra1));
+        asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra2));
+        asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra3));
+
+        asm volatile(
+            "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32 "
+            "{%0,%1,%2,%3}, {%4,%5,%6,%7}, {%8,%9}, {%0,%1,%2,%3};\n"
+            : "+f"(d0), "+f"(d1), "+f"(d2), "+f"(d3)
+            : "r"(ra0), "r"(ra1), "r"(ra2), "r"(ra3), "r"(rb0), "r"(rb1));
+    }
+
+    const int r0 = w * kWindow + tid * 2;
+    const int r1 = r0 + 1;
+    if (sole) {
+        if (p_lo) {
+            if (r0 < M) C[(i64)r0 * N + n0 + g] = d0;
+            if (r1 < M) C[(i64)r1 * N + n0 + g] = d1;
+        }
+        if (p_hi) {
+            if (r0 < M) C[(i64)r0 * N + n0 + g + 8] = d2;
+            if (r1 < M) C[(i64)r1 * N + n0 + g + 8] = d3;
+        }
+    } else {
+        if (p_lo) {
+            if (r0 < M) atomicAdd(&C[(i64)r0 * N + n0 + g], d0);
+            if (r1 < M) atomicAdd(&C[(i64)r1 * N + n0 + g], d1);
+        }
+        if (p_hi) {
+            if (r0 < M) atomicAdd(&C[(i64)r0 * N + n0 + g + 8], d2);
+            if (r1 < M) atomicAdd(&C[(i64)r1 * N + n0 + g + 8], d3);
+        }
+    }
+}
+
 }  // anonymous namespace
 
 // ============================================================================
@@ -354,6 +448,38 @@ void run_ra_segment_hybrid_plan(
         plan.d_seg_window, plan.d_seg_bbegin, plan.d_seg_bend,
         plan.d_atox, plan.d_vals_f16,
         reinterpret_cast<const __half*>(plan.d_bhalf), d_C,
+        plan.M, N, plan.num_segments);
+
+    CUDA_CHECK_KERNEL();
+}
+
+// ============================================================================
+// run_ra_segment_hybrid_plan_tf32: B consumed in FP32 (no convert pass)
+// ============================================================================
+void run_ra_segment_hybrid_plan_tf32(
+    const RASegmentHybridPlan& plan,
+    const int* /*d_colind*/,
+    const float* /*d_vals*/,
+    const float* d_B,
+    float* d_C,
+    int N,
+    cudaStream_t stream)
+{
+    if (!plan.active || plan.M <= 0 || N <= 0) return;
+
+    if (plan.num_zero_rows > 0) {
+        const i64 zr_total = (i64)plan.num_zero_rows * N;
+        const int threads = 256;
+        const int blocks = static_cast<int>(
+            std::min<i64>((zr_total + threads - 1) / threads, 65535));
+        sh_zero_rows_kernel<<<blocks, threads, 0, stream>>>(
+            d_C, plan.d_zero_rows, plan.num_zero_rows, N);
+    }
+
+    dim3 grid(plan.num_segments, (N + 63) / 64);
+    sh_fs_tile_spmm_seg_tf32_kernel<<<grid, 128, 0, stream>>>(
+        plan.d_seg_window, plan.d_seg_bbegin, plan.d_seg_bend,
+        plan.d_atox, plan.d_vals_f16, d_B, d_C,
         plan.M, N, plan.num_segments);
 
     CUDA_CHECK_KERNEL();

@@ -64,7 +64,7 @@ DATASETS: Dict[str, DatasetSpec] = {
 # ---------------------------------------------------------------------------
 # Backends
 # ---------------------------------------------------------------------------
-ALL_BACKENDS = ("router", "cusparse", "tc_direct", "pyg")
+ALL_BACKENDS = ("router", "cusparse", "tc_direct", "tc_direct_tf32", "pyg")
 
 
 # ---------------------------------------------------------------------------
@@ -165,20 +165,24 @@ class GraphBackend:
         elif backend == "pyg":
             executor = ("pyg", self._pyg_get_sparse(transpose))
 
-        # -- Fixed TC_DIRECT path --
-        elif backend == "tc_direct":
+        # -- Fixed TC_DIRECT paths (fp16+convert / tf32-direct) --
+        elif backend in ("tc_direct", "tc_direct_tf32"):
+            label = "TC_DIRECT" if backend == "tc_direct" else "TC_DIRECT_TF32"
             if int(ncols) < 16:
                 executor = ("CSR_DIRECT", None)
             else:
-                # The ME-BCRS plan is N-independent: reuse one plan per
-                # transpose direction instead of one per ncols (a Reddit plan
-                # is 2.2 GB). Plan buffers use raw cudaMalloc, which cannot
+                # The ME-BCRS plan is N-independent AND shared by both
+                # precision paths: reuse one plan per transpose direction
+                # instead of one per (backend, ncols) (a Reddit plan is
+                # 2.2 GB). Plan buffers use raw cudaMalloc, which cannot
                 # draw from torch's caching allocator; release the cache
                 # before building.
                 for (b_k, t_k, n_k), ex in list(self.exec_cache.items()):
-                    if b_k == "tc_direct" and t_k == transpose and n_k >= 16:
-                        self.exec_cache[key] = ex
-                        return ex
+                    if (b_k in ("tc_direct", "tc_direct_tf32")
+                            and t_k == transpose and n_k >= 16):
+                        executor = (label, ex[1])
+                        self.exec_cache[key] = executor
+                        return executor
                 torch.cuda.empty_cache()
                 wrapper = spmm_next.make_tc_direct_plan(
                     tensors["rowptr_cpu"],
@@ -188,7 +192,7 @@ class GraphBackend:
                     K,
                     int(ncols),
                 )
-                executor = ("TC_DIRECT", wrapper)
+                executor = (label, wrapper)
 
         # -- Router: ask the C++ router which path to use --
         elif backend == "router":
@@ -291,6 +295,8 @@ class GraphBackend:
         # Paper portfolio paths.
         if path == "TC_DIRECT":
             return spmm_next.run_tc_direct_plan(wrapper, B)
+        if path == "TC_DIRECT_TF32":
+            return spmm_next.run_tc_direct_plan_tf32(wrapper, B)
         if path == "COMMUNITY_TC":
             return spmm_next.run_community_tc_plan(wrapper, B)
         if path == "RODE_ENHANCED":
@@ -328,7 +334,7 @@ def validate_backend(csr: sp.csr_matrix, device: torch.device, backend: str,
             error = float((output.float() - reference).abs().max().item())
             path = graph._get_executor(backend, transpose, ncols)[0]
             tolerance = BASE_ATOL * max(1.0, math.sqrt(max_row_nnz))
-            if path in {"TC_DIRECT", "COMMUNITY_TC", "SEGMENT_HYBRID"}:
+            if path in {"TC_DIRECT", "TC_DIRECT_TF32", "COMMUNITY_TC", "SEGMENT_HYBRID"}:
                 tolerance *= TC_EXTRA_FACTOR
             maximum_error = max(maximum_error, error)
             maximum_tolerance = max(maximum_tolerance, tolerance)

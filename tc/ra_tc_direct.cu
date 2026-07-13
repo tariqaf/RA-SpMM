@@ -177,6 +177,88 @@ __global__ void fs_tile_spmm_kernel(
     }
 }
 
+// ---------------------------------------------------------------------------
+// TF32 variant: reads B in FP32 directly — no convert pass, no half scratch.
+// Same plan as the f16 path: sparse values stay in the f16 fragment-order
+// array (fp16 -> tf32 is exact, both carry 10 mantissa bits), the kernel just
+// remaps the two half slots each lane owns under the tf32 B-fragment layout
+// (rows k = tid and tid+4 of column g). Dense loads are rounded to tf32 with
+// cvt.rna. One mma.m16n8k8.tf32 per block, same C mapping as the f16 kernel.
+// ---------------------------------------------------------------------------
+__global__ void fs_tile_spmm_tf32_kernel(
+    const int*      __restrict__ block_offsets,
+    const int*      __restrict__ atox,
+    const uint16_t* __restrict__ vals,
+    const float*    __restrict__ Bf,
+    float*          __restrict__ C,
+    int M, int N, int num_windows)
+{
+    const int w    = blockIdx.x;
+    const int warp = threadIdx.x >> 5;
+    const int lane = threadIdx.x & 31;
+    const int n0   = (blockIdx.y * 4 + warp) * 16;
+    if (w >= num_windows || n0 >= N) return;
+
+    const int g   = lane >> 2;  // 0..7: N-column within the warp's 16
+    const int tid = lane & 3;   // 0..3
+
+    const bool p_lo = (n0 + g)     < N;
+    const bool p_hi = (n0 + g + 8) < N;
+
+    const int b_begin = block_offsets[w];
+    const int b_end   = block_offsets[w + 1];
+
+    // f16-order slot of (row r = g, vec k = tid); k = tid+4 lives at +4.
+    const int vslot = (g * 4 + (tid >> 1)) * 2 + (tid & 1);
+
+    float d0 = 0.f, d1 = 0.f, d2 = 0.f, d3 = 0.f;
+
+    for (int b = b_begin; b < b_end; ++b) {
+        const __half* vblk = reinterpret_cast<const __half*>(vals + (i64)b * 64);
+        uint32_t rb0 = __float_as_uint(__half2float(__ldg(vblk + vslot)));
+        uint32_t rb1 = __float_as_uint(__half2float(__ldg(vblk + vslot + 4)));
+
+        const int vbase = b * kVecPerBlock + tid;
+        const int c_lo = __ldg(atox + vbase);
+        const int c_hi = __ldg(atox + vbase + 4);
+
+        // Dense A-fragment: A[m][k] = Bf[atox[k]][n0 + m].
+        float a0 = 0.f, a1 = 0.f, a2 = 0.f, a3 = 0.f;
+        if (p_lo) {
+            a0 = __ldg(Bf + (i64)c_lo * N + n0 + g);
+            a2 = __ldg(Bf + (i64)c_hi * N + n0 + g);
+        }
+        if (p_hi) {
+            a1 = __ldg(Bf + (i64)c_lo * N + n0 + g + 8);
+            a3 = __ldg(Bf + (i64)c_hi * N + n0 + g + 8);
+        }
+        uint32_t ra0 = __float_as_uint(a0), ra1 = __float_as_uint(a1);
+        uint32_t ra2 = __float_as_uint(a2), ra3 = __float_as_uint(a3);
+        asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra0));
+        asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra1));
+        asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra2));
+        asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra3));
+
+        asm volatile(
+            "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32 "
+            "{%0,%1,%2,%3}, {%4,%5,%6,%7}, {%8,%9}, {%0,%1,%2,%3};\n"
+            : "+f"(d0), "+f"(d1), "+f"(d2), "+f"(d3)
+            : "r"(ra0), "r"(ra1), "r"(ra2), "r"(ra3), "r"(rb0), "r"(rb1));
+    }
+
+    // D[m][n] is the transposed C tile: rows = window rows, cols = N-cols.
+    const int r0 = w * kWindow + tid * 2;
+    const int r1 = r0 + 1;
+    if (p_lo) {
+        if (r0 < M) C[(i64)r0 * N + n0 + g] = d0;
+        if (r1 < M) C[(i64)r1 * N + n0 + g] = d1;
+    }
+    if (p_hi) {
+        if (r0 < M) C[(i64)r0 * N + n0 + g + 8] = d2;
+        if (r1 < M) C[(i64)r1 * N + n0 + g + 8] = d3;
+    }
+}
+
 }  // anonymous namespace
 
 // ============================================================================
@@ -334,6 +416,26 @@ void run_ra_tc_direct_plan(
         plan.d_block_offsets, plan.d_atox, plan.d_vals_f16,
         reinterpret_cast<const __half*>(plan.d_bhalf), d_C,
         plan.M, N, plan.num_windows);
+
+    CUDA_CHECK_KERNEL();
+}
+
+// ============================================================================
+// run_ra_tc_direct_plan_tf32: single launch, B consumed in FP32 (no convert)
+// ============================================================================
+void run_ra_tc_direct_plan_tf32(
+    const RATcDirectPlan& plan,
+    const float* d_B,
+    float* d_C,
+    int N,
+    cudaStream_t stream)
+{
+    if (!plan.active || plan.M <= 0 || N <= 0) return;
+
+    dim3 grid(plan.num_windows, (N + 63) / 64);
+    fs_tile_spmm_tf32_kernel<<<grid, 128, 0, stream>>>(
+        plan.d_block_offsets, plan.d_atox, plan.d_vals_f16,
+        d_B, d_C, plan.M, N, plan.num_windows);
 
     CUDA_CHECK_KERNEL();
 }
