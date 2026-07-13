@@ -8,7 +8,7 @@ from typing import Dict, Iterable, List, Mapping, Sequence, Tuple
 
 import torch
 
-import test_next as harness
+import test_ra as harness
 from paper_eval_utils import (
     EXTERNAL_BASELINE_PATHS,
     MAIN_PATHS,

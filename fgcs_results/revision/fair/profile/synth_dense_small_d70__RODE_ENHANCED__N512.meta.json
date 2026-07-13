@@ -1,0 +1,11 @@
+{
+  "dataset": "synth_dense_small_d70",
+  "category": "Dense Small",
+  "synthetic": true,
+  "kernel": "RODE_ENHANCED",
+  "N": 512,
+  "gpu": 0,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "synth_dense_small_d70__RODE_ENHANCED__N512.ncu-rep",
+  "raw_csv": "synth_dense_small_d70__RODE_ENHANCED__N512.ncu.csv"
+}

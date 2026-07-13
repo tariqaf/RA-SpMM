@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 """
-GCN end-to-end benchmark: Extended 6-kernel router vs cuSPARSE / TC_DIRECT-only / PyG torch_sparse.
-
-Adapted from the original RA-SpMM harness (router_vs_cusparse_gcn.py) to:
-  - Import `ra_spmm` (Extended project binding) instead of `spmm_next`
-  - Dispatch the 6 new Extended kernel paths in addition to the 4 original paths
-  - Add TC_DIRECT-only backend (best single kernel, for "why not just one kernel?" answer)
-  - Add PyG torch_sparse backend as external framework baseline
+GCN end-to-end benchmark for the six-kernel router, cuSPARSE, a fixed
+TC_DIRECT path, and PyG torch_sparse.
 
 Usage:
   python gnn_bench/router_vs_baselines_gcn.py --datasets Reddit,ogbn-proteins,ogbn-arxiv \
@@ -33,7 +28,8 @@ from scipy import sparse as sp
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-import ra_spmm as spmm_next  # alias keeps dispatcher body identical to the Original
+import ra_spmm as spmm_next
+from ra_real_graph_eval import BASE_ATOL, TC_EXTRA_FACTOR
 
 
 # ---------------------------------------------------------------------------
@@ -48,25 +44,25 @@ class DatasetSpec:
     hidden_dim: int
 
 
-# Mirrors the Original RA-SpMM dataset set; dimensions match the original paper's GCN setup.
+# Dataset set and dimensions match the paper's GCN setup.
 DATASETS: Dict[str, DatasetSpec] = {
     "Reddit":           DatasetSpec("Reddit",           "Reddit.npz",           in_dim=602, out_dim=41,  hidden_dim=128),
     "ogbn-products":    DatasetSpec("ogbn-products",    "ogbn-products.npz",    in_dim=100, out_dim=47,  hidden_dim=128),
     "ogbn-arxiv":       DatasetSpec("ogbn-arxiv",       "ogbn-arxiv.npz",       in_dim=128, out_dim=40,  hidden_dim=128),
     "ogbn-proteins":    DatasetSpec("ogbn-proteins",    "ogbn-proteins.npz",    in_dim=8,   out_dim=112, hidden_dim=128),
-    # FGCS additions (Mixed/Irregular + Dense Small) ----------------------
+    # Additional mixed and dense-small graph workloads.
     "Flickr":           DatasetSpec("Flickr",           "Flickr.npz",           in_dim=500, out_dim=7,   hidden_dim=128),
     "PPI":              DatasetSpec("PPI",              "PPI.npz",              in_dim=50,  out_dim=121, hidden_dim=128),
     "amazon-photo":     DatasetSpec("amazon-photo",     "amazon-photo.npz",     in_dim=745, out_dim=8,   hidden_dim=128),
     "amazon-computers": DatasetSpec("amazon-computers", "amazon-computers.npz", in_dim=767, out_dim=10,  hidden_dim=128),
-    # FGCS round-2 additions (Cora + CiteSeer Planetoid graphs) ----------
+    # Planetoid graph workloads.
     "Cora":             DatasetSpec("Cora",             "Cora.npz",             in_dim=1433,out_dim=7,   hidden_dim=128),
     "CiteSeer":         DatasetSpec("CiteSeer",         "CiteSeer.npz",         in_dim=3703,out_dim=6,   hidden_dim=128),
 }
 
 
 # ---------------------------------------------------------------------------
-# Backends (Extended adds TC_DIRECT-only and PyG torch_sparse)
+# Backends
 # ---------------------------------------------------------------------------
 ALL_BACKENDS = ("router", "cusparse", "tc_direct", "pyg")
 
@@ -160,34 +156,43 @@ class GraphBackend:
 
         # -- cuSPARSE baseline --
         if backend == "cusparse":
-            executor = ("cusparse", None)
+            template = torch.empty((K, int(ncols)), device=self.device, dtype=torch.float32)
+            wrapper = spmm_next.make_cusparse_plan(
+                tensors["rowptr"], tensors["colind"], tensors["vals"], template)
+            executor = ("cusparse", wrapper)
 
         # -- PyG torch_sparse external baseline --
         elif backend == "pyg":
             executor = ("pyg", self._pyg_get_sparse(transpose))
 
-        # -- TC_DIRECT-only (best single kernel) --
+        # -- Fixed TC_DIRECT path --
         elif backend == "tc_direct":
-            wrapper = spmm_next.make_tc_direct_plan(
-                tensors["rowptr_cpu"],
-                tensors["colind_cpu"],
-                tensors["vals_cpu"],
-                M,
-                K,
-                int(ncols),
-            )
-            executor = ("TC_DIRECT", wrapper)
+            if int(ncols) < 16:
+                executor = ("CSR_DIRECT", None)
+            else:
+                wrapper = spmm_next.make_tc_direct_plan(
+                    tensors["rowptr_cpu"],
+                    tensors["colind_cpu"],
+                    tensors["vals_cpu"],
+                    M,
+                    K,
+                    int(ncols),
+                )
+                executor = ("TC_DIRECT", wrapper)
 
         # -- Router: ask the C++ router which path to use --
         elif backend == "router":
             plan = self.get_router_plan(transpose, ncols)
             path = str(plan["chosen_path"])
 
-            # Original 4-kernel portfolio paths
+            # Baseline and legacy portfolio paths.
             if path == "CSR_DIRECT":
                 executor = (path, None)
             elif path == "CUSPARSE":
-                executor = (path, None)
+                template = torch.empty((K, int(ncols)), device=self.device, dtype=torch.float32)
+                wrapper = spmm_next.make_cusparse_plan(
+                    tensors["rowptr"], tensors["colind"], tensors["vals"], template)
+                executor = (path, wrapper)
             elif path == "ROW_SPLIT_CUDA":
                 wrapper = spmm_next.make_row_split_plan(
                     tensors["rowptr_cpu"], M, K,
@@ -206,7 +211,7 @@ class GraphBackend:
                 )
                 executor = (path, wrapper)
 
-            # Extended 6-kernel portfolio paths (new)
+            # Paper portfolio paths.
             elif path == "TC_DIRECT":
                 wrapper = spmm_next.make_tc_direct_plan(
                     tensors["rowptr_cpu"], tensors["colind_cpu"], tensors["vals_cpu"],
@@ -250,9 +255,7 @@ class GraphBackend:
 
         # cuSPARSE / CUSPARSE router-path
         if path in ("cusparse", "CUSPARSE"):
-            return spmm_next.spmm_cusparse(
-                tensors["rowptr"], tensors["colind"], tensors["vals"], B,
-            )
+            return spmm_next.run_cusparse_plan(wrapper, B)
 
         # PyG torch_sparse
         if path == "pyg":
@@ -261,7 +264,7 @@ class GraphBackend:
             # SparseTensor matmul is the idiomatic path; equivalent to cuSPARSE internally.
             return wrapper @ B
 
-        # Original 4-kernel paths
+        # Baseline and legacy paths.
         if path == "CSR_DIRECT":
             return spmm_next.spmm_csr_direct(
                 tensors["rowptr"], tensors["colind"], tensors["vals"], B,
@@ -275,7 +278,7 @@ class GraphBackend:
         if path == "HYBRID_TC_CUDA":
             return spmm_next.run_hybrid_tc_cuda_plan(wrapper, B)
 
-        # Extended 6-kernel paths (new)
+        # Paper portfolio paths.
         if path == "TC_DIRECT":
             return spmm_next.run_tc_direct_plan(wrapper, B)
         if path == "COMMUNITY_TC":
@@ -294,6 +297,41 @@ class GraphBackend:
             )
 
         raise RuntimeError(f"Unsupported executor path {path}")
+
+
+def validate_backend(csr: sp.csr_matrix, device: torch.device, backend: str,
+                     ncols_values: Tuple[int, ...], seed: int) -> Dict[str, object]:
+    """Validate a fresh backend instance without warming the timed instance."""
+    graph = GraphBackend(csr, device)
+    maximum_error = 0.0
+    maximum_tolerance = 0.0
+    for transpose in (False, True):
+        tensors = graph._tensors(transpose)
+        degrees = tensors["rowptr_cpu"][1:] - tensors["rowptr_cpu"][:-1]
+        max_row_nnz = max(1, int(degrees.max().item()))
+        for ncols in sorted(set(int(value) for value in ncols_values)):
+            torch.manual_seed(seed + ncols + int(transpose))
+            B = torch.randn((csr.shape[0], ncols), device=device)
+            output = graph.run(B, backend, transpose)
+            reference = spmm_next.spmm_cusparse(
+                tensors["rowptr"], tensors["colind"], tensors["vals"], B)
+            error = float((output.float() - reference).abs().max().item())
+            path = graph._get_executor(backend, transpose, ncols)[0]
+            tolerance = BASE_ATOL * max(1.0, math.sqrt(max_row_nnz))
+            if path in {"TC_DIRECT", "COMMUNITY_TC", "SEGMENT_HYBRID"}:
+                tolerance *= TC_EXTRA_FACTOR
+            maximum_error = max(maximum_error, error)
+            maximum_tolerance = max(maximum_tolerance, tolerance)
+            if error > tolerance or error >= 1.0:
+                return {
+                    "correct": False, "soft_fail": tolerance < error < 1.0,
+                    "hard_fail": error >= 1.0, "max_error": error,
+                    "tolerance": tolerance,
+                }
+    return {
+        "correct": True, "soft_fail": False, "hard_fail": False,
+        "max_error": maximum_error, "tolerance": maximum_tolerance,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -364,8 +402,6 @@ def benchmark_dataset(
         raise FileNotFoundError(f"Dataset NPZ not found: {npz_path}")
     csr = load_csr(npz_path)
     num_nodes = int(csr.shape[0])
-    graph = GraphBackend(csr, device)
-
     torch.manual_seed(seed)
     X = torch.randn((num_nodes, spec.in_dim), device=device, dtype=torch.float32)
     y = torch.randint(0, spec.out_dim, (num_nodes,), device=device, dtype=torch.long)
@@ -381,8 +417,18 @@ def benchmark_dataset(
                 continue
 
         torch.manual_seed(seed)
+        graph = GraphBackend(csr, device)
         model = GCNBench(spec.in_dim, spec.hidden_dim, spec.out_dim).to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+        torch.cuda.synchronize()
+        setup_start = time.perf_counter()
+        for transpose in (False, True):
+            graph._get_executor(backend, transpose, spec.hidden_dim)
+            graph._get_executor(backend, transpose, spec.out_dim)
+        torch.cuda.synchronize()
+        preprocess_sec = time.perf_counter() - setup_start
+        cold_exec_sec = measure_step(model, graph, backend, X, y, optimizer)
 
         for _ in range(warmup_steps):
             _ = measure_step(model, graph, backend, X, y, optimizer)
@@ -402,6 +448,8 @@ def benchmark_dataset(
                 transpose = tag.startswith("backward")
                 plan = graph.get_router_plan(transpose, ncols)
                 router_paths[tag] = str(plan["chosen_path"])
+        validation = validate_backend(
+            csr, device, backend, (spec.hidden_dim, spec.out_dim), seed)
 
         results.append(
             {
@@ -415,6 +463,10 @@ def benchmark_dataset(
                 "warmup_steps":         warmup_steps,
                 "timed_steps":          timed_steps,
                 "mean_step_sec":        float(np.mean(times)),
+                "ms_warm":              float(np.mean(times)) * 1e3,
+                "preprocess_ms":        preprocess_sec * 1e3,
+                "cold_exec_ms":         cold_exec_sec * 1e3,
+                "ms_cold":              (preprocess_sec + cold_exec_sec) * 1e3,
                 "std_step_sec":         float(np.std(times)),
                 "min_step_sec":         float(np.min(times)),
                 "max_step_sec":         float(np.max(times)),
@@ -422,6 +474,7 @@ def benchmark_dataset(
                 "router_backward_hidden": router_paths.get("backward_hidden", ""),
                 "router_forward_out":     router_paths.get("forward_out", ""),
                 "router_backward_out":    router_paths.get("backward_out", ""),
+                **validation,
             }
         )
     return results
@@ -447,12 +500,17 @@ def add_speedups(rows: List[Dict[str, object]]) -> None:
         by_dataset.setdefault(row["dataset"], {})[row["backend"]] = row
 
     for dataset, parts in by_dataset.items():
-        if "cusparse" not in parts:
+        if "cusparse" not in parts or not bool(parts["cusparse"].get("correct", False)):
             continue
-        cusparse = float(parts["cusparse"]["mean_step_sec"])
+        cusparse_warm = float(parts["cusparse"]["ms_warm"])
+        cusparse_cold = float(parts["cusparse"]["ms_cold"])
         for backend, row in parts.items():
-            t = float(row["mean_step_sec"])
-            row[f"speedup_vs_cusparse"] = cusparse / t if t > 0 else math.nan
+            if not bool(row.get("correct", False)):
+                continue
+            warm = float(row["ms_warm"])
+            cold = float(row["ms_cold"])
+            row["speedup_vs_cusparse_warm"] = cusparse_warm / warm if warm > 0 else math.nan
+            row["speedup_vs_cusparse_cold"] = cusparse_cold / cold if cold > 0 else math.nan
 
 
 def main() -> None:
@@ -466,8 +524,8 @@ def main() -> None:
     parser.add_argument("--backends", default=",".join(ALL_BACKENDS),
                         help=f"Comma-separated backends. Available: {', '.join(ALL_BACKENDS)}")
     parser.add_argument("--results_dir", default="results_gnn_extended")
-    parser.add_argument("--warmup_steps", type=int, default=3)
-    parser.add_argument("--timed_steps", type=int, default=10)
+    parser.add_argument("--warmup_steps", type=int, default=50)
+    parser.add_argument("--timed_steps", type=int, default=200)
     parser.add_argument("--seed", type=int, default=123)
     parser.add_argument("--lr", type=float, default=1e-2)
     args = parser.parse_args()

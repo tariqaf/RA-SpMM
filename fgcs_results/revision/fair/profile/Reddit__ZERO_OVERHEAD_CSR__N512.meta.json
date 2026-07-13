@@ -1,0 +1,11 @@
+{
+  "dataset": "Reddit",
+  "category": "Dense Large-Scale",
+  "synthetic": false,
+  "kernel": "ZERO_OVERHEAD_CSR",
+  "N": 512,
+  "gpu": 1,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "Reddit__ZERO_OVERHEAD_CSR__N512.ncu-rep",
+  "raw_csv": "Reddit__ZERO_OVERHEAD_CSR__N512.ncu.csv"
+}

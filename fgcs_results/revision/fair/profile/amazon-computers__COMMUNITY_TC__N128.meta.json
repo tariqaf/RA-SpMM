@@ -1,0 +1,11 @@
+{
+  "dataset": "amazon-computers",
+  "category": "Dense Small",
+  "synthetic": false,
+  "kernel": "COMMUNITY_TC",
+  "N": 128,
+  "gpu": 0,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "amazon-computers__COMMUNITY_TC__N128.ncu-rep",
+  "raw_csv": "amazon-computers__COMMUNITY_TC__N128.ncu.csv"
+}

@@ -2,9 +2,11 @@
 // bindings_next.cpp - PyBind11 module ra_spmm
 //
 // Exposes all kernels, router, oracle, plan-run API, and graph generators.
-// Sync policy: cudaDeviceSynchronize before returning any tensor to Python.
+// Execution bindings follow PyTorch's asynchronous CUDA semantics. Benchmark
+// helpers synchronize explicitly around host-side plan construction.
 // ============================================================================
 #include <torch/extension.h>
+#include <ATen/cuda/CUDAContext.h>
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
 #include <cusparse.h>
@@ -20,6 +22,7 @@
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <utility>
 
 #define CUSPARSE_CHECK_NEXT(err) do {                                      \
     cusparseStatus_t _e = (err);                                           \
@@ -76,7 +79,7 @@ void run_hybrid_tc_cuda_plan(const HybridPlan& plan, const float* d_B, float* d_
 void free_hybrid_tc_cuda_plan(HybridPlan& plan);
 
 // ---------------------------------------------------------------------------
-// Forward declarations: New regime-specific kernels (Wave 1)
+// Forward declarations: specialized router kernels
 // ---------------------------------------------------------------------------
 
 // R6: Zero-overhead CSR
@@ -206,7 +209,7 @@ struct HybridPlanWrapper {
     HybridPlanWrapper() = default;
 };
 
-// --- New regime-specific plan wrappers ---
+// --- Specialized router plan wrappers ---
 
 struct RAZeroOverheadPlanWrapper {
     RAZeroOverheadPlan plan{};
@@ -432,6 +435,16 @@ public:
             buffer_.data_ptr()));
     }
 
+    void run(const torch::Tensor& B) {
+        check_dense_float_tensor(B, "B");
+        TORCH_CHECK(B.size(0) == K_ && B.size(1) == N_,
+                    "cuSPARSE plan expects B shape [", K_, ", ", N_,
+                    "], got [", B.size(0), ", ", B.size(1), "]");
+        CUSPARSE_CHECK_NEXT(cusparseDnMatSetValues(
+            matB_, const_cast<float*>(B.data_ptr<float>())));
+        run();
+    }
+
     const torch::Tensor& output() const {
         return C_;
     }
@@ -454,8 +467,12 @@ private:
             const int64_t nnz = colind.numel();
 
             C_ = torch::zeros({M, N}, B.options().dtype(torch::kFloat32));
+            K_ = K;
+            N_ = N;
 
             CUSPARSE_CHECK_NEXT(cusparseCreate(&handle_));
+            CUSPARSE_CHECK_NEXT(cusparseSetStream(
+                handle_, at::cuda::getCurrentCUDAStream().stream()));
             CUSPARSE_CHECK_NEXT(cusparseCreateCsr(
                 &matA_,
                 M,
@@ -547,6 +564,22 @@ private:
     float alpha_ = 1.0f;
     float beta_ = 0.0f;
     cusparseSpMMAlg_t alg_ = default_cusparse_spmm_alg();
+    int64_t K_ = 0;
+    int64_t N_ = 0;
+};
+
+struct CuSparsePlanWrapper {
+    torch::Tensor rowptr;
+    torch::Tensor colind;
+    torch::Tensor vals;
+    std::unique_ptr<CuSparseSpMMState> state;
+
+    CuSparsePlanWrapper(torch::Tensor rp, torch::Tensor ci,
+                        torch::Tensor vl, const torch::Tensor& B)
+        : rowptr(std::move(rp)), colind(std::move(ci)), vals(std::move(vl))
+    {
+        state = std::make_unique<CuSparseSpMMState>(rowptr, colind, vals, B);
+    }
 };
 
 // ---------------------------------------------------------------------------
@@ -638,7 +671,7 @@ static pybind11::dict plan_to_dict(const RouterPlan& plan) {
 }
 
 // ---------------------------------------------------------------------------
-// Core kernel wrappers (with sync before returning tensor to Python)
+// Core kernel wrappers (asynchronous, following PyTorch CUDA semantics)
 // ---------------------------------------------------------------------------
 
 torch::Tensor spmm_csr_direct_fn(
@@ -658,8 +691,6 @@ torch::Tensor spmm_csr_direct_fn(
         rowptr.data_ptr<int>(), colind.data_ptr<int>(),
         vals.data_ptr<float>(), B.data_ptr<float>(),
         C.data_ptr<float>(), M, K, N);
-
-    CUDA_CHECK_NEXT(cudaDeviceSynchronize());
     return C;
 }
 
@@ -749,8 +780,11 @@ torch::Tensor spmm_cusparse_fn(
 
     CuSparseSpMMState state(rowptr, colind, vals, B);
     state.run();
-
-    CUDA_CHECK_NEXT(cudaDeviceSynchronize());
+    // The one-shot state owns descriptors and workspace needed by the queued
+    // operation. Finish this stream before those resources leave scope. The
+    // reusable plan API does not require this synchronization.
+    CUDA_CHECK_NEXT(cudaStreamSynchronize(
+        at::cuda::getCurrentCUDAStream().stream()));
     return state.output();
 }
 
@@ -821,6 +855,24 @@ pybind11::dict benchmark_cusparse_cold_fn(
     d["cusparse_algorithm"] = algorithm_name;
     d["preprocess_ms"] = timing.plan_ms;
     return d;
+}
+
+std::shared_ptr<CuSparsePlanWrapper> make_cusparse_plan_fn(
+    torch::Tensor rowptr, torch::Tensor colind,
+    torch::Tensor vals, torch::Tensor B)
+{
+    check_csr_tensors(rowptr, colind, vals);
+    check_dense_float_tensor(B, "B");
+    return std::make_shared<CuSparsePlanWrapper>(rowptr, colind, vals, B);
+}
+
+torch::Tensor run_cusparse_plan_fn(
+    std::shared_ptr<CuSparsePlanWrapper> wrapper,
+    torch::Tensor B)
+{
+    TORCH_CHECK(wrapper && wrapper->state, "Invalid cuSPARSE plan");
+    wrapper->state->run(B);
+    return wrapper->state->output();
 }
 
 // ---------------------------------------------------------------------------
@@ -1106,9 +1158,11 @@ torch::Tensor run_hybrid_plan_fn(
 
 static bool is_main_path(NextPath path) {
     return path == NextPath::CSR_DIRECT ||
-           path == NextPath::ROW_SPLIT_CUDA ||
-           path == NextPath::TC_REORDERED ||
-           path == NextPath::HYBRID_TC_CUDA ||
+           path == NextPath::RODE_ENHANCED ||
+           path == NextPath::ZERO_OVERHEAD_CSR ||
+           path == NextPath::TC_DIRECT ||
+           path == NextPath::COMMUNITY_TC ||
+           path == NextPath::SEGMENT_HYBRID ||
            path == NextPath::CUSPARSE;
 }
 
@@ -1208,6 +1262,100 @@ static TimingBreakdown measure_path_timing(
                             C.data_ptr<float>(), M, K, N);
         }, warmup, std::max(1, iters));
         return make_timing_breakdown(0.f, exec_ms, nnz, N);
+    }
+
+    if (path == NextPath::ZERO_OVERHEAD_CSR) {
+        auto build_fn = [&]() {
+            RAZeroOverheadPlan plan{};
+            make_ra_zero_overhead_plan(plan, host.rowptr.data(), M, K);
+            return plan;
+        };
+        auto run_fn = [&](const RAZeroOverheadPlan& plan) {
+            auto C = torch::zeros({M, N}, B.options());
+            run_ra_zero_overhead_plan(
+                plan, rowptr.data_ptr<int>(), colind.data_ptr<int>(), vals.data_ptr<float>(),
+                B.data_ptr<float>(), C.data_ptr<float>(), N);
+        };
+        auto free_fn = [&](RAZeroOverheadPlan& plan) { free_ra_zero_overhead_plan(plan); };
+        auto valid_fn = [&](const RAZeroOverheadPlan&) { return true; };
+        return cold_mode
+            ? measure_reusable_cold(build_fn, run_fn, free_fn, valid_fn, std::max(1, iters), nnz, N)
+            : measure_reusable_warm(build_fn, run_fn, free_fn, valid_fn, warmup, std::max(1, iters), nnz, N);
+    }
+
+    if (path == NextPath::RODE_ENHANCED) {
+        auto build_fn = [&]() {
+            RARodeEnhancedPlan plan{};
+            make_ra_rode_enhanced_plan(plan, host.rowptr.data(), M, K);
+            return plan;
+        };
+        auto run_fn = [&](const RARodeEnhancedPlan& plan) {
+            auto C = torch::zeros({M, N}, B.options());
+            run_ra_rode_enhanced_plan(
+                plan, colind.data_ptr<int>(), vals.data_ptr<float>(),
+                B.data_ptr<float>(), C.data_ptr<float>(), N);
+        };
+        auto free_fn = [&](RARodeEnhancedPlan& plan) { free_ra_rode_enhanced_plan(plan); };
+        auto valid_fn = [&](const RARodeEnhancedPlan&) { return true; };
+        return cold_mode
+            ? measure_reusable_cold(build_fn, run_fn, free_fn, valid_fn, std::max(1, iters), nnz, N)
+            : measure_reusable_warm(build_fn, run_fn, free_fn, valid_fn, warmup, std::max(1, iters), nnz, N);
+    }
+
+    if (path == NextPath::TC_DIRECT) {
+        auto build_fn = [&]() {
+            RATcDirectPlan plan{};
+            make_ra_tc_direct_plan(
+                plan, host.rowptr.data(), host.colind.data(), host.vals.data(), M, K, N);
+            return plan;
+        };
+        auto run_fn = [&](const RATcDirectPlan& plan) {
+            auto C = torch::zeros({M, N}, B.options());
+            run_ra_tc_direct_plan(plan, B.data_ptr<float>(), C.data_ptr<float>(), N, 0);
+        };
+        auto free_fn = [&](RATcDirectPlan& plan) { free_ra_tc_direct_plan(plan); };
+        auto valid_fn = [&](const RATcDirectPlan& plan) { return plan.active; };
+        return cold_mode
+            ? measure_reusable_cold(build_fn, run_fn, free_fn, valid_fn, std::max(1, iters), nnz, N)
+            : measure_reusable_warm(build_fn, run_fn, free_fn, valid_fn, warmup, std::max(1, iters), nnz, N);
+    }
+
+    if (path == NextPath::COMMUNITY_TC) {
+        auto build_fn = [&]() {
+            RACommunityTCPlan plan{};
+            make_ra_community_tc_plan(
+                plan, host.rowptr.data(), host.colind.data(), host.vals.data(), M, K, N);
+            return plan;
+        };
+        auto run_fn = [&](const RACommunityTCPlan& plan) {
+            auto C = torch::zeros({M, N}, B.options());
+            run_ra_community_tc_plan(plan, B.data_ptr<float>(), C.data_ptr<float>(), N, 0);
+        };
+        auto free_fn = [&](RACommunityTCPlan& plan) { free_ra_community_tc_plan(plan); };
+        auto valid_fn = [&](const RACommunityTCPlan& plan) { return plan.active; };
+        return cold_mode
+            ? measure_reusable_cold(build_fn, run_fn, free_fn, valid_fn, std::max(1, iters), nnz, N)
+            : measure_reusable_warm(build_fn, run_fn, free_fn, valid_fn, warmup, std::max(1, iters), nnz, N);
+    }
+
+    if (path == NextPath::SEGMENT_HYBRID) {
+        auto build_fn = [&]() {
+            RASegmentHybridPlan plan{};
+            make_ra_segment_hybrid_plan(
+                plan, host.rowptr.data(), host.colind.data(), host.vals.data(), M, K, N);
+            return plan;
+        };
+        auto run_fn = [&](const RASegmentHybridPlan& plan) {
+            auto C = torch::zeros({M, N}, B.options());
+            run_ra_segment_hybrid_plan(
+                plan, colind.data_ptr<int>(), vals.data_ptr<float>(),
+                B.data_ptr<float>(), C.data_ptr<float>(), N, 0);
+        };
+        auto free_fn = [&](RASegmentHybridPlan& plan) { free_ra_segment_hybrid_plan(plan); };
+        auto valid_fn = [&](const RASegmentHybridPlan& plan) { return plan.active; };
+        return cold_mode
+            ? measure_reusable_cold(build_fn, run_fn, free_fn, valid_fn, std::max(1, iters), nnz, N)
+            : measure_reusable_warm(build_fn, run_fn, free_fn, valid_fn, warmup, std::max(1, iters), nnz, N);
     }
 
     if (path == NextPath::CSR_ADAPTIVE) {
@@ -1382,9 +1530,11 @@ static std::vector<NextPath> portfolio_paths(Portfolio portfolio) {
     if (portfolio == Portfolio::MAIN) {
         return {
             NextPath::CSR_DIRECT,
-            NextPath::ROW_SPLIT_CUDA,
-            NextPath::TC_REORDERED,
-            NextPath::HYBRID_TC_CUDA,
+            NextPath::RODE_ENHANCED,
+            NextPath::ZERO_OVERHEAD_CSR,
+            NextPath::TC_DIRECT,
+            NextPath::COMMUNITY_TC,
+            NextPath::SEGMENT_HYBRID,
             NextPath::CUSPARSE,
         };
     }
@@ -1467,7 +1617,7 @@ torch::Tensor run_router_plan_fn(
         state.run();
         C.copy_(state.output());
     }
-    // --- New regime-specific kernels ---
+    // --- Specialized router kernels ---
     else if (path_str == "TC_DIRECT") {
         RATcDirectPlan plan{};
         make_ra_tc_direct_plan(plan, host.rowptr.data(), host.colind.data(),
@@ -1694,7 +1844,7 @@ pybind11::dict analyze_matrix_fn(
 }
 
 // ===========================================================================
-// New regime-specific kernel binding functions (Wave 1)
+// Specialized router kernel binding functions.
 // ===========================================================================
 
 // --- R6: Zero-overhead CSR ---
@@ -1721,7 +1871,6 @@ torch::Tensor run_ra_zero_overhead_plan_fn(
     run_ra_zero_overhead_plan(wrapper->plan,
         rowptr.data_ptr<int>(), colind.data_ptr<int>(), vals.data_ptr<float>(),
         B.data_ptr<float>(), C.data_ptr<float>(), N);
-    CUDA_CHECK_NEXT(cudaDeviceSynchronize());
     return C;
 }
 
@@ -1749,7 +1898,6 @@ torch::Tensor run_ra_vectorized_coarse_plan_fn(
     run_ra_vectorized_coarse_plan(wrapper->plan,
         rowptr.data_ptr<int>(), colind.data_ptr<int>(), vals.data_ptr<float>(),
         B.data_ptr<float>(), C.data_ptr<float>(), N);
-    CUDA_CHECK_NEXT(cudaDeviceSynchronize());
     return C;
 }
 
@@ -1777,7 +1925,6 @@ torch::Tensor run_ra_rode_enhanced_plan_fn(
     run_ra_rode_enhanced_plan(wrapper->plan,
         colind.data_ptr<int>(), vals.data_ptr<float>(),
         B.data_ptr<float>(), C.data_ptr<float>(), N);
-    CUDA_CHECK_NEXT(cudaDeviceSynchronize());
     return C;
 }
 
@@ -1804,8 +1951,8 @@ torch::Tensor run_ra_tc_direct_plan_fn(
     int M = wrapper->plan.M;
     int N = (int)B.size(1);
     auto C = torch::zeros({M, N}, B.options());
-    run_ra_tc_direct_plan(wrapper->plan, B.data_ptr<float>(), C.data_ptr<float>(), N, 0);
-    CUDA_CHECK_NEXT(cudaDeviceSynchronize());
+    run_ra_tc_direct_plan(wrapper->plan, B.data_ptr<float>(), C.data_ptr<float>(), N,
+                          at::cuda::getCurrentCUDAStream().stream());
     return C;
 }
 
@@ -1832,8 +1979,8 @@ torch::Tensor run_ra_locality_tiled_plan_fn(
     int M = wrapper->plan.M;
     int N = (int)B.size(1);
     auto C = torch::zeros({M, N}, B.options());
-    run_ra_locality_tiled_plan(wrapper->plan, B.data_ptr<float>(), C.data_ptr<float>(), N, 0);
-    CUDA_CHECK_NEXT(cudaDeviceSynchronize());
+    run_ra_locality_tiled_plan(wrapper->plan, B.data_ptr<float>(), C.data_ptr<float>(), N,
+                              at::cuda::getCurrentCUDAStream().stream());
     return C;
 }
 
@@ -1860,8 +2007,8 @@ torch::Tensor run_ra_community_tc_plan_fn(
     int M = wrapper->plan.M;
     int N = (int)B.size(1);
     auto C = torch::zeros({M, N}, B.options());
-    run_ra_community_tc_plan(wrapper->plan, B.data_ptr<float>(), C.data_ptr<float>(), N, 0);
-    CUDA_CHECK_NEXT(cudaDeviceSynchronize());
+    run_ra_community_tc_plan(wrapper->plan, B.data_ptr<float>(), C.data_ptr<float>(), N,
+                             at::cuda::getCurrentCUDAStream().stream());
     return C;
 }
 
@@ -1892,8 +2039,8 @@ torch::Tensor run_ra_segment_hybrid_plan_fn(
     auto C = torch::zeros({M, N}, B.options());
     run_ra_segment_hybrid_plan(wrapper->plan,
         colind.data_ptr<int>(), vals.data_ptr<float>(),
-        B.data_ptr<float>(), C.data_ptr<float>(), N, 0);
-    CUDA_CHECK_NEXT(cudaDeviceSynchronize());
+        B.data_ptr<float>(), C.data_ptr<float>(), N,
+        at::cuda::getCurrentCUDAStream().stream());
     return C;
 }
 
@@ -1941,6 +2088,18 @@ PYBIND11_MODULE(ra_spmm, m) {
           pybind11::arg("rowptr"), pybind11::arg("colind"),
           pybind11::arg("vals"), pybind11::arg("B"),
           pybind11::arg("iters") = 10);
+
+    pybind11::class_<CuSparsePlanWrapper, std::shared_ptr<CuSparsePlanWrapper>>(m, "CuSparsePlan")
+        .def_property_readonly("algorithm", [](const CuSparsePlanWrapper& w) {
+            return std::string(w.state->algorithm_name());
+        });
+    m.def("make_cusparse_plan", &make_cusparse_plan_fn,
+          "Build reusable cuSPARSE descriptors, preprocess state, workspace, and output",
+          pybind11::arg("rowptr"), pybind11::arg("colind"),
+          pybind11::arg("vals"), pybind11::arg("B"));
+    m.def("run_cusparse_plan", &run_cusparse_plan_fn,
+          "Execute a reusable cuSPARSE plan with a same-shape dense input",
+          pybind11::arg("plan"), pybind11::arg("B"));
 
     // Plan wrapper classes
     pybind11::class_<CSRAdaptivePlanWrapper, std::shared_ptr<CSRAdaptivePlanWrapper>>(m, "CSRAdaptivePlan")
@@ -2017,7 +2176,7 @@ PYBIND11_MODULE(ra_spmm, m) {
     pybind11::class_<TCReorderedPlanWrapper, std::shared_ptr<TCReorderedPlanWrapper>>(m, "TCReorderedPlan")
         .def_property_readonly("valid", [](const TCReorderedPlanWrapper& w){ return w.valid; })
         .def_property_readonly("active", [](const TCReorderedPlanWrapper& w){ return w.plan.active; })
-        .def_property_readonly("placeholder_quality", [](const TCReorderedPlanWrapper& w){ return w.plan.placeholder_quality; })
+        .def_property_readonly("conservative_precision_guard", [](const TCReorderedPlanWrapper& w){ return w.plan.conservative_precision_guard; })
         .def_property_readonly("num_fp32_groups", [](const TCReorderedPlanWrapper& w){ return w.plan.num_fp32_groups; })
         .def_property_readonly("fp32_group_fraction", [](const TCReorderedPlanWrapper& w){ return w.plan.fp32_group_fraction; })
         .def_property_readonly("avg_group_compactness", [](const TCReorderedPlanWrapper& w){ return w.plan.avg_group_compactness; })
@@ -2274,7 +2433,7 @@ PYBIND11_MODULE(ra_spmm, m) {
           pybind11::arg("N") = 128);
 
     // =======================================================================
-    // New regime-specific kernels (Wave 1)
+    // Specialized router kernels.
     // =======================================================================
 
     // --- R6: Zero-overhead CSR ---
@@ -2395,7 +2554,7 @@ PYBIND11_MODULE(ra_spmm, m) {
         .def_property_readonly("plan_bytes", [](const RACommunityTCPlanWrapper& w){ return w.plan.plan_bytes; });
 
     m.def("make_community_tc_plan", &make_ra_community_tc_plan_fn,
-          "Build R5 community TC plan (community-aware reordering + WMMA)",
+          "Build R5 community tile plan (community ordering with WMMA/FP32 dispatch)",
           pybind11::arg("rowptr_cpu"), pybind11::arg("colind_cpu"),
           pybind11::arg("vals_cpu"), pybind11::arg("M"), pybind11::arg("K"),
           pybind11::arg("N"));

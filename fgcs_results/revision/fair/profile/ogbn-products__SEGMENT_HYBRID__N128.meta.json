@@ -1,0 +1,11 @@
+{
+  "dataset": "ogbn-products",
+  "category": "Dense Large-Scale",
+  "synthetic": false,
+  "kernel": "SEGMENT_HYBRID",
+  "N": 128,
+  "gpu": 0,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "ogbn-products__SEGMENT_HYBRID__N128.ncu-rep",
+  "raw_csv": "ogbn-products__SEGMENT_HYBRID__N128.ncu.csv"
+}

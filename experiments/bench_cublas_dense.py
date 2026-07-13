@@ -26,6 +26,7 @@ import json
 import math
 import os
 import sys
+import time
 from pathlib import Path
 
 import torch
@@ -33,19 +34,17 @@ import torch
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 import ra_spmm  # noqa: E402
-from ra_real_graph_eval import load_dataset, measure_ms, run_kernel  # noqa: E402
-from ra_router_eval import simple_router  # noqa: E402
+from ra_real_graph_eval import (BASE_ATOL, TC_EXTRA_FACTOR, load_dataset,
+                                measure_ms, measure_one_ms, population_cv)  # noqa: E402
 
 # The dense-small + tiny graph set.
 TINY_GRAPHS = ["ca-GrQc", "ca-HepTh", "ca-CondMat", "amazon-photo",
                "amazon-computers", "Cora", "CiteSeer", "PPI"]
-N_VALUES = [64, 128, 256]
-
 # Ensure FP32 accumulation (no reduced-precision fp16 reduction).
 torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction = False
 
 
-def dense_from_csr(rp_cpu, ci_cpu, M, K):
+def dense_from_csr(rp_cpu, ci_cpu, vals_cpu, M, K):
     """Build dense M x K FP16 adjacency on GPU. Returns None if it would OOM."""
     bytes_needed = M * K * 2
     free, total = torch.cuda.mem_get_info()
@@ -55,33 +54,42 @@ def dense_from_csr(rp_cpu, ci_cpu, M, K):
     A = torch.zeros((M, K), device="cuda", dtype=torch.float16)
     rp = rp_cpu.tolist()
     ci = ci_cpu
-    # Scatter ones (unit values, matching how graphs are loaded)
     rows = torch.repeat_interleave(
         torch.arange(M, device="cuda"),
         (rp_cpu[1:] - rp_cpu[:-1]).to("cuda"))
     cols = ci.to("cuda").long()
-    A[rows, cols] = 1.0
+    A[rows, cols] = vals_cpu.to("cuda", dtype=torch.float16)
     return A
 
 
-def time_cublas(A_half, B_half):
-    return measure_ms(lambda: torch.matmul(A_half, B_half))
+def time_cublas(A_half, B_half, warmup=50, timed=200):
+    return measure_ms(lambda: torch.matmul(A_half, B_half), warmup, timed)
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--datasets-file", default=str(REPO_ROOT / "paper_datasets.json"))
     ap.add_argument("--output", default=str(REPO_ROOT / "fgcs_results/revision/cublas/cublas_small.csv"))
+    ap.add_argument("--warmup", type=int, default=50)
+    ap.add_argument("--timed", type=int, default=200)
+    ap.add_argument("--cold-iters", type=int, default=10)
+    ap.add_argument("--datasets", default="",
+                    help="Optional comma-separated graph names")
+    ap.add_argument("--Ns", default="64,128,256")
     args = ap.parse_args()
 
     assert torch.cuda.is_available()
     print(f"GPU: {torch.cuda.get_device_name(0)}  CUDA {torch.version.cuda}")
 
     manifest = {d["name"]: d for d in json.loads(Path(args.datasets_file).read_text())["datasets"]}
+    selected = {name.strip() for name in args.datasets.split(",") if name.strip()}
+    n_values = [int(value) for value in args.Ns.replace(",", " ").split()]
     rows = []
     cublas_wins = []
 
     for name in TINY_GRAPHS:
+        if selected and name not in selected:
+            continue
         entry = manifest.get(name)
         if entry is None:
             print(f"  [skip] {name}: not in manifest")
@@ -98,61 +106,90 @@ def main():
         nnz = int(rp_cpu[-1].item())
         d_bar = nnz / max(1, M)
         deg = (rp_cpu[1:] - rp_cpu[:-1]).float()
-        cv_d = float((deg.std() / deg.mean()).item()) if d_bar > 0 else 0.0
+        cv_d = population_cv(deg)
+        max_row_nnz = max(1, int(deg.max().item()))
 
-        A_half = dense_from_csr(rp_cpu, ci_cpu, M, K)
-        for N in N_VALUES:
+        A_half = dense_from_csr(rp_cpu, ci_cpu, v_cpu, M, K)
+        for N in n_values:
             B32 = torch.randn(K, N, device="cuda", dtype=torch.float32)
-            plan_cache = {}
-            # cuSPARSE reference timing
-            ms_cusparse = measure_ms(lambda: run_kernel("CUSPARSE", rp, ci, v, B32, plan_cache, "cus"))
-            # router's chosen kernel
-            router_kernel = simple_router(d_bar, cv_d, M, N, nnz)
-            try:
-                ms_router = measure_ms(lambda: run_kernel(router_kernel, rp, ci, v, B32, plan_cache, f"{router_kernel}_{N}"))
-            except Exception as e:
-                router_kernel, ms_router = f"ERR({router_kernel})", float("nan")
+            cus_warm = ra_spmm.benchmark_cusparse(
+                rp, ci, v, B32, args.warmup, args.timed)
+            cus_cold = ra_spmm.benchmark_cusparse_cold(
+                rp, ci, v, B32, args.cold_iters)
 
             if A_half is None:
                 rows.append({
                     "dataset": name, "category": entry.get("category", "?"),
                     "M": M, "K": K, "nnz": nnz, "N": N, "d_bar": round(d_bar, 3), "cv_d": round(cv_d, 3),
-                    "cublas_ms": "OOM", "ms_cusparse": round(ms_cusparse, 4),
-                    "router_kernel": router_kernel, "ms_router": round(ms_router, 4),
+                    "kernel": "cuBLAS",
+                    "ms_warm": "OOM", "preprocess_ms": "OOM",
+                    "cold_exec_ms": "OOM", "ms_cold": "OOM",
+                    "ms_cusparse_warm": round(float(cus_warm["exec_ms"]), 6),
+                    "ms_cusparse_cold": round(float(cus_cold["total_ms"]), 6),
                     "gflops_truennz": "", "gflops_padded": "",
-                    "speedup_cublas_vs_cusparse": "", "speedup_cublas_vs_router": "",
-                    "cublas_beats_router": "",
+                    "speedup_vs_cusparse_warm": "", "speedup_vs_cusparse_cold": "",
+                    "correct": False, "error": "dense_allocation_oom",
                 })
                 print(f"  {name:<18s} N={N:<4d} cuBLAS=OOM (dense {M}x{K} fp16)")
+                del B32
                 continue
 
             Bh = B32.half()
-            ms_cublas = time_cublas(A_half, Bh)
+            output = torch.matmul(A_half, Bh).float()
+            reference = ra_spmm.spmm_cusparse(rp, ci, v, B32)
+            max_error = float((output - reference).abs().max().item())
+            tolerance = BASE_ATOL * max(1.0, math.sqrt(max_row_nnz)) * TC_EXTRA_FACTOR
+            correct = max_error <= tolerance and max_error < 1.0
+            ms_cublas = time_cublas(A_half, Bh, args.warmup, args.timed) if correct else float("nan")
+            setup_total = 0.0
+            cold_exec_total = 0.0
+            if correct:
+                for _ in range(args.cold_iters):
+                    torch.cuda.synchronize()
+                    start = time.perf_counter()
+                    cold_A = dense_from_csr(rp_cpu, ci_cpu, v_cpu, M, K)
+                    cold_B = B32.half()
+                    torch.cuda.synchronize()
+                    setup_total += (time.perf_counter() - start) * 1e3
+                    cold_output, cold_exec = measure_one_ms(
+                        lambda: torch.matmul(cold_A, cold_B))
+                    cold_exec_total += cold_exec
+                    del cold_output, cold_A, cold_B
+                preprocess_ms = setup_total / args.cold_iters
+                cold_exec_ms = cold_exec_total / args.cold_iters
+                ms_cold = preprocess_ms + cold_exec_ms
+            else:
+                preprocess_ms = cold_exec_ms = ms_cold = float("nan")
             flops_truennz = 2.0 * nnz * N
             flops_padded = 2.0 * M * K * N
             gflops_true = flops_truennz / (ms_cublas * 1e-3) / 1e9
             gflops_padded = flops_padded / (ms_cublas * 1e-3) / 1e9
-            sp_vs_cus = ms_cusparse / ms_cublas if ms_cublas > 0 else 0
-            sp_vs_router = ms_router / ms_cublas if ms_cublas > 0 else 0
-            beats_router = ms_cublas < ms_router if ms_router == ms_router else False  # nan-safe
-
-            if beats_router:
-                cublas_wins.append((name, N, ms_router / ms_cublas, router_kernel))
+            sp_vs_cus_warm = float(cus_warm["exec_ms"]) / ms_cublas if correct else float("nan")
+            sp_vs_cus_cold = float(cus_cold["total_ms"]) / ms_cold if correct else float("nan")
 
             rows.append({
                 "dataset": name, "category": entry.get("category", "?"),
                 "M": M, "K": K, "nnz": nnz, "N": N, "d_bar": round(d_bar, 3), "cv_d": round(cv_d, 3),
-                "cublas_ms": round(ms_cublas, 4), "ms_cusparse": round(ms_cusparse, 4),
-                "router_kernel": router_kernel, "ms_router": round(ms_router, 4),
+                "kernel": "cuBLAS",
+                "ms_warm": round(ms_cublas, 6),
+                "preprocess_ms": round(preprocess_ms, 6),
+                "cold_exec_ms": round(cold_exec_ms, 6),
+                "ms_cold": round(ms_cold, 6),
+                "ms_cusparse_warm": round(float(cus_warm["exec_ms"]), 6),
+                "ms_cusparse_cold": round(float(cus_cold["total_ms"]), 6),
                 "gflops_truennz": round(gflops_true, 2), "gflops_padded": round(gflops_padded, 2),
-                "speedup_cublas_vs_cusparse": round(sp_vs_cus, 3),
-                "speedup_cublas_vs_router": round(sp_vs_router, 3),
-                "cublas_beats_router": beats_router,
+                "speedup_vs_cusparse_warm": round(sp_vs_cus_warm, 6),
+                "speedup_vs_cusparse_cold": round(sp_vs_cus_cold, 6),
+                "correct": correct,
+                "soft_fail": tolerance < max_error < 1.0,
+                "hard_fail": max_error >= 1.0,
+                "max_error": max_error,
+                "tolerance": tolerance,
+                "error": "",
             })
-            flag = "  <<< cuBLAS BEATS ROUTER" if beats_router else ""
-            print(f"  {name:<18s} N={N:<4d} cuBLAS={ms_cublas:.4f}ms router={router_kernel}={ms_router:.4f}ms "
-                  f"cus={ms_cusparse:.4f}ms  vsRouter={sp_vs_router:.2f}x{flag}")
-            del Bh, B32
+            print(f"  {name:<18s} N={N:<4d} cuBLAS(warm)={ms_cublas:.4f}ms "
+                  f"cus(warm)={float(cus_warm['exec_ms']):.4f}ms correct={correct}")
+            del output, reference, Bh, B32
         del A_half, rp, ci, v
         torch.cuda.empty_cache()
 
@@ -163,12 +200,6 @@ def main():
             w.writeheader()
             w.writerows(rows)
         print(f"\nWrote {args.output} ({len(rows)} rows)")
-    if cublas_wins:
-        print("\n*** cuBLAS BEATS ROUTER on these (dataset, N, margin, router_kernel): ***")
-        for name, N, margin, rk in cublas_wins:
-            print(f"    {name} N={N}: {margin:.2f}x faster than router's {rk}")
-    else:
-        print("\nSparse router wins throughout (no cuBLAS-beats-router cases).")
 
 
 if __name__ == "__main__":

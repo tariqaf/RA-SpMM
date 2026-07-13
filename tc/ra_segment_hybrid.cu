@@ -2,18 +2,18 @@
 // ra_segment_hybrid.cu - R7: SEGMENT_HYBRID SpMM for hybrid/mixed regime
 //
 // Regime: mixedness >= 0.55. Matrices with heterogeneous row structures that
-// benefit from neither pure TC nor pure CUDA execution alone.
+// benefit from neither a pure tile path nor a pure direct path alone.
 //
-// Design: Row-level partitioning into TC and CUDA paths.
-//   - TC path: rows with sufficient column-locality (compactness >= 0.15,
-//     nnz >= 4, span <= 256). Uses TC_DIRECT-style WMMA execution.
-//   - CUDA path: remaining rows with scattered/power-law patterns.
+// Design: Row-level partitioning into tile and direct paths.
+//   - Tile path: rows with sufficient column locality (compactness >= 0.15,
+//     nnz >= 4, span <= 256). Eligible groups use WMMA; others use FP32.
+//   - Direct path: remaining rows with scattered or power-law patterns.
 //     Uses RoDe-style short/long/residual decomposition.
 //
-// Each row is exclusively assigned to one partition. TC and CUDA paths write
+// Each row is exclusively assigned to one partition. Both paths write
 // to disjoint rows, so no atomics are needed.
 //
-// Target: sm_70+ (Volta WMMA), optimised for sm_86 (RTX 3090).
+// Target: sm_70+ with tuning for sm_86.
 // ============================================================================
 #include "../ra_common.h"
 
@@ -42,7 +42,7 @@ constexpr int kSignatureBuckets   = 64;
 constexpr int kTileElems          = 16 * 16;   // 256 halfs per packed tile
 constexpr int kMaxWarpsPerCta     = 16;
 
-// Relaxed FP32 thresholds (same as TC_DIRECT) — TC kernels are correct
+// FP32 fallback thresholds shared with TC_DIRECT.
 constexpr int   kFp32GroupMaxRowNnzThreshold  = 256;
 constexpr int   kFp32GroupTotalNnzThreshold   = 2048;
 constexpr float kFp32GroupAvgRowNnzThreshold  = 128.f;
@@ -51,7 +51,6 @@ constexpr float kMinTcGroupTileDensity        = 0.08f;
 // CUDA partition constants (from RODE_ENHANCED)
 constexpr int kLongRowThreshold = 128;  // regular_nnz >= 128 => long row
 constexpr int kSubBlockSize     = 32;   // nnz per sub-block
-constexpr int kLongCTAThreads   = 256;  // 8 warps per CTA for long rows
 constexpr int kLongComputeWarps = 7;    // warps 1-7 compute, warp 0 loads
 
 // Row classification thresholds
@@ -679,7 +678,7 @@ void make_ra_segment_hybrid_plan(
         return;
     }
 
-    // No force_all_fp32 guards needed — TC kernels are correct.
+    // Individual groups still fall back to FP32 according to the gates below.
     const bool force_all_fp32 = false;
 
     // =================================================================
@@ -1130,7 +1129,10 @@ void run_ra_segment_hybrid_plan(
     // ---- Launch 4: CUDA long-row pipelined kernel ----
     if (plan.num_cuda_long_rows > 0) {
         if (use_vec4) {
-            segment_hybrid_cuda_long_vec4_kernel<<<plan.num_cuda_long_rows, kLongCTAThreads, 0, stream>>>(
+            const int compute_warps = std::min(
+                kLongComputeWarps, (N / 4 + 31) / 32);
+            const int threads = (1 + std::max(1, compute_warps)) * 32;
+            segment_hybrid_cuda_long_vec4_kernel<<<plan.num_cuda_long_rows, threads, 0, stream>>>(
                 d_colind, d_vals, d_B, d_C,
                 plan.d_cuda_long_row_ids,
                 plan.d_cuda_long_starts,
@@ -1138,7 +1140,10 @@ void run_ra_segment_hybrid_plan(
                 plan.num_cuda_long_rows,
                 N);
         } else {
-            segment_hybrid_cuda_long_scalar_kernel<<<plan.num_cuda_long_rows, kLongCTAThreads, 0, stream>>>(
+            const int compute_warps = std::min(
+                kLongComputeWarps, (N + 31) / 32);
+            const int threads = (1 + std::max(1, compute_warps)) * 32;
+            segment_hybrid_cuda_long_scalar_kernel<<<plan.num_cuda_long_rows, threads, 0, stream>>>(
                 d_colind, d_vals, d_B, d_C,
                 plan.d_cuda_long_row_ids,
                 plan.d_cuda_long_starts,

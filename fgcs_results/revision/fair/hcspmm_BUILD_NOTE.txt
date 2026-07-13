@@ -1,0 +1,26 @@
+HC-SpMM built OK against torch 2.7.1+cu118 / CUDA 11.8 on RTX 3090 (SM 86).
+Benchmarked at HC-SpMM's stable native GNN dim N=64 (forward_fixed64). Its arbitrary-dim `forward` (N>=128) raises illegal-memory-access and is not used.
+Yelp: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+twitter-combined: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+soc-Pokec: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+amazon-computers: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+amazon-photo: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+gplus-combined: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+Reddit: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+ogbn-products: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+ogbn-proteins: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+com-DBLP: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+com-youtube: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+Flickr: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_sparse_skewed_cv2p0: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_sparse_skewed_cv2p5: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_sparse_skewed_cv3p0: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_sparse_skewed_cv4p0: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_mixed_v1: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_mixed_v2: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_mixed_v3: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_mixed_v4: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_mixed_v5: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_dense_small_d70: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_dense_small_d90: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_dense_small_d120: kernel CRASH (rc=1): Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.

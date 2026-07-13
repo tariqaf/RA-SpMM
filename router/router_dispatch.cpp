@@ -50,14 +50,14 @@ bool path_in_portfolio(NextPath path, Portfolio portfolio) {
     if (portfolio == Portfolio::FULL) {
         return true;
     }
-    // MAIN portfolio: original paths + new regime-specific kernels
+    // MAIN portfolio: paper-facing sparse kernels
     switch (path) {
         case NextPath::CSR_DIRECT:
         case NextPath::ROW_SPLIT_CUDA:
         case NextPath::TC_REORDERED:
         case NextPath::HYBRID_TC_CUDA:
         case NextPath::CUSPARSE:
-        // New regime-specific kernels (all in MAIN)
+        // Paper portfolio kernels.
         case NextPath::RODE_ENHANCED:
         case NextPath::VECTORIZED_COARSE:
         case NextPath::LOCALITY_TILED:
@@ -384,14 +384,14 @@ bool compute_feasible(
             return true;
 
         // =================================================================
-        // New regime-specific kernels
+        // Paper portfolio kernels.
         // =================================================================
 
         case NextPath::TC_DIRECT:
-            // R4: TC-friendly — always feasible when N >= 64 (TC needs minimum width)
-            if (f.output_dim_N < 64 && f.matrix_M < 150000) {
+            // Plan construction is inactive below the implementation minimum.
+            if (f.output_dim_N < 16) {
                 reject_code = RejectReason::REJECT_MARGIN_TOO_SMALL;
-                reject_detail = fmt_value("N", (float)f.output_dim_N, "<", 64.f);
+                reject_detail = fmt_value("N", (float)f.output_dim_N, "<", 16.f);
                 return false;
             }
             reject_code = RejectReason::CHOSEN;
@@ -399,10 +399,9 @@ bool compute_feasible(
             return true;
 
         case NextPath::COMMUNITY_TC:
-            // R5: Community — feasible when community structure is present and N >= 64
-            if (f.output_dim_N < 64 && f.matrix_M < 150000) {
+            if (f.output_dim_N < 16) {
                 reject_code = RejectReason::REJECT_MARGIN_TOO_SMALL;
-                reject_detail = fmt_value("N", (float)f.output_dim_N, "<", 64.f);
+                reject_detail = fmt_value("N", (float)f.output_dim_N, "<", 16.f);
                 return false;
             }
             reject_code = RejectReason::CHOSEN;
@@ -438,10 +437,9 @@ bool compute_feasible(
             return true;
 
         case NextPath::LOCALITY_TILED:
-            // R3: Reordered locality — feasible when locality can be recovered
-            if (f.output_dim_N < 64 && f.matrix_M < 150000) {
+            if (f.output_dim_N < 16) {
                 reject_code = RejectReason::REJECT_MARGIN_TOO_SMALL;
-                reject_detail = fmt_value("N", (float)f.output_dim_N, "<", 64.f);
+                reject_detail = fmt_value("N", (float)f.output_dim_N, "<", 16.f);
                 return false;
             }
             reject_code = RejectReason::CHOSEN;
@@ -449,10 +447,9 @@ bool compute_feasible(
             return true;
 
         case NextPath::SEGMENT_HYBRID:
-            // R7: Hybrid/mixed — feasible when N >= 64
-            if (f.output_dim_N < 64 && f.matrix_M < 150000) {
+            if (f.output_dim_N < 16) {
                 reject_code = RejectReason::REJECT_MARGIN_TOO_SMALL;
-                reject_detail = fmt_value("N", (float)f.output_dim_N, "<", 64.f);
+                reject_detail = fmt_value("N", (float)f.output_dim_N, "<", 16.f);
                 return false;
             }
             reject_code = RejectReason::CHOSEN;
@@ -993,7 +990,7 @@ RouterPlan route_dispatch(
         float extended_risk = 0.05f;
 
         // ============================================================
-        // Round-2 (FGCS) recalibration — 8-rule router. Mirrors
+        // Production eight-rule router. Mirrors
         // ra_router_eval.py simple_router(). Rules are evaluated
         // top-to-bottom; the first match wins. The Python and C++
         // implementations stay in lockstep; ra_router_parity_test.py

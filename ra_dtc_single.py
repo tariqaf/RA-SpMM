@@ -67,18 +67,29 @@ def time_kernel_only(module, state, B_perm, M: int, nnz: int, use_balance: bool,
     return mean_ms, math.sqrt(var)
 
 
-def time_end_to_end(module, state, B_orig, perm_gpu, perm_inv_gpu, M: int, nnz: int,
-                    use_balance: bool, exeplan: str, timed_iters: int) -> float:
+def run_end_to_end(module, state, B_orig, perm_gpu, M: int, nnz: int,
+                   use_balance: bool, exeplan: str):
+    B_perm = B_orig.index_select(0, perm_gpu)
+    out_perm = run_variant(module, state, B_perm, M, nnz, use_balance, exeplan)
+    out_orig = torch.empty_like(out_perm)
+    out_orig[perm_gpu] = out_perm
+    return out_orig
+
+
+def time_end_to_end(module, state, B_orig, perm_gpu, M: int, nnz: int,
+                    use_balance: bool, exeplan: str,
+                    warmup_iters: int, timed_iters: int) -> float:
+    for _ in range(max(0, warmup_iters)):
+        _ = run_end_to_end(
+            module, state, B_orig, perm_gpu, M, nnz, use_balance, exeplan)
     torch.cuda.synchronize()
     start = torch.cuda.Event(enable_timing=True)
     end = torch.cuda.Event(enable_timing=True)
     times_ms = []
     for _ in range(max(1, timed_iters)):
         start.record()
-        B_perm = B_orig.index_select(0, perm_gpu)
-        out_perm = run_variant(module, state, B_perm, M, nnz, use_balance, exeplan)
-        out_orig = torch.empty_like(out_perm)
-        out_orig[perm_gpu] = out_perm
+        out_orig = run_end_to_end(
+            module, state, B_orig, perm_gpu, M, nnz, use_balance, exeplan)
         end.record()
         end.synchronize()
         times_ms.append(float(start.elapsed_time(end)))
@@ -109,8 +120,11 @@ def main() -> int:
     parser.add_argument("--reorder_method", default="")
     parser.add_argument("--reorder_version", default="")
     parser.add_argument("--N", type=int, required=True)
-    parser.add_argument("--warmup_iters", type=int, default=3)
-    parser.add_argument("--timed_iters", type=int, default=20)
+    parser.add_argument("--warmup_iters", type=int, default=50)
+    parser.add_argument("--timed_iters", type=int, default=200)
+    parser.add_argument("--selection_warmup_iters", type=int, default=3)
+    parser.add_argument("--selection_timed_iters", type=int, default=20)
+    parser.add_argument("--cold_iters", type=int, default=10)
     parser.add_argument("--seed", type=int, default=123)
     parser.add_argument("--atol", type=float, default=1e-3)
     args = parser.parse_args()
@@ -150,57 +164,83 @@ def main() -> int:
     except Exception as e:
         return emit({"error": f"dtc_load_failed: {e}"})
 
-    try:
-        torch.cuda.synchronize()
-        t0 = time.perf_counter()
-        state = preprocess(module, rowptr_r, colind_r, M, nnz)
-        torch.cuda.synchronize()
-        preprocess_ms = (time.perf_counter() - t0) * 1000.0
-    except Exception as e:
-        return emit({"error": f"dtc_preprocess_failed: {e}"})
-
-    best_mean = None
-    best_std = None
+    variants = candidate_variants(int(args.N))
+    preprocess_samples = []
+    selection_samples = []
+    cold_exec_samples = []
+    state = None
+    best_mean = best_std = best_error = None
     best_variant = ""
     best_choice = None
-    best_error = None
-    variants = candidate_variants(int(args.N))
+    for _ in range(max(1, args.cold_iters)):
+        try:
+            torch.cuda.synchronize()
+            t0 = time.perf_counter()
+            state = preprocess(module, rowptr_r, colind_r, M, nnz)
+            torch.cuda.synchronize()
+            preprocess_samples.append((time.perf_counter() - t0) * 1000.0)
+        except Exception as e:
+            return emit({"error": f"dtc_preprocess_failed: {e}"})
 
-    try:
+        iteration_best_mean = None
+        iteration_best_std = None
+        iteration_best_variant = ""
+        iteration_best_choice = None
+        iteration_best_error = None
+        try:
+            torch.cuda.synchronize()
+            select_t0 = time.perf_counter()
+            candidate_timings = []
+            for use_balance, exeplan in variants:
+                mean_ms, std_ms = time_kernel_only(
+                    module, state, B_perm, M, nnz, use_balance, exeplan,
+                    args.selection_warmup_iters, args.selection_timed_iters)
+                candidate_timings.append((mean_ms, std_ms, use_balance, exeplan))
+            torch.cuda.synchronize()
+            selection_samples.append((time.perf_counter() - select_t0) * 1000.0)
+            for mean_ms, std_ms, use_balance, exeplan in candidate_timings:
+                max_error = candidate_max_error(
+                    module, state, B_orig, B_perm, perm_gpu, rowptr_o, colind_o, vals_o,
+                    M, nnz, use_balance, exeplan)
+                tag = f"{'bal' if use_balance else 'nobal'}_{exeplan}"
+                if max_error > float(args.atol):
+                    continue
+                if iteration_best_mean is None or mean_ms < iteration_best_mean:
+                    iteration_best_mean = mean_ms
+                    iteration_best_std = std_ms
+                    iteration_best_variant = tag
+                    iteration_best_choice = (use_balance, exeplan)
+                    iteration_best_error = max_error
+        except Exception as e:
+            return emit({"error": f"dtc_variant_scan_failed: {e}"})
+        if iteration_best_choice is None:
+            return emit({"error": "dtc_no_strictly_correct_variant"})
+
+        best_mean = iteration_best_mean
+        best_std = iteration_best_std
+        best_variant = iteration_best_variant
+        best_choice = iteration_best_choice
+        best_error = iteration_best_error
+        use_balance, exeplan = best_choice
         torch.cuda.synchronize()
-        select_t0 = time.perf_counter()
-        for use_balance, exeplan in variants:
-            mean_ms, std_ms = time_kernel_only(
-                module, state, B_perm, M, nnz, use_balance, exeplan,
-                args.warmup_iters, args.timed_iters
-            )
-            max_error = candidate_max_error(
-                module, state, B_orig, B_perm, perm_gpu, rowptr_o, colind_o, vals_o,
-                M, nnz, use_balance, exeplan
-            )
-            tag = f"{'bal' if use_balance else 'nobal'}_{exeplan}"
-            if max_error > 1.0:
-                continue
-            if best_mean is None or mean_ms < best_mean:
-                best_mean = mean_ms
-                best_std = std_ms
-                best_variant = tag
-                best_choice = (use_balance, exeplan)
-                best_error = max_error
-        torch.cuda.synchronize()
-        selection_variant_ms = (time.perf_counter() - select_t0) * 1000.0
-    except Exception as e:
-        return emit({"error": f"dtc_variant_scan_failed: {e}"})
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+        start.record()
+        _ = run_end_to_end(
+            module, state, B_orig, perm_gpu, M, nnz, use_balance, exeplan)
+        end.record()
+        end.synchronize()
+        cold_exec_samples.append(float(start.elapsed_time(end)))
 
-    if best_mean is None or best_choice is None:
-        return emit({"error": "dtc_no_valid_variant"})
-
+    preprocess_ms = sum(preprocess_samples) / len(preprocess_samples)
+    selection_variant_ms = sum(selection_samples) / len(selection_samples)
+    cold_exec_ms = sum(cold_exec_samples) / len(cold_exec_samples)
     use_balance, exeplan = best_choice
 
     try:
         end_to_end_ms = time_end_to_end(
-            module, state, B_orig, perm_gpu, perm_gpu, M, nnz,
-            use_balance, exeplan, args.timed_iters
+            module, state, B_orig, perm_gpu, M, nnz, use_balance, exeplan,
+            args.warmup_iters, args.timed_iters
         )
     except Exception as e:
         return emit({"error": f"dtc_end_to_end_failed: {e}"})
@@ -211,7 +251,7 @@ def main() -> int:
         out_orig = torch.empty_like(out_perm)
         out_orig[perm_gpu] = out_perm
         max_error = float((out_orig - ref).abs().max().item())
-        correct = bool(max_error <= float(args.atol))
+        correct = bool(max_error <= float(args.atol) and max_error < 1.0)
     except Exception as e:
         return emit({"error": f"dtc_correctness_failed: {e}"})
 
@@ -229,6 +269,7 @@ def main() -> int:
         "mean_kernel_ms": float(best_mean),
         "std_kernel_ms": float(best_std if best_std is not None else 0.0),
         "end_to_end_ms": float(end_to_end_ms),
+        "cold_exec_ms": float(cold_exec_ms),
         "dtc_ms": float(best_mean),
         "dtc_variant": best_variant,
         "variant_count": len(variants),
@@ -237,6 +278,9 @@ def main() -> int:
         "selection_max_error": float(best_error if best_error is not None else max_error),
         "warmup_iters": int(args.warmup_iters),
         "timed_iters": int(args.timed_iters),
+        "selection_warmup_iters": int(args.selection_warmup_iters),
+        "selection_timed_iters": int(args.selection_timed_iters),
+        "cold_iters": int(args.cold_iters),
     })
 
 

@@ -91,7 +91,7 @@ def main() -> int:
 
     print()
     print("[fetch_datasets] Done. Next steps:")
-    print("  1) cd bindings && python setup.py install   # build CUDA kernels")
+    print("  1) python setup.py install                  # build CUDA kernels")
     print("  2) python ra_router_parity_test.py          # expect 'PARITY OK 192/192'")
     return 0
 

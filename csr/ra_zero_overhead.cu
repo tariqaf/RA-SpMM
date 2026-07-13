@@ -13,7 +13,7 @@
 //
 // All bins have scalar and float4-vectorized variants (float4 when N%4==0).
 //
-// NO cudaDeviceSynchronize in any function -- sync happens at Python boundary.
+// No device-wide synchronization; callers synchronize only when host visibility is required.
 // ============================================================================
 #include "../ra_common.h"
 
@@ -288,11 +288,11 @@ __global__ void zo_long_scalar_kernel(
     const float* __restrict__ B,
     float*       __restrict__ C,
     const int*   __restrict__ row_ids,
-    int num_rows, int N)
+    int num_rows, int N, int chunk_offset)
 {
     // Each block handles one row. gridDim.y encodes the chunk index.
     const int row_idx   = blockIdx.x;
-    const int chunk_idx = blockIdx.y;
+    const int chunk_idx = chunk_offset + blockIdx.y;
     if (row_idx >= num_rows) return;
 
     const int row = row_ids[row_idx];
@@ -327,10 +327,10 @@ __global__ void zo_long_vec4_kernel(
     const float* __restrict__ B,
     float*       __restrict__ C,
     const int*   __restrict__ row_ids,
-    int num_rows, int N)
+    int num_rows, int N, int chunk_offset)
 {
     const int row_idx   = blockIdx.x;
-    const int chunk_idx = blockIdx.y;
+    const int chunk_idx = chunk_offset + blockIdx.y;
     if (row_idx >= num_rows) return;
 
     const int row = row_ids[row_idx];
@@ -387,6 +387,7 @@ void make_ra_zero_overhead_plan(
     medium_rows.reserve(M / 4);
     long_rows.reserve(M / 16);
 
+    int max_long_nnz = 0;
     for (int i = 0; i < M; ++i) {
         const int nnz = h_rowptr[i + 1] - h_rowptr[i];
         if (nnz == 0) {
@@ -400,6 +401,7 @@ void make_ra_zero_overhead_plan(
             medium_rows.push_back(i);
         } else {
             long_rows.push_back(i);
+            max_long_nnz = std::max(max_long_nnz, nnz);
         }
     }
 
@@ -407,6 +409,8 @@ void make_ra_zero_overhead_plan(
     plan.num_short  = static_cast<int>(short_rows.size());
     plan.num_medium = static_cast<int>(medium_rows.size());
     plan.num_long   = static_cast<int>(long_rows.size());
+    plan.max_long_chunks =
+        (max_long_nnz + kLongChunkSize - 1) / kLongChunkSize;
 
     // Upload row-id lists to GPU
     plan.d_tiny_row_ids   = ra_upload(tiny_rows);
@@ -500,68 +504,27 @@ void run_ra_zero_overhead_plan(
     // Grid: (num_long_rows, max_chunks_per_row)
     // Each block processes kLongChunkSize (64) nonzeros of its assigned row.
     if (plan.num_long > 0) {
-        // Find max row length among long rows to determine gridDim.y.
-        // We read rowptr from device for the long row IDs. To keep the plan
-        // overhead minimal, we compute max chunks from the host rowptr that
-        // was used during planning. Since the plan is const here, we use a
-        // conservative upper bound: launch enough chunks and let the kernel
-        // early-exit for out-of-range chunks.
-        //
-        // We upload the row_ids at plan time, so we can compute max_nnz by
-        // reading d_rowptr for the long rows. But to avoid a device-to-host
-        // copy at run time, we use a heuristic upper bound. For truly large
-        // matrices the overhead of a few extra empty blocks is negligible.
-        //
-        // Practical bound: for the target regime (avg_nnz 5-10, cv<=0.30),
-        // long rows are extremely rare. We cap at a generous 1024 chunks
-        // (covers rows up to 65536 nnz).
-        constexpr int kMaxChunksY = 1024;
-
-        // A tighter bound: read the last long row's rowptr range from device.
-        // This single cudaMemcpy is acceptable because num_long is typically
-        // very small (< 0.1% of rows in the target regime).
-        int max_chunks = 1;
-        if (plan.num_long <= 64) {
-            // For a small number of long rows, read their rowptr entries
-            std::vector<int> long_row_ids_h(plan.num_long);
-            CUDA_CHECK_NEXT(cudaMemcpy(long_row_ids_h.data(),
-                                       plan.d_long_row_ids,
-                                       plan.num_long * sizeof(int),
-                                       cudaMemcpyDeviceToHost));
-            int max_nnz = 0;
-            for (int i = 0; i < plan.num_long; ++i) {
-                int rstart = 0, rend = 0;
-                CUDA_CHECK_NEXT(cudaMemcpy(&rstart,
-                                           d_rowptr + long_row_ids_h[i],
-                                           sizeof(int),
-                                           cudaMemcpyDeviceToHost));
-                CUDA_CHECK_NEXT(cudaMemcpy(&rend,
-                                           d_rowptr + long_row_ids_h[i] + 1,
-                                           sizeof(int),
-                                           cudaMemcpyDeviceToHost));
-                max_nnz = std::max(max_nnz, rend - rstart);
+        const int max_chunks = std::max(plan.max_long_chunks, 1);
+        constexpr int kMaxGridY = 65535;
+        for (int chunk_offset = 0; chunk_offset < max_chunks;
+             chunk_offset += kMaxGridY) {
+            const int chunks_this_launch =
+                std::min(kMaxGridY, max_chunks - chunk_offset);
+            dim3 grid_long(plan.num_long, chunks_this_launch);
+            if (use_vec4) {
+                zo_long_vec4_kernel<<<grid_long, kMediumThreads>>>(
+                    d_rowptr, d_colind, d_vals, d_B, d_C,
+                    plan.d_long_row_ids, plan.num_long, N, chunk_offset);
+            } else {
+                zo_long_scalar_kernel<<<grid_long, kMediumThreads>>>(
+                    d_rowptr, d_colind, d_vals, d_B, d_C,
+                    plan.d_long_row_ids, plan.num_long, N, chunk_offset);
             }
-            max_chunks = (max_nnz + kLongChunkSize - 1) / kLongChunkSize;
-        } else {
-            max_chunks = kMaxChunksY;
-        }
-        max_chunks = std::min(max_chunks, kMaxChunksY);
-        max_chunks = std::max(max_chunks, 1);
-
-        dim3 grid_long(plan.num_long, max_chunks);
-        if (use_vec4) {
-            zo_long_vec4_kernel<<<grid_long, kMediumThreads>>>(
-                d_rowptr, d_colind, d_vals, d_B, d_C,
-                plan.d_long_row_ids, plan.num_long, N);
-        } else {
-            zo_long_scalar_kernel<<<grid_long, kMediumThreads>>>(
-                d_rowptr, d_colind, d_vals, d_B, d_C,
-                plan.d_long_row_ids, plan.num_long, N);
         }
     }
 
     CUDA_CHECK_KERNEL();
-    // NO cudaDeviceSynchronize -- sync happens at Python boundary
+    // Execution remains asynchronous with respect to the host.
 }
 
 // ============================================================================
@@ -577,6 +540,7 @@ void free_ra_zero_overhead_plan(RAZeroOverheadPlan& plan) {
     plan.num_short  = 0;
     plan.num_medium = 0;
     plan.num_long   = 0;
+    plan.max_long_chunks = 0;
     plan.M = 0;
     plan.K = 0;
     plan.plan_bytes = 0;

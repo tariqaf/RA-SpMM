@@ -1,0 +1,11 @@
+{
+  "dataset": "gplus-combined",
+  "category": "Dense Large-Scale",
+  "synthetic": false,
+  "kernel": "RODE_ENHANCED",
+  "N": 512,
+  "gpu": 1,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "gplus-combined__RODE_ENHANCED__N512.ncu-rep",
+  "raw_csv": "gplus-combined__RODE_ENHANCED__N512.ncu.csv"
+}

@@ -69,5 +69,5 @@ PY
 
 echo ""
 echo "[fetch_datasets] Done. Next steps:"
-echo "  1) cd bindings && python setup.py install   # build CUDA kernels"
+echo "  1) python setup.py install                  # build CUDA kernels"
 echo "  2) python ra_router_parity_test.py          # expect 'PARITY OK 192/192'"

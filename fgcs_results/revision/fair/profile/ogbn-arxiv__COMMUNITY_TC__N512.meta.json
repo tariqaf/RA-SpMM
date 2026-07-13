@@ -1,0 +1,11 @@
+{
+  "dataset": "ogbn-arxiv",
+  "category": "Sparse Uniform",
+  "synthetic": false,
+  "kernel": "COMMUNITY_TC",
+  "N": 512,
+  "gpu": 1,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "ogbn-arxiv__COMMUNITY_TC__N512.ncu-rep",
+  "raw_csv": "ogbn-arxiv__COMMUNITY_TC__N512.ncu.csv"
+}

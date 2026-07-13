@@ -1,0 +1,11 @@
+{
+  "dataset": "CiteSeer",
+  "category": "Mixed/Irregular",
+  "synthetic": false,
+  "kernel": "ZERO_OVERHEAD_CSR",
+  "N": 128,
+  "gpu": 0,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "CiteSeer__ZERO_OVERHEAD_CSR__N128.ncu-rep",
+  "raw_csv": "CiteSeer__ZERO_OVERHEAD_CSR__N128.ncu.csv"
+}

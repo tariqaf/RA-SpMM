@@ -5,7 +5,7 @@
 //   - CSR_DIRECT          (csr/csr_direct.cu)        warp-per-row baseline
 //   - RODE_ENHANCED       (csr/ra_rode_enhanced.cu)  block-residual decomposition
 //   - ZERO_OVERHEAD_CSR   (csr/ra_zero_overhead.cu)  degree-binned dispatch
-//   - TC_DIRECT           (tc/ra_tc_direct.cu)       single-pass Tensor Core
+//   - TC_DIRECT           (tc/ra_tc_direct.cu)       tile-packed hybrid path
 //   - COMMUNITY_TC        (tc/ra_community_tc.cu)    label-prop clustering + TC
 //   - SEGMENT_HYBRID      (tc/ra_segment_hybrid.cu)  row-level TC/CUDA partition
 // Plus: CUSPARSE (vendor baseline, dispatched when no custom kernel dominates)
@@ -75,7 +75,7 @@ enum class NextPath : int {
     HYBRID_TC_CUDA  = 6,
     CUSPARSE        = 7,
 
-    // --- New regime-specific kernels ---
+    // --- Specialized kernels used by the router ---
     RODE_ENHANCED     = 8,   // R1: Hub-dominated power-law
     VECTORIZED_COARSE = 9,   // R2: Ordered sparse / road-network
     LOCALITY_TILED    = 10,  // R3: Reordered locality
@@ -267,7 +267,7 @@ struct TCFeatures {
     int   total_tiles_checked;
     int   tc_candidate_tiles;
 
-    // Extended tile statistics (Phase 2 additions)
+    // Tile-level structural statistics.
     float tile_fill_median;
     float tile_fill_p90;
     float tile_fill_max;
@@ -419,7 +419,7 @@ struct TCReorderedPlan {
     uint16_t* d_group_tile_vals = nullptr; // device: packed 16x16 half tiles (opaque bits)
     float* d_workspace_C    = nullptr;  // reusable reordered output workspace
     bool active             = false;
-    bool placeholder_quality = true;    // honest marker for intermediate TC path
+    bool conservative_precision_guard = true; // legacy path uses guarded FP32 fallback groups
     int  num_groups         = 0;
     int  num_fp32_groups    = 0;
     int  num_fp32_rows      = 0;
@@ -489,7 +489,7 @@ struct HybridPlan {
 };
 
 // ===========================================================================
-// Plan structs for new regime-specific kernels
+// Plan structs for specialized router kernels.
 // ===========================================================================
 
 // R6: Zero-overhead CSR for dense co-purchase / overhead-sensitive regime
@@ -503,6 +503,7 @@ struct RAZeroOverheadPlan {
     int  num_short  = 0;
     int  num_medium = 0;
     int  num_long   = 0;
+    int  max_long_chunks = 0;          // exact max ceil(long-row nnz / chunk size)
     int  M = 0, K = 0;
     size_t plan_bytes = 0;
 };

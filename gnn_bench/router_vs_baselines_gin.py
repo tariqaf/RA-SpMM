@@ -35,6 +35,7 @@ from gnn_bench.router_vs_baselines_gcn import (  # noqa: E402
     SparseMMFunction,
     add_speedups,
     load_csr,
+    validate_backend,
     write_csv,
 )
 
@@ -102,8 +103,6 @@ def benchmark_dataset(
         raise FileNotFoundError(f"Dataset NPZ not found: {npz_path}")
     csr = load_csr(npz_path)
     num_nodes = int(csr.shape[0])
-    graph = GraphBackend(csr, device)
-
     torch.manual_seed(seed)
     X = torch.randn((num_nodes, spec.in_dim), device=device, dtype=torch.float32)
     y = torch.randint(0, spec.out_dim, (num_nodes,), device=device, dtype=torch.long)
@@ -118,8 +117,18 @@ def benchmark_dataset(
                 continue
 
         torch.manual_seed(seed)
+        graph = GraphBackend(csr, device)
         model = GINBench(spec.in_dim, spec.hidden_dim, spec.out_dim).to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+        torch.cuda.synchronize()
+        setup_start = time.perf_counter()
+        for transpose in (False, True):
+            graph._get_executor(backend, transpose, spec.in_dim)
+            graph._get_executor(backend, transpose, spec.hidden_dim)
+        torch.cuda.synchronize()
+        preprocess_sec = time.perf_counter() - setup_start
+        cold_exec_sec = measure_step(model, graph, backend, X, y, optimizer)
 
         for _ in range(warmup_steps):
             _ = measure_step(model, graph, backend, X, y, optimizer)
@@ -131,14 +140,16 @@ def benchmark_dataset(
         router_paths: Dict[str, str] = {}
         if backend == "router":
             for tag, ncols in (
+                ("forward_in", spec.in_dim),
+                ("backward_in", spec.in_dim),
                 ("forward_hidden", spec.hidden_dim),
                 ("backward_hidden", spec.hidden_dim),
-                ("forward_out",   spec.out_dim),
-                ("backward_out",  spec.out_dim),
             ):
                 transpose = tag.startswith("backward")
                 plan = graph.get_router_plan(transpose, ncols)
                 router_paths[tag] = str(plan["chosen_path"])
+        validation = validate_backend(
+            csr, device, backend, (spec.in_dim, spec.hidden_dim), seed)
 
         results.append({
             "dataset":              spec.name,
@@ -151,13 +162,18 @@ def benchmark_dataset(
             "warmup_steps":         warmup_steps,
             "timed_steps":          timed_steps,
             "mean_step_sec":        float(np.mean(times)),
+            "ms_warm":              float(np.mean(times)) * 1e3,
+            "preprocess_ms":        preprocess_sec * 1e3,
+            "cold_exec_ms":         cold_exec_sec * 1e3,
+            "ms_cold":              (preprocess_sec + cold_exec_sec) * 1e3,
             "std_step_sec":         float(np.std(times)),
             "min_step_sec":         float(np.min(times)),
             "max_step_sec":         float(np.max(times)),
-            "router_forward_hidden":  router_paths.get("forward_hidden", ""),
-            "router_backward_hidden": router_paths.get("backward_hidden", ""),
-            "router_forward_out":     router_paths.get("forward_out", ""),
-            "router_backward_out":    router_paths.get("backward_out", ""),
+            "router_forward_in":       router_paths.get("forward_in", ""),
+            "router_backward_in":      router_paths.get("backward_in", ""),
+            "router_forward_hidden":   router_paths.get("forward_hidden", ""),
+            "router_backward_hidden":  router_paths.get("backward_hidden", ""),
+            **validation,
         })
     return results
 
@@ -170,8 +186,8 @@ def main() -> None:
     parser.add_argument("--datasets_dir", default=str(REPO_ROOT / "datasets" / "gnn" / "exports"))
     parser.add_argument("--backends", default=",".join(ALL_BACKENDS))
     parser.add_argument("--results_dir", default="results_gnn_extended")
-    parser.add_argument("--warmup_steps", type=int, default=20)
-    parser.add_argument("--timed_steps", type=int, default=100)
+    parser.add_argument("--warmup_steps", type=int, default=50)
+    parser.add_argument("--timed_steps", type=int, default=200)
     parser.add_argument("--seed", type=int, default=123)
     parser.add_argument("--lr", type=float, default=1e-2)
     args = parser.parse_args()

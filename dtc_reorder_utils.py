@@ -19,12 +19,13 @@ import torch
 
 
 REPO_ROOT = Path(__file__).resolve().parent
-REORDER_SCRIPT = REPO_ROOT / "external" / "DTC-SpMM-ASPLOS24-upstream" / "reordering" / "TCA_reorder.py"
+REORDER_SCRIPT = REPO_ROOT / "external" / "DTC-SpMM_ASPLOS24" / "reordering" / "TCA_reorder.py"
 REORDER_METHOD = "DTC_TCA_REORDER"
+IDENTITY_METHOD = "DTC_IDENTITY_ORDER"
 REORDER_METHOD_NOTE = (
     "Reordering uses DTC's custom TCA reordering tool "
     "(MinHash-LSH/Jaccard clustering followed by cache-aware cluster ordering) "
-    "from external/DTC-SpMM-ASPLOS24-upstream/reordering/TCA_reorder.py."
+    "from external/DTC-SpMM_ASPLOS24/reordering/TCA_reorder.py."
 )
 DEFAULT_CACHE_DIR = REPO_ROOT / "cache" / "dtc_reordered"
 
@@ -51,18 +52,18 @@ def csr_to_src_dst(rowptr: torch.Tensor, colind: torch.Tensor) -> Tuple[np.ndarr
     return src, colind_np
 
 
-def _cache_key(data: Dict[str, object], threshold: int) -> str:
+def _cache_key(data: Dict[str, object], threshold: int, method: str = REORDER_METHOD) -> str:
     h = hashlib.sha256()
     h.update(data["rowptr"].cpu().numpy().astype(np.int32, copy=False).tobytes())
     h.update(data["colind"].cpu().numpy().astype(np.int32, copy=False).tobytes())
-    h.update(REORDER_METHOD.encode("utf-8"))
+    h.update(method.encode("utf-8"))
     h.update(str(int(threshold)).encode("utf-8"))
     return h.hexdigest()
 
 
-def _cache_paths(cache_dir: str, key: str) -> Dict[str, str]:
+def _cache_paths(cache_dir: str, key: str, method: str = REORDER_METHOD) -> Dict[str, str]:
     os.makedirs(cache_dir, exist_ok=True)
-    stem = os.path.join(cache_dir, f"{key}_{REORDER_METHOD.lower()}")
+    stem = os.path.join(cache_dir, f"{key}_{method.lower()}")
     return {
         "input_npz": stem + ".input.npz",
         "output_npz": stem + ".reorder.npz",
@@ -122,15 +123,24 @@ def reorder_once(
     cache_dir: str | None = None,
     python_exe: str | None = None,
     timeout_s: Optional[int] = None,
+    method: str = REORDER_METHOD,
 ) -> Dict[str, object]:
+    if method == IDENTITY_METHOD:
+        return identity_order_once(entry, data, threshold, cache_dir)
+    if method != REORDER_METHOD:
+        raise ValueError(f"unknown DTC reorder method: {method}")
     if not REORDER_SCRIPT.exists():
         raise FileNotFoundError(f"reorder_script_missing: {REORDER_SCRIPT}")
+    if "--input_npz" not in REORDER_SCRIPT.read_text():
+        raise RuntimeError(
+            "upstream_tca_adapter_missing: the public script uses author-local paths "
+            "and does not expose --input_npz/--output_npz")
 
     python_exe = python_exe or sys.executable
     cache_dir = str(cache_dir or DEFAULT_CACHE_DIR)
     dataset = str(entry.get("name", "graph"))
-    key = _cache_key(data, threshold)
-    paths = _cache_paths(cache_dir, key)
+    key = _cache_key(data, threshold, method)
+    paths = _cache_paths(cache_dir, key, method)
     version = reorder_version()
 
     meta = load_cache_metadata(paths["meta_json"])
@@ -201,4 +211,42 @@ def reorder_once(
         "cache_hit": False,
         "M": int(reordered["M"]),
         "nnz": int(reordered["nnz"]),
+    }
+
+
+def identity_order_once(entry: Dict[str, object], data: Dict[str, object],
+                        threshold: int, cache_dir: str | None = None) -> Dict[str, object]:
+    """Persist the original CSR ordering for a reproducible DTC kernel baseline."""
+    cache_dir = str(cache_dir or DEFAULT_CACHE_DIR)
+    key = _cache_key(data, threshold, IDENTITY_METHOD)
+    paths = _cache_paths(cache_dir, key, IDENTITY_METHOD)
+    meta = load_cache_metadata(paths["meta_json"])
+    if meta and os.path.exists(paths["output_npz"]) and os.path.exists(paths["output_perm_npz"]):
+        return {
+            "reordered_npz": paths["output_npz"],
+            "reorder_perm_npz": paths["output_perm_npz"],
+            "reorder_ms": float(meta["reorder_ms"]),
+            "reorder_method": IDENTITY_METHOD,
+            "reorder_version": "identity-v1", "cache_key": key, "cache_hit": True,
+            "M": int(data["M"]), "nnz": int(data["colind"].numel()),
+        }
+    start = time.perf_counter()
+    save_input_npz(paths["output_npz"], data)
+    np.savez(paths["output_perm_npz"], reorder_id=np.arange(int(data["M"]), dtype=np.int64))
+    _serialization_ms = (time.perf_counter() - start) * 1000.0
+    elapsed_ms = 0.0
+    payload = {
+        "dataset": str(entry.get("name", "graph")), "reorder_method": IDENTITY_METHOD,
+        "reorder_version": "identity-v1", "reorder_threshold": int(threshold),
+        "reorder_ms": elapsed_ms, "M": int(data["M"]),
+        "nnz": int(data["colind"].numel()), "cache_key": key,
+        "cache_serialization_ms_not_in_lifecycle": _serialization_ms,
+    }
+    save_cache_metadata(paths["meta_json"], payload)
+    return {
+        "reordered_npz": paths["output_npz"],
+        "reorder_perm_npz": paths["output_perm_npz"],
+        "reorder_ms": elapsed_ms, "reorder_method": IDENTITY_METHOD,
+        "reorder_version": "identity-v1", "cache_key": key, "cache_hit": False,
+        "M": int(data["M"]), "nnz": int(data["colind"].numel()),
     }

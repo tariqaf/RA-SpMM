@@ -1,0 +1,11 @@
+{
+  "dataset": "amazon-computers",
+  "category": "Dense Small",
+  "synthetic": false,
+  "kernel": "CSR_DIRECT",
+  "N": 512,
+  "gpu": 1,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "amazon-computers__CSR_DIRECT__N512.ncu-rep",
+  "raw_csv": "amazon-computers__CSR_DIRECT__N512.ncu.csv"
+}

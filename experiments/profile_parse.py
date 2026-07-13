@@ -1,186 +1,174 @@
-"""
-Rebuilds PROFILE_SUMMARY.md and profile_summary.csv from existing .ncu-rep files
-(no GPU, no re-profiling). Reads each report twice:
-  - `--page details` : clean section metrics (Achieved Occupancy, DRAM Throughput %,
-                       Compute (SM) %, Memory %, Memory Throughput GB/s, Duration).
-  - `--page raw`     : TC pipe util (hmma), warp-stall ratios, derived FLOP counter
-                       (2xFFMA) and DRAM bytes -> arithmetic intensity + achieved GFLOP/s.
-Primary kernel per pair = the longest-duration SpMM launch (fill/elementwise excluded).
-Covers the five metric families:
-  (i) TC pipe  (ii) occupancy  (iii) DRAM  (iv) roofline (AI + achieved GFLOP/s)  (v) stalls
-"""
+"""Parse Nsight Compute raw exports without inferring FLOP/s from SM%."""
+
 from __future__ import annotations
-import csv, io, subprocess, math
+
+import argparse
+import csv
+import json
+import math
 from pathlib import Path
 
-R = Path(__file__).resolve().parent.parent
-PROF = R / "fgcs_results/revision/profile"
-NCU = "ncu"
-PEAK_DRAM_GBs = 936.0  # RTX 3090 peak DRAM BW
-
-PAIRS = [
-    ("a_TC_DIRECT_amazon-photo_N128", "TC_DIRECT", "amazon-photo", 128),
-    ("b_COMMUNITY_TC_com-DBLP_N128", "COMMUNITY_TC", "com-DBLP", 128),
-    ("c_SEGMENT_HYBRID_amazon-computers_N128", "SEGMENT_HYBRID", "amazon-computers", 128),
-    ("d1_cuSPARSE_amazon-photo_N128", "cuSPARSE", "amazon-photo", 128),
-    ("d2_cuSPARSE_com-DBLP_N128", "cuSPARSE", "com-DBLP", 128),
-    ("d3_cuSPARSE_amazon-computers_N128", "cuSPARSE", "amazon-computers", 128),
-    ("e_RODE_ENHANCED_soc-Pokec_N256", "RODE_ENHANCED", "soc-Pokec", 256),
-]
-
-EXCLUDE = ("FillFunctor", "vectorized_elementwise", "DeviceRadix", "DeviceScan",
-           "DeviceReduce", "at::native::elementwise", "distribution_")
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_PROFILE_DIR = REPO_ROOT / "fgcs_results" / "revision" / "fair" / "profile"
+FP32_PEAK_GFLOPS_RTX3090 = 35_580.0
+STALL_PREFIX = "smsp__average_warps_issue_stalled_"
+STALL_SUFFIX = "_per_issue_active.ratio"
+EXCLUDED_KERNEL_FRAGMENTS = (
+    "FillFunctor", "vectorized_elementwise", "DeviceRadix", "DeviceScan",
+    "DeviceReduce", "distribution_", "elementwise_kernel",
+)
 
 
-def imp(rep, page):
-    r = subprocess.run([NCU, "--import", str(rep), "--csv", "--page", page],
-                       capture_output=True, text=True)
-    return r.stdout if r.returncode == 0 else ""
-
-
-def parse_details(text):
-    """Return {kernel_id: {"name":.., "Section|Metric": value_float_or_str}}."""
-    rows = list(csv.reader(io.StringIO(text)))
-    if not rows:
-        return {}
-    hdr = rows[0]
-    idx = {h: i for i, h in enumerate(hdr)}
-    kid_i = idx.get("ID"); name_i = idx.get("Kernel Name")
-    sec_i = idx.get("Section Name"); mn_i = idx.get("Metric Name")
-    mv_i = idx.get("Metric Value")
-    out = {}
-    for row in rows[1:]:
-        if len(row) <= max(filter(None, [kid_i, name_i, sec_i, mn_i, mv_i])):
+def number(row: dict[str, str], units: dict[str, str], *names: str) -> float:
+    for name in names:
+        value = row.get(name, "")
+        if value in ("", None, "N/A", "nan", "no data"):
             continue
-        kid = row[kid_i]
-        d = out.setdefault(kid, {"name": row[name_i]})
-        key = f"{row[sec_i]}|{row[mn_i]}"
-        val = row[mv_i].replace(",", "")
         try:
-            d[key] = float(val)
+            parsed = float(str(value).replace(",", ""))
+            unit = units.get(name, "")
+            if unit == "Kbyte":
+                parsed *= 1e3
+            elif unit == "Mbyte":
+                parsed *= 1e6
+            elif unit == "Gbyte":
+                parsed *= 1e9
+            return parsed
         except ValueError:
-            d[key] = val
-    return out
-
-
-def parse_raw(text):
-    rows = list(csv.reader(io.StringIO(text)))
-    if not rows:
-        return {}
-    hdr = rows[0]
-    idx = {h: i for i, h in enumerate(hdr)}
-    out = {}
-    for row in rows[1:]:
-        if not row or len(row) < len(hdr):
             continue
-        kid = row[idx["ID"]]
-        d = {"name": row[idx.get("Kernel Name", 6)]}
-        for h, i in idx.items():
-            d[h] = row[i]
-        out[kid] = d
-    return out
+    return 0.0
 
 
-def _f(d, k, default=0.0):
-    v = d.get(k, default)
-    try:
-        return float(str(v).replace(",", ""))
-    except (ValueError, TypeError):
-        return default
+def parse_launch(row: dict[str, str], units: dict[str, str],
+                 meta: dict[str, object]) -> dict[str, object]:
+    duration_value = number(row, units, "gpu__time_duration.sum")
+    duration_unit = units.get("gpu__time_duration.sum", "usecond")
+    if duration_unit == "nsecond":
+        duration_us = duration_value / 1e3
+    elif duration_unit == "msecond":
+        duration_us = duration_value * 1e3
+    elif duration_unit == "second":
+        duration_us = duration_value * 1e6
+    else:
+        duration_us = duration_value
+    dram_bytes = number(row, units, "dram__bytes.sum")
+    if dram_bytes == 0.0:
+        dram_bytes = (number(row, units, "dram__bytes_read.sum") +
+                      number(row, units, "dram__bytes_write.sum"))
 
+    ffma = number(row, units, "sm__sass_thread_inst_executed_op_ffma_pred_on.sum")
+    fadd = number(row, units, "sm__sass_thread_inst_executed_op_fadd_pred_on.sum")
+    fmul = number(row, units, "sm__sass_thread_inst_executed_op_fmul_pred_on.sum")
+    hfma = number(row, units, "sm__sass_thread_inst_executed_op_hfma_pred_on.sum")
+    hadd = number(row, units, "sm__sass_thread_inst_executed_op_hadd_pred_on.sum")
+    hmul = number(row, units, "sm__sass_thread_inst_executed_op_hmul_pred_on.sum")
+    cuda_flops = 2.0 * (ffma + hfma) + fadd + fmul + hadd + hmul
+    hmma_insts = number(row, units, "sm__inst_executed_pipe_tensor_op_hmma.sum")
+    achieved_gflops = cuda_flops / duration_us / 1e3 if duration_us > 0.0 else 0.0
+    arithmetic_intensity = cuda_flops / dram_bytes if dram_bytes > 0.0 else 0.0
 
-def summarize_pair(label, kernel, dataset, N):
-    rep = PROF / f"{label}.ncu-rep"
-    if not rep.exists():
-        return None
-    det = parse_details(imp(rep, "details"))
-    raw = parse_raw(imp(rep, "raw"))
-    # choose primary: longest Duration among non-excluded kernels
-    cand = []
-    for kid, d in det.items():
-        name = d.get("name", "")
-        if any(x in name for x in EXCLUDE):
-            continue
-        dur = d.get("GPU Speed Of Light Throughput|Duration", 0.0)
-        cand.append((dur if isinstance(dur, float) else 0.0, kid, name))
-    if not cand:
-        return None
-    cand.sort(reverse=True)
-    _, kid, name = cand[0]
-    d = det[kid]
-    rw = raw.get(kid, {})
-
-    occ = d.get("Occupancy|Achieved Occupancy", 0.0)
-    dram_pct = d.get("GPU Speed Of Light Throughput|DRAM Throughput", 0.0)
-    sm_pct = d.get("GPU Speed Of Light Throughput|Compute (SM) [%]", 0.0)
-    mem_pct = d.get("GPU Speed Of Light Throughput|Memory [%]", 0.0)
-    mem_gbs = d.get("Memory Workload Analysis|Memory Throughput", 0.0)
-    dur_us = d.get("GPU Speed Of Light Throughput|Duration", 0.0)
-    tc_pct = _f(rw, "sm__pipe_tensor_op_hmma_cycles_active.avg.pct_of_peak_sustained_active")
-
-    # Roofline coordinates from RELIABLE SOL metrics: Compute(SM)% IS achieved/peak
-    # compute throughput; Memory GB/s is achieved DRAM bandwidth. The precise
-    # arithmetic intensity + achieved FLOP-rate live in the .ncu-rep roofline chart.
-    PEAK_FP32_TFLOPs = 35.6  # RTX 3090 peak FP32 FMA
-    achieved_tflops = sm_pct / 100.0 * PEAK_FP32_TFLOPs
-    ai = (achieved_tflops * 1e3 / mem_gbs) if mem_gbs > 0 else 0.0  # FLOP/byte estimate
-
-    # warp stalls (top-2) from raw ratios
-    stalls = []
-    for k, v in rw.items():
-        if k.startswith("smsp__average_warps_issue_stalled_") and k.endswith("_per_issue_active.ratio"):
-            nm = k[len("smsp__average_warps_issue_stalled_"):-len("_per_issue_active.ratio")]
-            stalls.append((nm, _f(rw, k)))
-    stalls.sort(key=lambda x: -x[1])
-    top2 = stalls[:2]
-
-    return {
-        "dataset": dataset, "kernel": kernel, "N": N,
-        "profiled_kernel": name.split("(")[0][:46],
-        "TC_pipe_pct": round(tc_pct, 2), "occupancy_pct": round(occ, 2),
-        "DRAM_pct": round(dram_pct, 2), "mem_GBs": round(mem_gbs, 1),
-        "SM_compute_pct": round(sm_pct, 2), "mem_workload_pct": round(mem_pct, 2),
-        "achieved_TFLOPs_est": round(sm_pct / 100.0 * 35.6, 3), "AI_flop_per_byte_est": round(ai, 3),
-        "dur_us": round(dur_us, 3),
-        "top_stall_1": f"{top2[0][0]}={top2[0][1]:.2f}" if top2 else "",
-        "top_stall_2": f"{top2[1][0]}={top2[1][1]:.2f}" if len(top2) > 1 else "",
+    parsed: dict[str, object] = {
+        **meta,
+        "launch_id": row.get("ID", ""),
+        "profiled_kernel": row.get("Kernel Name", ""),
+        "duration_us": duration_us,
+        "tc_pipe_pct": number(
+            row, units, "sm__pipe_tensor_op_hmma_cycles_active.avg.pct_of_peak_sustained_active"),
+        "achieved_occupancy_pct": number(
+            row, units, "sm__warps_active.avg.pct_of_peak_sustained_active"),
+        "dram_throughput_pct": number(
+            row, units, "dram__throughput.avg.pct_of_peak_sustained_elapsed",
+            "gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed"),
+        "sm_throughput_pct": number(
+            row, units, "sm__throughput.avg.pct_of_peak_sustained_elapsed"),
+        "mem_workload_pct": number(
+            row, units, "gpu__compute_memory_throughput.avg.pct_of_peak_sustained_elapsed"),
+        "dram_bytes": dram_bytes,
+        "cuda_core_flops": cuda_flops,
+        "cuda_core_achieved_gflops": achieved_gflops,
+        "cuda_core_pct_fp32_peak": achieved_gflops / FP32_PEAK_GFLOPS_RTX3090 * 100.0,
+        "cuda_core_ai_flop_per_byte": arithmetic_intensity,
+        "hmma_insts": int(hmma_insts),
+        "flop_rate_scope": "CUDA-core counters; HMMA reported separately",
     }
+    for metric, value in row.items():
+        if metric.startswith(STALL_PREFIX) and metric.endswith(STALL_SUFFIX):
+            reason = metric[len(STALL_PREFIX):-len(STALL_SUFFIX)]
+            parsed[f"stall_{reason}"] = number(row, units, metric)
+    return parsed
 
 
-def main():
-    rows = [summarize_pair(*p) for p in PAIRS]
-    rows = [r for r in rows if r]
-    cols = ["dataset", "kernel", "N", "profiled_kernel", "TC_pipe_pct", "occupancy_pct",
-            "DRAM_pct", "mem_GBs", "SM_compute_pct", "mem_workload_pct",
-            "achieved_TFLOPs_est", "AI_flop_per_byte_est", "dur_us", "top_stall_1", "top_stall_2"]
-    with open(PROF / "profile_summary.csv", "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=cols); w.writeheader(); w.writerows(rows)
+def write_rows(path: Path, rows: list[dict[str, object]], columns: list[str]) -> None:
+    with path.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=columns, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
 
-    md = ["# Nsight Compute Profiling Summary (RTX 3090, SM 86)\n\n",
-          "Five metric families per (kernel, graph, N). Full `.ncu-rep` reports (with the "
-          "interactive roofline chart) are alongside for the UI. Primary kernel = the "
-          "longest-duration SpMM launch inside the `SPMM_PROFILE` NVTX range.\n\n",
-          "| dataset | kernel | N | profiled kernel | TC pipe % | occ % | DRAM % | mem GB/s | SM(compute) % | achieved TFLOP/s* | AI FLOP/B* | dur µs | top stall | 2nd stall |\n",
-          "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n"]
-    for r in rows:
-        md.append("| " + " | ".join(str(r[c]) for c in cols) + " |\n")
-    md.append("\n**Why our kernels win (from these counters):**\n")
-    md.append("- The RA-SpMM kernels (`ra_tc_direct_fp32_kernel_vec4`, `community_tc`, "
-              "`segment_hybrid`, `rode_*`) show **TC pipe ≈ 0%** — they are vectorised **FP32 "
-              "CUDA-core** kernels, not tensor-core kernels. Their advantage is high achieved "
-              "**occupancy** and low memory pressure, not HMMA throughput.\n")
-    md.append("- Versus cuSPARSE on the same graphs, our kernels sit at **lower DRAM throughput %** "
-              "for the same work (better reuse / coalescing) and are **long-scoreboard (memory-latency) "
-              "bound** rather than throughput-saturated — the headroom our regime-specific tiling exploits.\n")
-    md.append("- `SM(compute) %` is the achieved/peak FP32 throughput; `achieved TFLOP/s*` and "
-              "`AI FLOP/B*` are estimates derived from it and Memory GB/s (peak FP32 = 35.6 TFLOP/s "
-              "on the 3090). The **exact** arithmetic-intensity + achieved/peak FLOP-rate per pair "
-              "are in each `.ncu-rep` (ncu-ui → GPU Speed Of Light Roofline Chart).\n")
-    (PROF / "PROFILE_SUMMARY.md").write_text("".join(md))
-    print(f"Reparsed {len(rows)} pairs -> PROFILE_SUMMARY.md + profile_summary.csv")
-    for r in rows:
-        print(f"  {r['dataset']:<18s} {r['kernel']:<14s} occ={r['occupancy_pct']}% DRAM={r['DRAM_pct']}% "
-              f"SM={r['SM_compute_pct']}% memBW={r['mem_GBs']}GB/s TFLOP/s*={r['achieved_TFLOPs_est']} stall={r['top_stall_1']}")
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--profile-dir", default=str(DEFAULT_PROFILE_DIR))
+    args = parser.parse_args()
+    profile_dir = Path(args.profile_dir)
+
+    summary: list[dict[str, object]] = []
+    all_stall_columns: set[str] = set()
+    parsed_by_pair: list[tuple[Path, list[dict[str, object]]]] = []
+    for meta_path in sorted(profile_dir.glob("*.meta.json")):
+        meta = json.loads(meta_path.read_text())
+        raw_path = profile_dir / str(meta["raw_csv"])
+        if not raw_path.exists():
+            continue
+        with raw_path.open(newline="") as handle:
+            raw_rows = list(csv.DictReader(handle))
+        units = raw_rows[0] if raw_rows and not raw_rows[0].get("ID") else {}
+        launches = [parse_launch(row, units, meta) for row in raw_rows
+                    if row.get("Kernel Name") and
+                    not any(fragment in row["Kernel Name"] for fragment in EXCLUDED_KERNEL_FRAGMENTS)]
+        if not launches:
+            continue
+        primary = max(launches, key=lambda launch: float(launch["duration_us"]))
+        for launch in launches:
+            launch["is_primary"] = launch is primary
+            all_stall_columns.update(key for key in launch if key.startswith("stall_"))
+        summary.append(primary)
+        parsed_by_pair.append((meta_path.with_suffix("").with_suffix(".metrics.csv"), launches))
+
+    base_columns = [
+        "dataset", "category", "synthetic", "kernel", "N", "gpu",
+        "timing_regime", "launch_id", "is_primary", "profiled_kernel",
+        "duration_us", "tc_pipe_pct", "achieved_occupancy_pct",
+        "dram_throughput_pct", "sm_throughput_pct", "mem_workload_pct",
+        "dram_bytes", "cuda_core_flops", "cuda_core_achieved_gflops",
+        "cuda_core_pct_fp32_peak", "cuda_core_ai_flop_per_byte", "hmma_insts",
+        "flop_rate_scope",
+    ]
+    stall_columns = sorted(all_stall_columns)
+    columns = base_columns + stall_columns
+    for path, rows in parsed_by_pair:
+        write_rows(path, rows, columns)
+    if summary:
+        write_rows(profile_dir / "profile_summary.csv", summary, columns)
+
+    md_columns = [
+        "dataset", "kernel", "N", "profiled_kernel", "tc_pipe_pct",
+        "achieved_occupancy_pct", "dram_throughput_pct", "mem_workload_pct",
+        "cuda_core_achieved_gflops", "cuda_core_pct_fp32_peak",
+        "cuda_core_ai_flop_per_byte", "hmma_insts",
+    ]
+    lines = [
+        "# Nsight Compute Profiling Summary\n\n",
+        "Warm execute-only launches; plans are built before the profiled NVTX range. ",
+        "CUDA-core FLOP/s is derived from Nsight executed FP instruction counters and kernel duration, ",
+        "not from aggregate SM utilization. HMMA instructions and tensor-pipe utilization are reported separately.\n\n",
+        "| " + " | ".join(md_columns) + " |\n",
+        "|" + "|".join(["---"] * len(md_columns)) + "|\n",
+    ]
+    for row in summary:
+        lines.append("| " + " | ".join(str(row.get(column, "")) for column in md_columns) + " |\n")
+    lines.append("\nThe machine-readable summary and per-pair CSV files contain every emitted column, including the full warp-stall breakdown.\n")
+    (profile_dir / "PROFILE_SUMMARY.md").write_text("".join(lines))
+    print(f"Parsed {len(summary)} profile pairs in {profile_dir}")
 
 
 if __name__ == "__main__":

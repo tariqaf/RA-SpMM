@@ -113,7 +113,9 @@ def run_kernel(name, rowptr, colind, vals, B, cache, key):
     if name == "CSR_DIRECT":
         return ra_spmm.spmm_csr_direct(rowptr, colind, vals, B)
     elif name == "CUSPARSE":
-        return ra_spmm.spmm_cusparse(rowptr, colind, vals, B)
+        if key not in cache:
+            cache[key] = ra_spmm.make_cusparse_plan(rowptr, colind, vals, B)
+        return ra_spmm.run_cusparse_plan(cache[key], B)
     elif name == "RODE_ENHANCED":
         if key not in cache:
             cache[key] = ra_spmm.make_rode_enhanced_plan(rowptr.cpu(), M, M)

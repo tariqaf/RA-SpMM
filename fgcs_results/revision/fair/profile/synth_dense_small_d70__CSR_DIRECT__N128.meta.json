@@ -1,0 +1,11 @@
+{
+  "dataset": "synth_dense_small_d70",
+  "category": "Dense Small",
+  "synthetic": true,
+  "kernel": "CSR_DIRECT",
+  "N": 128,
+  "gpu": 0,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "synth_dense_small_d70__CSR_DIRECT__N128.ncu-rep",
+  "raw_csv": "synth_dense_small_d70__CSR_DIRECT__N128.ncu.csv"
+}

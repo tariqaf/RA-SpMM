@@ -1,0 +1,92 @@
+--- a/mpspmm/SpMM/spmm_sp_new.cu
++++ b/mpspmm/SpMM/spmm_sp_new.cu
+@@ -10,6 +10,7 @@
+ #include <vector>
+ #include <algorithm>
+ #include <map>
++#include <chrono>
+ #include "data_reader.h"
+ #include "config.h"
+ #include "kernels.cu"
+@@ -143,10 +144,14 @@
+   cudaDeviceReset();
+   cudaSetDevice(DEV_ID);
+ 
+-  if (argc != 3) {
+-      std::cerr << "Usage: " << argv[0] << " <data_bin>" << std::endl;
++  if (argc < 3 || argc > 5) {
++      std::cerr << "Usage: " << argv[0]
++                << " <data_bin> <N> [warmup=50] [timed=200]" << std::endl;
+       return 1;
+   }
++  const size_t warmup = argc >= 4 ? std::stoul(argv[3]) : 50;
++  const size_t timed = argc >= 5 ? std::stoul(argv[4]) : 200;
++  auto setup_start = std::chrono::steady_clock::now();
+   std::string data_bin = argv[1];
+   int N = std::stoi(argv[2]);
+   std::vector<int> tcblocks_offset;
+@@ -209,7 +214,6 @@
+   }
+ 
+ 
+-  size_t iter = 50;
+   half *CPU_B;
+   float *CPU_C, *GPU_to_CPU_C;
+ 
+@@ -274,8 +278,26 @@
+   dim3 block_uint64(WARP_SIZE, warpCount / 4, 1);
+ 
+   double gflops = 0;
++  cudaDeviceSynchronize();
++  const double setup_ms = std::chrono::duration<double, std::milli>(
++      std::chrono::steady_clock::now() - setup_start).count();
++
++  // The first execution is timed separately for setup-inclusive cold results.
++  cudaEventRecord(start);
++  if (N == 32) {
++    cudaFuncSetAttribute(sparse_mma_kernel_base_Bhalf2_Cfloat4, cudaFuncAttributePreferredSharedMemoryCarveout, 0);
++    sparse_mma_kernel_base_Bhalf2_Cfloat4<<<grid, block_half2>>>(M, N, K, GPU_opd_A, GPU_metadata, GPU_tcblocks_offset, GPU_old_col_all, GPU_B, GPU_C);
++  } else if (N == 128) {
++    cudaFuncSetAttribute(sparse_mma_kernel_base_Buint64_Cfloat4, cudaFuncAttributePreferredSharedMemoryCarveout, 0);
++    sparse_mma_kernel_base_Buint64_Cfloat4<<<grid, block_uint64>>>(M, N, K, GPU_opd_A, GPU_metadata, GPU_tcblocks_offset, GPU_old_col_all, GPU_B, GPU_C);
++  }
++  cudaEventRecord(end);
++  cudaEventSynchronize(end);
++  float first_ms = 0.0f;
++  cudaEventElapsedTime(&first_ms, start, end);
++
+   // Pre-run to warm up
+-  for (size_t i = 0; i < iter; i++) {
++  for (size_t i = 0; i < warmup; i++) {
+     if (N == 32) {
+       cudaFuncSetAttribute(sparse_mma_kernel_base_Bhalf2_Cfloat4, cudaFuncAttributePreferredSharedMemoryCarveout, 0);
+       sparse_mma_kernel_base_Bhalf2_Cfloat4<<<grid, block_half2>>>(M, N, K, GPU_opd_A, GPU_metadata, GPU_tcblocks_offset, GPU_old_col_all, GPU_B, GPU_C);
+@@ -287,7 +309,7 @@
+ 
+   // Record execution time
+   cudaEventRecord(start);
+-  for (size_t i = 0; i < iter; i++) {
++  for (size_t i = 0; i < timed; i++) {
+     if (N == 32) {
+       sparse_mma_kernel_base_Bhalf2_Cfloat4<<<grid, block_half2>>>(M, N, K, GPU_opd_A, GPU_metadata, GPU_tcblocks_offset, GPU_old_col_all, GPU_B, GPU_C);
+     } else if (N == 128) {
+@@ -299,8 +321,9 @@
+   cudaEventElapsedTime(&milliseconds, start, end);
+ 
+   // Calculate and print performance
+-  gflops = ((double)iter * 2 * (double)opdA_half.size() * N) / (milliseconds * 1e6);
+-  printf("%.5fms,%f\n", milliseconds / iter, gflops);
++  gflops = ((double)timed * 2 * (double)opdA_half.size() * N) / (milliseconds * 1e6);
++  printf("warm_ms=%.6f,setup_ms=%.6f,first_exec_ms=%.6f,gflops=%.6f\n",
++         milliseconds / timed, setup_ms, first_ms, gflops);
+ 
+   cudaMemcpy(GPU_to_CPU_C, GPU_C, M * N * sizeof(float), cudaMemcpyDeviceToHost);
+   
+@@ -318,4 +341,4 @@
+   cudaFree(GPU_old_col_all);
+ 
+    return 0;
+-}
+\ No newline at end of file
++}
+

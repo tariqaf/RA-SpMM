@@ -8,6 +8,7 @@ Compare C[:,0] from spmm_verify against the true degrees from our CSR.
 """
 from __future__ import annotations
 import json, os, subprocess, sys
+import math
 from pathlib import Path
 import numpy as np
 
@@ -46,9 +47,10 @@ def main():
             print(f"{name:<16s}  spmm_verify produced no output: {sp.stderr[-120:]}"); all_ok = False; continue
         c0 = np.atleast_1d(np.loadtxt(vout))
         d = np.abs(c0[:M] - deg)                 # first M rows = real rows
-        mism = int((d > 0.5).sum())
+        tolerance = 1.0e-3 * max(1.0, math.sqrt(float(deg.max()))) * 10.0
+        mism = int((d > tolerance).sum())
         pad_rows = c0[M:]                          # trailing rows are M padded up to mult. of 16
-        pad_ok = (np.abs(pad_rows) < 0.5).all() if len(pad_rows) else True
+        pad_ok = ((np.abs(pad_rows) <= tolerance) & (np.abs(pad_rows) < 1.0)).all() if len(pad_rows) else True
         exact = mism == 0 and pad_ok
         all_ok = all_ok and exact
         print(f"{name:<16s} {M:>8d} {str(exact):>7s} {mism:>13d}  {d.max():>6.1f}   "

@@ -6,10 +6,10 @@
 //      N-strips per pass).
 //   2. No intermediate C_tile_all shared buffer -- store c_frag to smem per-warp
 //      then scatter directly to C_out via perm_inv.
-//   3. Relaxed FP32 thresholds so more groups go through the TC path.
+//   3. Per-group WMMA eligibility with an FP32 fallback for unsuitable tiles.
 //   4. Up to 16 warps per CTA (512 threads) to cover more N-strips per pass.
 //
-// Target: Ampere SM_86 (RTX 3090, RTX A6000), CUDA 12.x.
+// Target: Ampere SM_86; the toolkit must match the PyTorch extension build.
 // ============================================================================
 #include "../ra_common.h"
 
@@ -38,9 +38,8 @@ constexpr int kSignatureBuckets   = 64;
 constexpr int kTileElems          = 16 * 16;   // 256 halfs per packed tile
 constexpr int kMaxWarpsPerCta     = 16;        // 16 warps per CTA (512 threads)
 
-// Relaxed FP32 thresholds — send more groups to TC path for maximum performance.
-// The TC kernels are numerically correct; earlier "failures" were caused by
-// double-symmetrized road graphs (Bug 1), not FP16 precision issues.
+// Groups above these accumulation thresholds use FP32 to limit FP16 input error
+// and avoid inefficiently padding high-degree rows into sparse 16x16 tiles.
 constexpr int   kFp32GroupMaxRowNnzThreshold  = 256;
 constexpr int   kFp32GroupTotalNnzThreshold   = 2048;
 constexpr float kFp32GroupAvgRowNnzThreshold  = 128.f;
@@ -446,9 +445,7 @@ void make_ra_tc_direct_plan(
         return;
     }
 
-    // No force_all_fp32 guards needed — TC kernels are numerically correct.
-    // Earlier "failures" were caused by double-symmetrized road graphs (Bug 1
-    // in correctness diagnosis), not TC kernel bugs.
+    // Individual groups still fall back to FP32 according to the gates below.
     const bool force_all_fp32 = false;
 
     // -----------------------------------------------------------------

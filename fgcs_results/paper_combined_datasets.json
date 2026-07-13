@@ -1,0 +1,1228 @@
+{
+  "datasets": [
+    {
+      "name": "roadNet-CA",
+      "path": "datasets/roadNet-CA.txt",
+      "format": "edge",
+      "category": "Sparse Uniform",
+      "Ns": [
+        64,
+        128
+      ],
+      "directed": false,
+      "symmetrize": false,
+      "one_indexed": false,
+      "unit_values": true,
+      "tags": [
+        "SNAP"
+      ],
+      "notes": "California road network. Already bidirectional in file.",
+      "M": 1971281,
+      "K": 1971281,
+      "nnz": 5533214,
+      "avg_nnz_per_row": 2.806912865289119,
+      "std_nnz_per_row": 1.0052779193137662,
+      "density": 1.423902967303555e-06,
+      "synthetic": false
+    },
+    {
+      "name": "roadNet-PA",
+      "path": "datasets/roadNet-PA.txt",
+      "format": "edge",
+      "category": "Sparse Uniform",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "directed": false,
+      "symmetrize": false,
+      "one_indexed": false,
+      "unit_values": true,
+      "tags": [
+        "SNAP"
+      ],
+      "notes": "Pennsylvania road network. Already bidirectional in file.",
+      "M": 1090920,
+      "K": 1090920,
+      "nnz": 3083796,
+      "avg_nnz_per_row": 2.8267847321526784,
+      "std_nnz_per_row": 1.0257843252619954,
+      "density": 2.591193425872363e-06,
+      "synthetic": false
+    },
+    {
+      "name": "roadNet-TX",
+      "path": "datasets/roadNet-TX.txt",
+      "format": "edge",
+      "category": "Sparse Uniform",
+      "Ns": [
+        64,
+        128
+      ],
+      "directed": false,
+      "symmetrize": false,
+      "one_indexed": false,
+      "unit_values": true,
+      "tags": [
+        "SNAP"
+      ],
+      "notes": "Texas road network. Already bidirectional in file.",
+      "M": 1393383,
+      "K": 1393383,
+      "nnz": 3843320,
+      "avg_nnz_per_row": 2.758265315422967,
+      "std_nnz_per_row": 1.0370252134430038,
+      "density": 1.979545692335106e-06,
+      "synthetic": false
+    },
+    {
+      "name": "Amazon0601",
+      "path": "datasets/Amazon0601.txt",
+      "format": "edge",
+      "category": "Sparse Uniform",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "directed": true,
+      "symmetrize": false,
+      "one_indexed": false,
+      "unit_values": true,
+      "tags": [
+        "SNAP",
+        "RoDe"
+      ],
+      "notes": "Amazon co-purchasing graph. Sparse uniform structure.",
+      "M": 403394,
+      "K": 403394,
+      "nnz": 3387388,
+      "avg_nnz_per_row": 8.397219591763884,
+      "std_nnz_per_row": 2.7896773986128087,
+      "density": 2.0816421641779212e-05,
+      "synthetic": false
+    },
+    {
+      "name": "web-Google",
+      "path": "datasets/web-Google.txt",
+      "format": "edge",
+      "category": "Sparse Uniform",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "directed": true,
+      "symmetrize": false,
+      "one_indexed": false,
+      "unit_values": true,
+      "tags": [
+        "SNAP",
+        "RoDe"
+      ],
+      "notes": "Google web graph. Sparse web graph with moderate locality.",
+      "M": 916428,
+      "K": 916428,
+      "nnz": 5105039,
+      "avg_nnz_per_row": 5.570583832008625,
+      "std_nnz_per_row": 6.55652483547798,
+      "density": 6.078583186031663e-06,
+      "synthetic": false
+    },
+    {
+      "name": "web-Stanford",
+      "path": "datasets/web-Stanford.txt",
+      "format": "edge",
+      "category": "Sparse Uniform",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "directed": true,
+      "symmetrize": false,
+      "one_indexed": false,
+      "unit_values": true,
+      "tags": [
+        "SNAP",
+        "RoDe"
+      ],
+      "notes": "Stanford web graph. Sparse web graph.",
+      "M": 281904,
+      "K": 281904,
+      "nnz": 2312497,
+      "avg_nnz_per_row": 8.203136528747375,
+      "std_nnz_per_row": 11.311396902197789,
+      "density": 2.9099042683847603e-05,
+      "synthetic": false
+    },
+    {
+      "name": "ogbn-arxiv",
+      "path": "datasets/gnn/exports/ogbn-arxiv.npz",
+      "format": "npz",
+      "category": "Sparse Uniform",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "unit_values": true,
+      "tags": [
+        "GNN",
+        "OGB"
+      ],
+      "notes": "OGB citation graph.",
+      "skip_if_missing": true,
+      "M": 169343,
+      "K": 169343,
+      "nnz": 1166243,
+      "avg_nnz_per_row": 6.886868663009395,
+      "std_nnz_per_row": 8.879401472632647,
+      "density": 4.066816262266167e-05,
+      "synthetic": false
+    },
+    {
+      "name": "Yelp",
+      "path": "datasets/gnn/exports/Yelp.npz",
+      "format": "npz",
+      "category": "Sparse Uniform",
+      "Ns": [
+        64,
+        128,
+        256
+      ],
+      "unit_values": true,
+      "tags": [
+        "GNN",
+        "PyG"
+      ],
+      "notes": "Yelp review graph. Large GNN benchmark.",
+      "skip_if_missing": true,
+      "M": 716847,
+      "K": 716847,
+      "nnz": 13954819,
+      "synthetic": false
+    },
+    {
+      "name": "twitter-combined",
+      "path": "datasets/twitter-combined.txt",
+      "format": "edge",
+      "category": "Sparse Skewed",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "directed": true,
+      "symmetrize": false,
+      "one_indexed": false,
+      "unit_values": true,
+      "tags": [
+        "SNAP",
+        "RoDe"
+      ],
+      "notes": "Twitter ego graph after duplicate-edge canonicalization; avg_deg=21.75, CV_d=1.70.",
+      "skip_if_missing": true,
+      "M": 81306,
+      "K": 81306,
+      "nnz": 1768149,
+      "avg_nnz_per_row": 21.7468,
+      "synthetic": false
+    },
+    {
+      "name": "soc-Pokec",
+      "path": "datasets/soc-pokec-relationships.txt",
+      "format": "edge",
+      "category": "Sparse Skewed",
+      "Ns": [
+        64,
+        128,
+        256
+      ],
+      "directed": true,
+      "symmetrize": false,
+      "one_indexed": true,
+      "unit_values": true,
+      "tags": [
+        "SNAP",
+        "RoDe"
+      ],
+      "notes": "Slovak Pokec social network. 1.6M nodes, power-law.",
+      "skip_if_missing": true,
+      "M": 1632803,
+      "K": 1632803,
+      "nnz": 30622564,
+      "max_N": 256,
+      "synthetic": false
+    },
+    {
+      "name": "ca-GrQc",
+      "path": "datasets/ca-GrQc.txt",
+      "format": "edge",
+      "category": "Dense Small",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "directed": false,
+      "symmetrize": false,
+      "one_indexed": false,
+      "unit_values": true,
+      "tags": [
+        "SNAP"
+      ],
+      "notes": "General Relativity co-authorship. Already bidirectional in file.",
+      "skip_if_missing": true,
+      "M": 5242,
+      "K": 5242,
+      "nnz": 28980,
+      "synthetic": false
+    },
+    {
+      "name": "ca-HepTh",
+      "path": "datasets/ca-HepTh.txt",
+      "format": "edge",
+      "category": "Dense Small",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "directed": false,
+      "symmetrize": false,
+      "one_indexed": false,
+      "unit_values": true,
+      "tags": [
+        "SNAP"
+      ],
+      "notes": "High Energy Physics Theory co-authorship. Already bidirectional in file.",
+      "skip_if_missing": true,
+      "M": 9877,
+      "K": 9877,
+      "nnz": 51946,
+      "synthetic": false
+    },
+    {
+      "name": "ca-CondMat",
+      "path": "datasets/ca-CondMat.txt",
+      "format": "edge",
+      "category": "Dense Small",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "directed": false,
+      "symmetrize": false,
+      "one_indexed": false,
+      "unit_values": true,
+      "tags": [
+        "SNAP"
+      ],
+      "notes": "Condensed Matter co-authorship. Already bidirectional in file.",
+      "skip_if_missing": true,
+      "M": 23133,
+      "K": 23133,
+      "nnz": 186936,
+      "synthetic": false
+    },
+    {
+      "name": "amazon-computers",
+      "path": "datasets/amazon-computers.npz",
+      "format": "npz",
+      "category": "Dense Small",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "unit_values": true,
+      "tags": [
+        "PyG"
+      ],
+      "notes": "Amazon Computers co-purchase graph. Dense small graph.",
+      "skip_if_missing": true,
+      "M": 13752,
+      "K": 13752,
+      "nnz": 491722,
+      "synthetic": false
+    },
+    {
+      "name": "amazon-photo",
+      "path": "datasets/amazon-photo.npz",
+      "format": "npz",
+      "category": "Dense Small",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "unit_values": true,
+      "tags": [
+        "PyG"
+      ],
+      "notes": "Amazon Photo co-purchase graph. Dense small graph.",
+      "skip_if_missing": true,
+      "M": 7650,
+      "K": 7650,
+      "nnz": 238162,
+      "synthetic": false
+    },
+    {
+      "name": "gplus-combined",
+      "path": "datasets/gplus-combined.txt",
+      "format": "edge",
+      "category": "Dense Large-Scale",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "directed": true,
+      "symmetrize": false,
+      "one_indexed": false,
+      "unit_values": true,
+      "tags": [
+        "SNAP",
+        "RoDe"
+      ],
+      "notes": "Google+ ego graph after duplicate-edge canonicalization; avg_deg=127.06, CV_d=2.74.",
+      "skip_if_missing": true,
+      "disable_paths": [
+        "TC_REORDERED",
+        "HYBRID_TC_CUDA"
+      ],
+      "M": 107614,
+      "K": 107614,
+      "nnz": 13673453,
+      "avg_nnz_per_row": 127.0602,
+      "synthetic": false
+    },
+    {
+      "name": "Reddit",
+      "path": "datasets/gnn/exports/Reddit.npz",
+      "format": "npz",
+      "category": "Dense Large-Scale",
+      "Ns": [
+        64,
+        128,
+        256
+      ],
+      "unit_values": true,
+      "tags": [
+        "GNN",
+        "PyG"
+      ],
+      "notes": "PyG Reddit graph. Large dense graph, avg_deg=492.",
+      "skip_if_missing": true,
+      "memory_sensitive": true,
+      "M": 232965,
+      "K": 232965,
+      "nnz": 114615892,
+      "avg_nnz_per_row": 491.9876032880476,
+      "std_nnz_per_row": 799.818205097461,
+      "density": 0.002111852009048774,
+      "max_N": 256,
+      "synthetic": false
+    },
+    {
+      "name": "ogbn-products",
+      "path": "datasets/gnn/exports/ogbn-products.npz",
+      "format": "npz",
+      "category": "Dense Large-Scale",
+      "Ns": [
+        64,
+        128
+      ],
+      "unit_values": true,
+      "tags": [
+        "GNN",
+        "OGB"
+      ],
+      "notes": "Large OGB co-purchasing graph. Dense at scale.",
+      "skip_if_missing": true,
+      "memory_sensitive": true,
+      "M": 2449029,
+      "K": 2449029,
+      "nnz": 123718152,
+      "avg_nnz_per_row": 50.51722621496111,
+      "std_nnz_per_row": 95.90498125589934,
+      "density": 2.0627451212280915e-05,
+      "max_N": 128,
+      "synthetic": false
+    },
+    {
+      "name": "ogbn-proteins",
+      "path": "datasets/gnn/exports/ogbn-proteins.npz",
+      "format": "npz",
+      "category": "Dense Large-Scale",
+      "Ns": [
+        64,
+        128
+      ],
+      "unit_values": true,
+      "tags": [
+        "GNN",
+        "OGB"
+      ],
+      "notes": "OGB proteins graph. Very dense, avg_deg=597.",
+      "skip_if_missing": true,
+      "memory_sensitive": true,
+      "M": 132534,
+      "K": 132534,
+      "nnz": 79122504,
+      "avg_nnz_per_row": 596.9977817012993,
+      "std_nnz_per_row": 621.4750426693987,
+      "density": 0.0045044877669224445,
+      "max_N": 128,
+      "synthetic": false
+    },
+    {
+      "name": "com-DBLP",
+      "path": "datasets/com-dblp.txt",
+      "format": "edge",
+      "category": "Community",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "directed": false,
+      "symmetrize": true,
+      "one_indexed": false,
+      "unit_values": true,
+      "tags": [
+        "SNAP"
+      ],
+      "notes": "DBLP co-authorship community graph. Ground-truth communities.",
+      "skip_if_missing": true,
+      "M": 317080,
+      "K": 317080,
+      "nnz": 2099732,
+      "synthetic": false
+    },
+    {
+      "name": "com-Amazon",
+      "path": "datasets/com-amazon.txt",
+      "format": "edge",
+      "category": "Community",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "directed": false,
+      "symmetrize": true,
+      "one_indexed": false,
+      "unit_values": true,
+      "tags": [
+        "SNAP"
+      ],
+      "notes": "Amazon product co-purchasing community graph. Ground-truth categories.",
+      "skip_if_missing": true,
+      "M": 334863,
+      "K": 334863,
+      "nnz": 1851744,
+      "synthetic": false
+    },
+    {
+      "name": "com-youtube",
+      "path": "datasets/com-youtube.txt",
+      "format": "edge",
+      "category": "Community",
+      "Ns": [
+        64,
+        128,
+        256
+      ],
+      "directed": false,
+      "symmetrize": true,
+      "one_indexed": false,
+      "unit_values": true,
+      "tags": [
+        "SNAP"
+      ],
+      "notes": "YouTube community graph. Large community-structured graph.",
+      "skip_if_missing": true,
+      "M": 1157828,
+      "K": 1157828,
+      "nnz": 5975248,
+      "synthetic": false
+    },
+    {
+      "name": "Cora",
+      "path": "datasets/gnn/exports/Cora.npz",
+      "format": "npz",
+      "category": "Mixed/Irregular",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "unit_values": true,
+      "tags": [
+        "GNN",
+        "Planetoid"
+      ],
+      "notes": "Classic GNN citation benchmark. GPU-overhead-dominated, included for completeness.",
+      "skip_if_missing": true,
+      "M": 2708,
+      "K": 2708,
+      "nnz": 10556,
+      "avg_nnz_per_row": 3.8980797636632203,
+      "std_nnz_per_row": 5.227818372799966,
+      "density": 0.001439468154971647,
+      "synthetic": false
+    },
+    {
+      "name": "CiteSeer",
+      "path": "datasets/gnn/exports/CiteSeer.npz",
+      "format": "npz",
+      "category": "Mixed/Irregular",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "unit_values": true,
+      "tags": [
+        "GNN",
+        "Planetoid"
+      ],
+      "notes": "Classic GNN citation benchmark. GPU-overhead-dominated, included for completeness.",
+      "skip_if_missing": true,
+      "M": 3327,
+      "K": 3327,
+      "nnz": 9104,
+      "avg_nnz_per_row": 2.7363991584009617,
+      "std_nnz_per_row": 3.3808377274990122,
+      "density": 0.0008224824642022729,
+      "synthetic": false
+    },
+    {
+      "name": "PPI",
+      "path": "datasets/gnn/exports/PPI.npz",
+      "format": "npz",
+      "category": "Mixed/Irregular",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "unit_values": true,
+      "tags": [
+        "GNN",
+        "PyG"
+      ],
+      "notes": "Protein-Protein Interaction graph. GPU-overhead-dominated.",
+      "skip_if_missing": true,
+      "M": 1767,
+      "K": 1767,
+      "nnz": 32318,
+      "synthetic": false
+    },
+    {
+      "name": "Flickr",
+      "path": "datasets/gnn/exports/Flickr.npz",
+      "format": "npz",
+      "category": "Mixed/Irregular",
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "unit_values": true,
+      "tags": [
+        "GNN",
+        "PyG"
+      ],
+      "notes": "Flickr image graph. Standard GNN benchmark.",
+      "skip_if_missing": true,
+      "M": 89250,
+      "K": 89250,
+      "nnz": 899756,
+      "synthetic": false
+    },
+    {
+      "name": "synth_sparse_skewed_cv1p5",
+      "category": "Sparse Skewed",
+      "path": "fgcs_results/synthetic/synth_sparse_skewed_cv1p5.npz",
+      "format": "npz",
+      "M": 200000,
+      "K": 200000,
+      "nnz": 3622709,
+      "avg_nnz_per_row": 18.113545,
+      "cv_d": 0.929947676016436,
+      "target_cv": 1.5,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "skewed_powerlaw",
+      "seed": 10001
+    },
+    {
+      "name": "synth_sparse_skewed_cv2p0",
+      "category": "Sparse Skewed",
+      "path": "fgcs_results/synthetic/synth_sparse_skewed_cv2p0.npz",
+      "format": "npz",
+      "M": 200000,
+      "K": 200000,
+      "nnz": 6166484,
+      "avg_nnz_per_row": 30.83242,
+      "cv_d": 0.9326351981239727,
+      "target_cv": 2.0,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "skewed_powerlaw",
+      "seed": 10002
+    },
+    {
+      "name": "synth_sparse_skewed_cv2p5",
+      "category": "Sparse Skewed",
+      "path": "fgcs_results/synthetic/synth_sparse_skewed_cv2p5.npz",
+      "format": "npz",
+      "M": 200000,
+      "K": 200000,
+      "nnz": 10306672,
+      "avg_nnz_per_row": 51.53336,
+      "cv_d": 0.9086954688005593,
+      "target_cv": 2.5,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "skewed_powerlaw",
+      "seed": 10003
+    },
+    {
+      "name": "synth_sparse_skewed_cv3p0",
+      "category": "Sparse Skewed",
+      "path": "fgcs_results/synthetic/synth_sparse_skewed_cv3p0.npz",
+      "format": "npz",
+      "M": 200000,
+      "K": 200000,
+      "nnz": 16207364,
+      "avg_nnz_per_row": 81.03682,
+      "cv_d": 0.8739700009032955,
+      "target_cv": 3.0,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "skewed_powerlaw",
+      "seed": 10004
+    },
+    {
+      "name": "synth_sparse_skewed_cv4p0",
+      "category": "Sparse Skewed",
+      "path": "fgcs_results/synthetic/synth_sparse_skewed_cv4p0.npz",
+      "format": "npz",
+      "M": 200000,
+      "K": 200000,
+      "nnz": 25191428,
+      "avg_nnz_per_row": 125.95714,
+      "cv_d": 0.8525837256368138,
+      "target_cv": 4.0,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "skewed_powerlaw",
+      "seed": 10005
+    },
+    {
+      "name": "synth_community_nc10",
+      "category": "Community",
+      "path": "fgcs_results/synthetic/synth_community_nc10.npz",
+      "format": "npz",
+      "M": 200000,
+      "K": 200000,
+      "nnz": 1089063,
+      "avg_nnz_per_row": 5.445315,
+      "cv_d": 0.41980815678101807,
+      "n_comm": 10,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "community_clustered",
+      "within_density": 0.00025,
+      "between_density": 5e-06,
+      "seed": 20001
+    },
+    {
+      "name": "synth_community_nc50",
+      "category": "Community",
+      "path": "fgcs_results/synthetic/synth_community_nc50.npz",
+      "format": "npz",
+      "M": 200000,
+      "K": 200000,
+      "nnz": 1098216,
+      "avg_nnz_per_row": 5.49108,
+      "cv_d": 0.41687377510696105,
+      "n_comm": 50,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "community_clustered",
+      "within_density": 0.00125,
+      "between_density": 5e-06,
+      "seed": 20002
+    },
+    {
+      "name": "synth_community_nc100",
+      "category": "Community",
+      "path": "fgcs_results/synthetic/synth_community_nc100.npz",
+      "format": "npz",
+      "M": 200000,
+      "K": 200000,
+      "nnz": 1098420,
+      "avg_nnz_per_row": 5.4921,
+      "cv_d": 0.41628844907957624,
+      "n_comm": 100,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "community_clustered",
+      "within_density": 0.0025,
+      "between_density": 5e-06,
+      "seed": 20003
+    },
+    {
+      "name": "synth_community_nc500",
+      "category": "Community",
+      "path": "fgcs_results/synthetic/synth_community_nc500.npz",
+      "format": "npz",
+      "M": 200000,
+      "K": 200000,
+      "nnz": 1100450,
+      "avg_nnz_per_row": 5.50225,
+      "cv_d": 0.41422106472177295,
+      "n_comm": 500,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "community_clustered",
+      "within_density": 0.0125,
+      "between_density": 5e-06,
+      "seed": 20004
+    },
+    {
+      "name": "synth_community_nc1000",
+      "category": "Community",
+      "path": "fgcs_results/synthetic/synth_community_nc1000.npz",
+      "format": "npz",
+      "M": 200000,
+      "K": 200000,
+      "nnz": 1101854,
+      "avg_nnz_per_row": 5.50927,
+      "cv_d": 0.411800219600373,
+      "n_comm": 1000,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "community_clustered",
+      "within_density": 0.025,
+      "between_density": 5e-06,
+      "seed": 20005
+    },
+    {
+      "name": "synth_mixed_v1",
+      "category": "Mixed/Irregular",
+      "path": "fgcs_results/synthetic/synth_mixed_v1.npz",
+      "format": "npz",
+      "M": 200000,
+      "K": 200000,
+      "nnz": 4001390,
+      "avg_nnz_per_row": 20.00695,
+      "cv_d": 2.133333999979667,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "mixed_skew",
+      "frac_tiny": 0.5,
+      "frac_medium": 0.45,
+      "frac_giant": 0.05,
+      "tiny_degree": 2,
+      "medium_degree": 20,
+      "giant_degree": 200,
+      "seed": 30001
+    },
+    {
+      "name": "synth_mixed_v2",
+      "category": "Mixed/Irregular",
+      "path": "fgcs_results/synthetic/synth_mixed_v2.npz",
+      "format": "npz",
+      "M": 200000,
+      "K": 200000,
+      "nnz": 5457270,
+      "avg_nnz_per_row": 27.28635,
+      "cv_d": 2.3619953222004146,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "mixed_skew",
+      "frac_tiny": 0.6,
+      "frac_medium": 0.35,
+      "frac_giant": 0.05,
+      "tiny_degree": 3,
+      "medium_degree": 30,
+      "giant_degree": 300,
+      "seed": 30002
+    },
+    {
+      "name": "synth_mixed_v3",
+      "category": "Mixed/Irregular",
+      "path": "fgcs_results/synthetic/synth_mixed_v3.npz",
+      "format": "npz",
+      "M": 200000,
+      "K": 200000,
+      "nnz": 5576937,
+      "avg_nnz_per_row": 27.884685,
+      "cv_d": 1.8881276786741503,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "mixed_skew",
+      "frac_tiny": 0.4,
+      "frac_medium": 0.55,
+      "frac_giant": 0.05,
+      "tiny_degree": 4,
+      "medium_degree": 25,
+      "giant_degree": 250,
+      "seed": 30003
+    },
+    {
+      "name": "synth_mixed_v4",
+      "category": "Mixed/Irregular",
+      "path": "fgcs_results/synthetic/synth_mixed_v4.npz",
+      "format": "npz",
+      "M": 200000,
+      "K": 200000,
+      "nnz": 7410217,
+      "avg_nnz_per_row": 37.051085,
+      "cv_d": 2.317877455501038,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "mixed_skew",
+      "frac_tiny": 0.55,
+      "frac_medium": 0.4,
+      "frac_giant": 0.05,
+      "tiny_degree": 2,
+      "medium_degree": 40,
+      "giant_degree": 400,
+      "seed": 30004
+    },
+    {
+      "name": "synth_mixed_v5",
+      "category": "Mixed/Irregular",
+      "path": "fgcs_results/synthetic/synth_mixed_v5.npz",
+      "format": "npz",
+      "M": 200000,
+      "K": 200000,
+      "nnz": 7276677,
+      "avg_nnz_per_row": 36.383385,
+      "cv_d": 2.0471646926428146,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "mixed_skew",
+      "frac_tiny": 0.45,
+      "frac_medium": 0.5,
+      "frac_giant": 0.05,
+      "tiny_degree": 3,
+      "medium_degree": 35,
+      "giant_degree": 350,
+      "seed": 30005
+    },
+    {
+      "name": "synth_dense_small_d30",
+      "category": "Dense Small",
+      "path": "fgcs_results/synthetic/synth_dense_small_d30.npz",
+      "format": "npz",
+      "M": 10000,
+      "K": 10000,
+      "nnz": 300000,
+      "avg_nnz_per_row": 30.0,
+      "cv_d": 0.0,
+      "target_dbar": 30,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "random_sparse",
+      "seed": 40001
+    },
+    {
+      "name": "synth_dense_small_d50",
+      "category": "Dense Small",
+      "path": "fgcs_results/synthetic/synth_dense_small_d50.npz",
+      "format": "npz",
+      "M": 10000,
+      "K": 10000,
+      "nnz": 500000,
+      "avg_nnz_per_row": 50.0,
+      "cv_d": 0.0,
+      "target_dbar": 50,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "random_sparse",
+      "seed": 40002
+    },
+    {
+      "name": "synth_dense_small_d70",
+      "category": "Dense Small",
+      "path": "fgcs_results/synthetic/synth_dense_small_d70.npz",
+      "format": "npz",
+      "M": 10000,
+      "K": 10000,
+      "nnz": 700000,
+      "avg_nnz_per_row": 70.0,
+      "cv_d": 0.0,
+      "target_dbar": 70,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "random_sparse",
+      "seed": 40003
+    },
+    {
+      "name": "synth_dense_small_d90",
+      "category": "Dense Small",
+      "path": "fgcs_results/synthetic/synth_dense_small_d90.npz",
+      "format": "npz",
+      "M": 10000,
+      "K": 10000,
+      "nnz": 900000,
+      "avg_nnz_per_row": 90.0,
+      "cv_d": 0.0,
+      "target_dbar": 90,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "random_sparse",
+      "seed": 40004
+    },
+    {
+      "name": "synth_dense_small_d120",
+      "category": "Dense Small",
+      "path": "fgcs_results/synthetic/synth_dense_small_d120.npz",
+      "format": "npz",
+      "M": 10000,
+      "K": 10000,
+      "nnz": 1200000,
+      "avg_nnz_per_row": 120.0,
+      "cv_d": 0.0,
+      "target_dbar": 120,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "random_sparse",
+      "seed": 40005
+    },
+    {
+      "name": "synth_sparse_uniform_d3",
+      "category": "Sparse Uniform",
+      "path": "fgcs_results/synthetic/synth_sparse_uniform_d3.npz",
+      "format": "npz",
+      "M": 300000,
+      "K": 300000,
+      "nnz": 900000,
+      "avg_nnz_per_row": 3.0,
+      "cv_d": 0.0,
+      "target_dbar": 3,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "random_sparse",
+      "seed": 50001
+    },
+    {
+      "name": "synth_sparse_uniform_d5",
+      "category": "Sparse Uniform",
+      "path": "fgcs_results/synthetic/synth_sparse_uniform_d5.npz",
+      "format": "npz",
+      "M": 300000,
+      "K": 300000,
+      "nnz": 1500000,
+      "avg_nnz_per_row": 5.0,
+      "cv_d": 0.0,
+      "target_dbar": 5,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "random_sparse",
+      "seed": 50002
+    },
+    {
+      "name": "synth_sparse_uniform_d8",
+      "category": "Sparse Uniform",
+      "path": "fgcs_results/synthetic/synth_sparse_uniform_d8.npz",
+      "format": "npz",
+      "M": 300000,
+      "K": 300000,
+      "nnz": 2400000,
+      "avg_nnz_per_row": 8.0,
+      "cv_d": 0.0,
+      "target_dbar": 8,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "random_sparse",
+      "seed": 50003
+    },
+    {
+      "name": "synth_sparse_uniform_d12",
+      "category": "Sparse Uniform",
+      "path": "fgcs_results/synthetic/synth_sparse_uniform_d12.npz",
+      "format": "npz",
+      "M": 300000,
+      "K": 300000,
+      "nnz": 3600000,
+      "avg_nnz_per_row": 12.0,
+      "cv_d": 0.0,
+      "target_dbar": 12,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "random_sparse",
+      "seed": 50004
+    },
+    {
+      "name": "synth_sparse_uniform_d18",
+      "category": "Sparse Uniform",
+      "path": "fgcs_results/synthetic/synth_sparse_uniform_d18.npz",
+      "format": "npz",
+      "M": 300000,
+      "K": 300000,
+      "nnz": 5400000,
+      "avg_nnz_per_row": 18.0,
+      "cv_d": 0.0,
+      "target_dbar": 18,
+      "synthetic": true,
+      "Ns": [
+        64,
+        128,
+        256,
+        512
+      ],
+      "generator": "random_sparse",
+      "seed": 50005
+    }
+  ],
+  "purpose": "FGCS revision fair sweep: 192 (graph,N) configurations over 26 real and 25 synthetic graphs"
+}

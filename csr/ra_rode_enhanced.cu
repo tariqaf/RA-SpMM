@@ -36,7 +36,6 @@ namespace {
 
 constexpr int kLongRowThreshold = 128;  // regular_nnz >= 128 => long row
 constexpr int kSubBlockSize     = 32;   // nnz per sub-block in pipeline
-constexpr int kLongCTAThreads   = 256;  // 8 warps per CTA for long rows
 constexpr int kLongComputeWarps = 7;    // warps 1-7 compute, warp 0 loads
 constexpr int kSmemPad          = 33;   // 33 instead of 32 to avoid bank conflicts
 
@@ -621,7 +620,10 @@ void run_ra_rode_enhanced_plan(
     // ---- Launch 2: Long-row pipelined kernel ----
     if (plan.num_long_rows > 0) {
         if (use_vec4) {
-            rode_long_pipelined_vec4_kernel<<<plan.num_long_rows, kLongCTAThreads>>>(
+            const int compute_warps = std::min(
+                kLongComputeWarps, (N / 4 + 31) / 32);
+            const int threads = (1 + std::max(1, compute_warps)) * 32;
+            rode_long_pipelined_vec4_kernel<<<plan.num_long_rows, threads>>>(
                 d_colind, d_vals, d_B, d_C,
                 plan.d_long_row_ids,
                 plan.d_long_starts,
@@ -629,7 +631,10 @@ void run_ra_rode_enhanced_plan(
                 plan.num_long_rows,
                 N);
         } else {
-            rode_long_pipelined_scalar_kernel<<<plan.num_long_rows, kLongCTAThreads>>>(
+            const int compute_warps = std::min(
+                kLongComputeWarps, (N + 31) / 32);
+            const int threads = (1 + std::max(1, compute_warps)) * 32;
+            rode_long_pipelined_scalar_kernel<<<plan.num_long_rows, threads>>>(
                 d_colind, d_vals, d_B, d_C,
                 plan.d_long_row_ids,
                 plan.d_long_starts,

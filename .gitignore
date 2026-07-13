@@ -12,6 +12,7 @@ dist/
 *.dylib
 
 # Python
+.venv/
 __pycache__/
 *.pyc
 *.pyo
@@ -32,9 +33,17 @@ __pycache__/
 # Local data caches (not part of the public release)
 datasets/
 external/
+baselines/
 logs/
+cache/
+DTCSpMM_exe_time_and_throughput.csv
+
+# Reproducible Nsight intermediates; parsed per-pair metrics remain tracked.
+*.ncu-rep
+*.ncu.csv
 
 # Temporary
 *.tmp
 *.bak
 *.JACCARD_BACKUP
+SERVER_PROMPT*.md

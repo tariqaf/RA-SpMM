@@ -1,0 +1,11 @@
+{
+  "dataset": "Yelp",
+  "category": "Sparse Uniform",
+  "synthetic": false,
+  "kernel": "CSR_DIRECT",
+  "N": 512,
+  "gpu": 1,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "Yelp__CSR_DIRECT__N512.ncu-rep",
+  "raw_csv": "Yelp__CSR_DIRECT__N512.ncu.csv"
+}

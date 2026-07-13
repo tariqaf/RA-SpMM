@@ -1,0 +1,6 @@
+DTC ran on the original CSR order; no TCA reordering claim is made.
+Reordered DTC was run only for graphs with M <= 100000; other rows retain cuSPARSE/PyG measurements and mark DTC as skipped.
+Per graph: reorder once, record dtc_reorder_ms, save reordered CSR in /mnt/shared/development/tariq/RA-SpMM/cache/dtc_reordered.
+Per (graph, N): preprocess on reordered CSR, run variant selection/tuning, then measure best mean kernel time with warmup=50 and timed_iters=200.
+Variant selection uses warmup=3, timed_iters=20; cold setup/first-execute is averaged over 1 independent state builds.
+Correctness uses permute-in / inverse-permute-out against cuSPARSE on the original CSR.

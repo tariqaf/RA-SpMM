@@ -1,0 +1,11 @@
+{
+  "dataset": "Reddit",
+  "category": "Dense Large-Scale",
+  "synthetic": false,
+  "kernel": "COMMUNITY_TC",
+  "N": 128,
+  "gpu": 0,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "Reddit__COMMUNITY_TC__N128.ncu-rep",
+  "raw_csv": "Reddit__COMMUNITY_TC__N128.ncu.csv"
+}

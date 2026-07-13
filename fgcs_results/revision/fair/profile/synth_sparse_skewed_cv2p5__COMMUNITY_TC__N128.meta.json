@@ -1,0 +1,11 @@
+{
+  "dataset": "synth_sparse_skewed_cv2p5",
+  "category": "Sparse Skewed",
+  "synthetic": true,
+  "kernel": "COMMUNITY_TC",
+  "N": 128,
+  "gpu": 0,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "synth_sparse_skewed_cv2p5__COMMUNITY_TC__N128.ncu-rep",
+  "raw_csv": "synth_sparse_skewed_cv2p5__COMMUNITY_TC__N128.ncu.csv"
+}

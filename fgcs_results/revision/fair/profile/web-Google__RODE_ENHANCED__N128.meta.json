@@ -1,0 +1,11 @@
+{
+  "dataset": "web-Google",
+  "category": "Sparse Uniform",
+  "synthetic": false,
+  "kernel": "RODE_ENHANCED",
+  "N": 128,
+  "gpu": 0,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "web-Google__RODE_ENHANCED__N128.ncu-rep",
+  "raw_csv": "web-Google__RODE_ENHANCED__N128.ncu.csv"
+}

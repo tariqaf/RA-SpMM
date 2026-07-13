@@ -1,5 +1,5 @@
 """
-test_next.py - Paper-aware harness for the repaired ra_spmm extension
+test_ra.py - Paper-aware harness for the repaired ra_spmm extension
 
 MAIN portfolio (paper-facing):
 - CSR_DIRECT
@@ -44,8 +44,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ra_spmm
 
 
-MAIN_PATHS = ["CSR_DIRECT", "ROW_SPLIT_CUDA", "TC_REORDERED", "HYBRID_TC_CUDA", "CUSPARSE"]
-FULL_PATHS = MAIN_PATHS + ["CSR_ADAPTIVE", "STAGED_REUSE", "TC_SPARSE"]
+MAIN_PATHS = ["CSR_DIRECT", "RODE_ENHANCED", "ZERO_OVERHEAD_CSR",
+              "TC_DIRECT", "COMMUNITY_TC", "SEGMENT_HYBRID", "CUSPARSE"]
+FULL_PATHS = MAIN_PATHS + ["CSR_ADAPTIVE", "STAGED_REUSE", "TC_SPARSE",
+                          "ROW_SPLIT_CUDA", "TC_REORDERED", "HYBRID_TC_CUDA"]
 EXTERNAL_BASELINE_PATHS = ["TORCH_SPARSE"]
 EXPANDED_GROUPS = [
     "baseline_reference",

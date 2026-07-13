@@ -8,10 +8,10 @@
 // Jaccard signature similarity), then pack intra-community tiles for WMMA.
 // Inter-community spillover handled by FP32 CSR fallback.
 //
-// Reuses the proven TC_DIRECT kernel design (single-pass 16-warp TC kernel)
-// with community-aware reordering instead of centroid-based reordering.
+// Reuses the TC_DIRECT hybrid tile design with community-aware ordering;
+// groups that are unsuitable for WMMA use the FP32 fallback.
 //
-// Target: sm_70+ (Volta WMMA), optimised for sm_86 (RTX 3090).
+// Target: sm_70+ with tuning for sm_86.
 // ============================================================================
 #include "../ra_common.h"
 
@@ -50,7 +50,7 @@ constexpr int kMaxWarpsPerCta     = 16;
 constexpr int kLpMaxRowDegreeForVote = 4096;
 constexpr int kLpRefinementSweeps    = 2;
 
-// Relaxed FP32 thresholds (same as TC_DIRECT) — TC kernels are correct
+// FP32 fallback thresholds shared with TC_DIRECT.
 constexpr int   kFp32GroupMaxRowNnzThreshold  = 256;
 constexpr int   kFp32GroupTotalNnzThreshold   = 2048;
 constexpr float kFp32GroupAvgRowNnzThreshold  = 128.f;
@@ -396,7 +396,7 @@ void make_ra_community_tc_plan(
         return;
     }
 
-    // No force_all_fp32 guards needed — TC kernels are correct.
+    // Individual groups still fall back to FP32 according to the gates below.
     const bool force_all_fp32 = false;
 
     // -----------------------------------------------------------------
@@ -437,7 +437,7 @@ void make_ra_community_tc_plan(
     // order (a common case after CSR ingest). Result: COMMUNITY_TC under-
     // performed TC_DIRECT on the Community regime.
     //
-    // The new algorithm exploits the row<->column bipartite graph directly:
+    // The algorithm exploits the row-to-column bipartite graph directly:
     //   1. Build the CSC (column -> rows that touch it) once: O(nnz).
     //   2. Process rows in degree-descending order so dense rows anchor
     //      labels first.
@@ -540,7 +540,7 @@ void make_ra_community_tc_plan(
 
     // Renumber communities to compact IDs [0..num_communities) in first-seen row
     // order (unordered_map: keyed lookup only, so iteration order is irrelevant —
-    // byte-identical to the old std::map, just without the O(log) per row).
+    // deterministic while avoiding an O(log n) map operation per row).
     std::unordered_map<int, int> community_remap;
     community_remap.reserve(static_cast<size_t>(M) * 2);
     int next_community = 0;

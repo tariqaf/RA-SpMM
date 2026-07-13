@@ -1,0 +1,11 @@
+{
+  "dataset": "ogbn-proteins",
+  "category": "Dense Large-Scale",
+  "synthetic": false,
+  "kernel": "CSR_DIRECT",
+  "N": 512,
+  "gpu": 1,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "ogbn-proteins__CSR_DIRECT__N512.ncu-rep",
+  "raw_csv": "ogbn-proteins__CSR_DIRECT__N512.ncu.csv"
+}

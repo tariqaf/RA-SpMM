@@ -1,0 +1,11 @@
+{
+  "dataset": "ca-CondMat",
+  "category": "Dense Small",
+  "synthetic": false,
+  "kernel": "RODE_ENHANCED",
+  "N": 512,
+  "gpu": 1,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "ca-CondMat__RODE_ENHANCED__N512.ncu-rep",
+  "raw_csv": "ca-CondMat__RODE_ENHANCED__N512.ncu.csv"
+}

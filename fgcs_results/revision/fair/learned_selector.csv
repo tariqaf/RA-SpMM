@@ -1,0 +1,8 @@
+model,configs,oracle_hits,hit_rate,router_oracle_geomean,ratio_ge_0_85,ratio_ge_0_99
+production_rules,192,143,0.7447916666666666,0.9694656597469001,181,164
+decision_tree_depth4_base_features,192,97,0.5052083333333334,0.9187995421697607,162,121
+random_forest_100_base_features,192,110,0.5729166666666666,0.9448906424032331,170,133
+multinomial_logistic_base_features,192,46,0.23958333333333334,0.888975679406967,141,86
+decision_tree_depth4_production_features,192,117,0.609375,0.9293066103511709,162,135
+random_forest_100_production_features,192,114,0.59375,0.9403301239172387,175,142
+multinomial_logistic_production_features,192,107,0.5572916666666666,0.9246841194029167,165,132

@@ -1,0 +1,6 @@
+system,strict_correct_points,attempted_points,warm_geomean_vs_cusparse,cold_geomean_vs_cusparse,scope
+HC-SpMM,14,192,1.1111364474903973,0.8163821649266118,matching warm/warm and cold/cold
+MP-SpMM,33,192,1.9975365843918975,0.0013699820079764845,matching warm/warm and cold/cold
+cuBLAS dense,24,24,0.13907761336774874,0.6468456368085715,matching warm/warm and cold/cold
+PyG,192,192,0.4167133129553401,0.8294768520993903,matching warm/warm and cold/cold
+DTC,36,192,0.0007774441865888468,7.001836497770072e-05,matching warm/warm and cold/cold

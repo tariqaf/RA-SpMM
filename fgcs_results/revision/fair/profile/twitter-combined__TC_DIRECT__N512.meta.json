@@ -1,0 +1,11 @@
+{
+  "dataset": "twitter-combined",
+  "category": "Sparse Skewed",
+  "synthetic": false,
+  "kernel": "TC_DIRECT",
+  "N": 512,
+  "gpu": 1,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "twitter-combined__TC_DIRECT__N512.ncu-rep",
+  "raw_csv": "twitter-combined__TC_DIRECT__N512.ncu.csv"
+}

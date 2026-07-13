@@ -1,0 +1,11 @@
+{
+  "dataset": "Cora",
+  "category": "Mixed/Irregular",
+  "synthetic": false,
+  "kernel": "SEGMENT_HYBRID",
+  "N": 128,
+  "gpu": 0,
+  "timing_regime": "warm execute-only; plan built before NVTX range",
+  "report": "Cora__SEGMENT_HYBRID__N128.ncu-rep",
+  "raw_csv": "Cora__SEGMENT_HYBRID__N128.ncu.csv"
+}

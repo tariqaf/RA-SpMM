@@ -4,7 +4,7 @@
 // Row bins: tiny (1-4), short (5-16), medium (17-64), long (65-256),
 //           xlong (257+) with appropriate thread/warp strategies
 //
-// Long-row dispatch (Phase 8 fix):
+// Long-row dispatch:
 //   row_len > 256:                -> csr_xlong_kernel (chunk-split + atomics)
 //   row_len > 64 AND N <= 32:    -> csr_long_kernel_nnzpar (coop nnz, serial N)
 //   row_len > 64:                -> csr_long_kernel_npar (N-parallel, 1 row/warp)

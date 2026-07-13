@@ -141,9 +141,10 @@
       "one_indexed": false,
       "unit_values": true,
       "tags": ["SNAP", "RoDe"],
-      "notes": "Twitter social network ego-graph combined. 81K nodes, avg_deg=30; dense power-law.",
+      "notes": "Twitter ego graph after duplicate-edge canonicalization; avg_deg=21.75, CV_d=1.70.",
       "skip_if_missing": true,
-      "M": 81306, "K": 81306, "nnz": 2420766
+      "M": 81306, "K": 81306, "nnz": 1768149,
+      "avg_nnz_per_row": 21.7468
     },
     {
       "name": "soc-Pokec",
@@ -243,10 +244,11 @@
       "one_indexed": false,
       "unit_values": true,
       "tags": ["SNAP", "RoDe"],
-      "notes": "Google+ ego-graph combined. 107K nodes, avg_deg=283; very dense power-law.",
+      "notes": "Google+ ego graph after duplicate-edge canonicalization; avg_deg=127.06, CV_d=2.74.",
       "skip_if_missing": true,
       "disable_paths": ["TC_REORDERED", "HYBRID_TC_CUDA"],
-      "M": 107614, "K": 107614, "nnz": 30494866
+      "M": 107614, "K": 107614, "nnz": 13673453,
+      "avg_nnz_per_row": 127.0602
     },
     {
       "name": "Reddit",

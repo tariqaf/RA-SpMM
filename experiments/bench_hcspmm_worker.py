@@ -20,11 +20,14 @@ R = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(R))
 sys.path.insert(0, str(R / "baselines" / "HC-SpMM" / "hybrid_kernel"))
 import ra_spmm  # noqa
-from ra_real_graph_eval import load_dataset, measure_ms, run_kernel  # noqa
-from ra_router_eval import simple_router  # noqa
+from ra_real_graph_eval import (BASE_ATOL, TC_EXTRA_FACTOR, load_dataset,
+                                measure_ms, measure_one_ms, population_cv)  # noqa
 import HCSPMM  # noqa
 
 FIXED = {32: "forward_fixed32", 64: "forward_fixed64"}
+WARMUP = 50
+TIMED = 200
+COLD_ITERS = 10
 
 
 def main():
@@ -32,6 +35,9 @@ def main():
     ap.add_argument("--dataset", required=True)
     ap.add_argument("--datasets-file", default=str(R / "paper_datasets.json"))
     ap.add_argument("--Ns", default="64")
+    ap.add_argument("--warmup", type=int, default=WARMUP)
+    ap.add_argument("--timed", type=int, default=TIMED)
+    ap.add_argument("--cold-iters", type=int, default=COLD_ITERS)
     args = ap.parse_args()
 
     man = {d["name"]: d for d in json.loads(Path(args.datasets_file).read_text())["datasets"]}
@@ -43,7 +49,9 @@ def main():
     rp = mat["rowptr"].cuda().int(); ci = mat["colind"].cuda().int(); v = mat["vals"].cuda().float()
     nnz = int(rp[-1].item()); nrw = (M + 15) // 16
     d_bar = nnz / max(1, M)
-    deg = (rp[1:] - rp[:-1]).float(); cv_d = float((deg.std() / deg.mean()).item()) if d_bar > 0 else 0.0
+    deg = (mat["rowptr"][1:] - mat["rowptr"][:-1]).float()
+    cv_d = population_cv(deg)
+    max_row_nnz = max(1, int(deg.max().item()))
 
     t0 = time.perf_counter(); meta = HCSPMM.preprocess(ci, rp, M, nnz, nrw); torch.cuda.synchronize()
     preproc_ms = (time.perf_counter() - t0) * 1e3
@@ -61,22 +69,50 @@ def main():
         C = out[0] if isinstance(out, (list, tuple)) else out
         Cref = ra_spmm.spmm_cusparse(rp, ci, v, X)
         max_err = (C.float() - Cref).abs().max().item()
-        ms_hc = measure_ms(call, 50, 200)
-        ms_cus = measure_ms(lambda: ra_spmm.spmm_cusparse(rp, ci, v, X), 50, 200)
-        rk = simple_router(d_bar, cv_d, M, N, nnz); pc = {}
-        try:
-            ms_router = measure_ms(lambda: run_kernel(rk, rp, ci, v, X, pc, f"{rk}_{N}"), 50, 200)
-        except Exception:
-            ms_router = float("nan")
+        tolerance = BASE_ATOL * max(1.0, max_row_nnz ** 0.5) * TC_EXTRA_FACTOR
+        correct = max_err <= tolerance and max_err < 1.0
+        ms_hc_warm = measure_ms(call, args.warmup, args.timed) if correct else float("nan")
+        setup_total = 0.0
+        exec_total = 0.0
+        if correct:
+            for _ in range(max(1, args.cold_iters)):
+                torch.cuda.synchronize()
+                cold_start = time.perf_counter()
+                cold_meta = HCSPMM.preprocess(ci, rp, M, nnz, nrw)
+                torch.cuda.synchronize()
+                setup_total += (time.perf_counter() - cold_start) * 1e3
+                cbp, ce2c, ce2r, cht, crnzr, ccnzr = cold_meta
+                cold_out, cold_exec = measure_one_ms(
+                    lambda: fn(X, rp, ci, cbp, ce2c, ce2r, cht, crnzr, ccnzr))
+                exec_total += cold_exec
+                del cold_out, cold_meta
+            preproc_ms = setup_total / max(1, args.cold_iters)
+            cold_exec_ms = exec_total / max(1, args.cold_iters)
+            ms_hc_cold = preproc_ms + cold_exec_ms
+        else:
+            cold_exec_ms = ms_hc_cold = float("nan")
+        cus_warm = ra_spmm.benchmark_cusparse(rp, ci, v, X, args.warmup, args.timed)
+        cus_cold = ra_spmm.benchmark_cusparse_cold(rp, ci, v, X, args.cold_iters)
         print(json.dumps({
             "dataset": args.dataset, "category": entry.get("category", "?"),
             "M": M, "nnz": nnz, "N": N, "kernel": "HC-SpMM",
-            "ms": round(ms_hc, 4), "ms_cusparse": round(ms_cus, 4),
-            "speedup_vs_cusparse": round(ms_cus / ms_hc, 3) if ms_hc > 0 else 0,
-            "router_kernel": rk, "ms_router": round(ms_router, 4),
-            "speedup_router_vs_hcspmm": round(ms_hc / ms_router, 3) if ms_router == ms_router and ms_router > 0 else 0,
-            "correct": bool(max_err < 1e-1), "max_error": round(max_err, 5),
-            "preproc_ms": round(preproc_ms, 4),
+            "status": "OK" if correct else "INCORRECT",
+            "ms_warm": round(ms_hc_warm, 6),
+            "preprocess_ms": round(preproc_ms, 6),
+            "cold_exec_ms": round(cold_exec_ms, 6),
+            "ms_cold": round(ms_hc_cold, 6),
+            "ms_cusparse_warm": round(float(cus_warm["exec_ms"]), 6),
+            "ms_cusparse_cold": round(float(cus_cold["total_ms"]), 6),
+            "speedup_vs_cusparse_warm": round(float(cus_warm["exec_ms"]) / ms_hc_warm, 6) if correct else None,
+            "speedup_vs_cusparse_cold": round(float(cus_cold["total_ms"]) / ms_hc_cold, 6) if correct else None,
+            "correct": correct,
+            "soft_fail": tolerance < max_err < 1.0,
+            "hard_fail": max_err >= 1.0,
+            "max_error": round(max_err, 8),
+            "tolerance": tolerance,
+            "warmup": args.warmup, "timed_iters": args.timed,
+            "cold_iters": args.cold_iters,
+            "error": "",
         }), flush=True)
         del X
     sys.exit(0)
