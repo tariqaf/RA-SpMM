@@ -669,6 +669,17 @@ struct RASegmentHybridPlan {
     int       num_zero_rows   = 0;
     int       num_windows     = 0;
 
+    // Deterministic two-phase merge for split windows: each split segment
+    // writes its 8xN partial tile into a scratch slot; a merge kernel then
+    // sums the slots of each split window in fixed ascending order.
+    int* d_seg_scratch  = nullptr;  // [num_segments] scratch slot, -1 = sole
+    int* d_split_wins   = nullptr;  // [num_split_windows] window id
+    int* d_split_off    = nullptr;  // [num_split_windows+1] slot prefix
+    int  num_split_segs    = 0;
+    int  num_split_windows = 0;
+    mutable float* d_scratch        = nullptr;
+    mutable size_t scratch_capacity = 0;
+
     mutable uint16_t* d_bhalf        = nullptr;
     mutable size_t    bhalf_capacity = 0;
 

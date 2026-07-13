@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <utility>
 #include <vector>
@@ -81,17 +82,23 @@ __global__ void sh_zero_rows_kernel(
 }
 
 // Segment variant of the swapped-operand mma kernel: one blockIdx.x per
-// segment; sole segments store, split segments atomicAdd into pre-zeroed C.
+// segment; sole segments store to C, split segments write their 8xN partial
+// tile to a scratch slot (merged deterministically by sh_merge_split_kernel).
+// kStagedTile stages each warp's 8x16 B tile in shared memory (N%64==0).
+template <bool kStagedTile>
 __global__ void sh_fs_tile_spmm_seg_kernel(
     const int*      __restrict__ seg_window,
     const int*      __restrict__ seg_bbegin,
     const int*      __restrict__ seg_bend,
+    const int*      __restrict__ seg_scratch,
     const int*      __restrict__ atox,
     const uint16_t* __restrict__ vals,
     const __half*   __restrict__ Bh,
     float*          __restrict__ C,
+    float*          __restrict__ scratch,
     int M, int N, int num_segments)
 {
+    __shared__ __half s_b[4][8][24];
     const int s    = blockIdx.x;
     const int warp = threadIdx.x >> 5;
     const int lane = threadIdx.x & 31;
@@ -116,31 +123,46 @@ __global__ void sh_fs_tile_spmm_seg_kernel(
     for (int b = b_begin; b < b_end; ++b) {
         const uint32_t bfrag = __ldg(reinterpret_cast<const uint32_t*>(
             vals + (i64)b * 64) + lane);
-        const int vbase = b * kVecPerBlock + tid * 2;
-        const int c0 = __ldg(atox + vbase);
-        const int c1 = __ldg(atox + vbase + 1);
-
-        __half a0 = __float2half(0.f), a1 = a0, a2 = a0, a3 = a0;
-        if (p_lo) {
-            a0 = __ldg(Bh + (i64)c0 * N + n0 + g);
-            a1 = __ldg(Bh + (i64)c1 * N + n0 + g);
+        uint32_t afrag0, afrag1;
+        if (kStagedTile) {
+            const int srow   = lane >> 2;
+            const int schunk = lane & 3;
+            const int c = __ldg(atox + b * kVecPerBlock + srow);
+            const uint2 chunk = *reinterpret_cast<const uint2*>(
+                Bh + (i64)c * N + n0 + schunk * 4);
+            *reinterpret_cast<uint2*>(&s_b[warp][srow][schunk * 4]) = chunk;
+            __syncwarp();
+            afrag0 = (static_cast<uint32_t>(
+                          __half_as_ushort(s_b[warp][tid * 2 + 1][g])) << 16) |
+                     __half_as_ushort(s_b[warp][tid * 2][g]);
+            afrag1 = (static_cast<uint32_t>(
+                          __half_as_ushort(s_b[warp][tid * 2 + 1][g + 8])) << 16) |
+                     __half_as_ushort(s_b[warp][tid * 2][g + 8]);
+        } else {
+            const int vbase = b * kVecPerBlock + tid * 2;
+            const int c0 = __ldg(atox + vbase);
+            const int c1 = __ldg(atox + vbase + 1);
+            __half a0 = __float2half(0.f), a1 = a0, a2 = a0, a3 = a0;
+            if (p_lo) {
+                a0 = __ldg(Bh + (i64)c0 * N + n0 + g);
+                a1 = __ldg(Bh + (i64)c1 * N + n0 + g);
+            }
+            if (p_hi) {
+                a2 = __ldg(Bh + (i64)c0 * N + n0 + g + 8);
+                a3 = __ldg(Bh + (i64)c1 * N + n0 + g + 8);
+            }
+            afrag0 = (static_cast<uint32_t>(__half_as_ushort(a1)) << 16) |
+                     __half_as_ushort(a0);
+            afrag1 = (static_cast<uint32_t>(__half_as_ushort(a3)) << 16) |
+                     __half_as_ushort(a2);
         }
-        if (p_hi) {
-            a2 = __ldg(Bh + (i64)c0 * N + n0 + g + 8);
-            a3 = __ldg(Bh + (i64)c1 * N + n0 + g + 8);
-        }
-        const uint32_t afrag0 =
-            (static_cast<uint32_t>(__half_as_ushort(a1)) << 16) |
-            __half_as_ushort(a0);
-        const uint32_t afrag1 =
-            (static_cast<uint32_t>(__half_as_ushort(a3)) << 16) |
-            __half_as_ushort(a2);
 
         asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32 "
             "{%0,%1,%2,%3}, {%4,%5}, {%6}, {%0,%1,%2,%3};\n"
             : "+f"(d0), "+f"(d1), "+f"(d2), "+f"(d3)
             : "r"(afrag0), "r"(afrag1), "r"(bfrag));
+        if (kStagedTile) __syncwarp();
     }
 
     const int r0 = w * kWindow + tid * 2;
@@ -155,14 +177,44 @@ __global__ void sh_fs_tile_spmm_seg_kernel(
             if (r1 < M) C[(i64)r1 * N + n0 + g + 8] = d3;
         }
     } else {
+        // Split segment: write the partial tile to this segment's scratch
+        // slot; sh_merge_split_kernel sums slots in fixed ascending order.
+        float* slot = scratch + (i64)seg_scratch[s] * kWindow * N;
+        const int t0 = tid * 2;
         if (p_lo) {
-            if (r0 < M) atomicAdd(&C[(i64)r0 * N + n0 + g], d0);
-            if (r1 < M) atomicAdd(&C[(i64)r1 * N + n0 + g], d1);
+            slot[(i64)t0 * N + n0 + g] = d0;
+            slot[(i64)(t0 + 1) * N + n0 + g] = d1;
         }
         if (p_hi) {
-            if (r0 < M) atomicAdd(&C[(i64)r0 * N + n0 + g + 8], d2);
-            if (r1 < M) atomicAdd(&C[(i64)r1 * N + n0 + g + 8], d3);
+            slot[(i64)t0 * N + n0 + g + 8] = d2;
+            slot[(i64)(t0 + 1) * N + n0 + g + 8] = d3;
         }
+    }
+}
+
+// Deterministic merge of split-window partial tiles into C.
+__global__ void sh_merge_split_kernel(
+    const int*   __restrict__ split_wins,
+    const int*   __restrict__ split_off,
+    const float* __restrict__ scratch,
+    float*       __restrict__ C,
+    int num_split_windows, int M, int N)
+{
+    const i64 total = (i64)num_split_windows * kWindow * N;
+    for (i64 idx = (i64)blockIdx.x * blockDim.x + threadIdx.x;
+         idx < total; idx += (i64)gridDim.x * blockDim.x) {
+        const int sw   = (int)(idx / ((i64)kWindow * N));
+        const i64 rem  = idx - (i64)sw * kWindow * N;
+        const int slot = (int)(rem / N);
+        const int col  = (int)(rem - (i64)slot * N);
+        const int r    = split_wins[sw] * kWindow + slot;
+        if (r >= M) continue;
+        float acc = 0.f;
+        const int o_end = split_off[sw + 1];
+        for (int o = split_off[sw]; o < o_end; ++o) {
+            acc += scratch[((i64)o * kWindow + slot) * N + col];
+        }
+        C[(i64)r * N + col] = acc;
     }
 }
 
@@ -199,16 +251,20 @@ __global__ void sh_zc_expand_vals_kernel(
 // slots to the tf32 B-fragment layout (rows k = tid and tid+4 of column g) —
 // fp16 -> tf32 is exact. Dense loads are rounded with cvt.rna. Sole/split
 // epilogue identical to the f16 kernel.
+template <bool kStagedTile>
 __global__ void sh_fs_tile_spmm_seg_tf32_kernel(
     const int*      __restrict__ seg_window,
     const int*      __restrict__ seg_bbegin,
     const int*      __restrict__ seg_bend,
+    const int*      __restrict__ seg_scratch,
     const int*      __restrict__ atox,
     const uint16_t* __restrict__ vals,
     const float*    __restrict__ Bf,
     float*          __restrict__ C,
+    float*          __restrict__ scratch,
     int M, int N, int num_segments)
 {
+    __shared__ float s_bf[4][8][24];
     const int s    = blockIdx.x;
     const int warp = threadIdx.x >> 5;
     const int lane = threadIdx.x & 31;
@@ -238,21 +294,35 @@ __global__ void sh_fs_tile_spmm_seg_tf32_kernel(
         uint32_t rb0 = __float_as_uint(__half2float(__ldg(vblk + vslot)));
         uint32_t rb1 = __float_as_uint(__half2float(__ldg(vblk + vslot + 4)));
 
-        const int vbase = b * kVecPerBlock + tid;
-        const int c_lo = __ldg(atox + vbase);
-        const int c_hi = __ldg(atox + vbase + 4);
-
-        float a0 = 0.f, a1 = 0.f, a2 = 0.f, a3 = 0.f;
-        if (p_lo) {
-            a0 = __ldg(Bf + (i64)c_lo * N + n0 + g);
-            a2 = __ldg(Bf + (i64)c_hi * N + n0 + g);
+        uint32_t ra0, ra1, ra2, ra3;
+        if (kStagedTile) {
+            const int srow   = lane >> 2;
+            const int schunk = lane & 3;
+            const int c = __ldg(atox + b * kVecPerBlock + srow);
+            const float4 chunk = *reinterpret_cast<const float4*>(
+                Bf + (i64)c * N + n0 + schunk * 4);
+            *reinterpret_cast<float4*>(&s_bf[warp][srow][schunk * 4]) = chunk;
+            __syncwarp();
+            ra0 = __float_as_uint(s_bf[warp][tid][g]);
+            ra1 = __float_as_uint(s_bf[warp][tid][g + 8]);
+            ra2 = __float_as_uint(s_bf[warp][tid + 4][g]);
+            ra3 = __float_as_uint(s_bf[warp][tid + 4][g + 8]);
+        } else {
+            const int vbase = b * kVecPerBlock + tid;
+            const int c_lo = __ldg(atox + vbase);
+            const int c_hi = __ldg(atox + vbase + 4);
+            float a0 = 0.f, a1 = 0.f, a2 = 0.f, a3 = 0.f;
+            if (p_lo) {
+                a0 = __ldg(Bf + (i64)c_lo * N + n0 + g);
+                a2 = __ldg(Bf + (i64)c_hi * N + n0 + g);
+            }
+            if (p_hi) {
+                a1 = __ldg(Bf + (i64)c_lo * N + n0 + g + 8);
+                a3 = __ldg(Bf + (i64)c_hi * N + n0 + g + 8);
+            }
+            ra0 = __float_as_uint(a0); ra1 = __float_as_uint(a1);
+            ra2 = __float_as_uint(a2); ra3 = __float_as_uint(a3);
         }
-        if (p_hi) {
-            a1 = __ldg(Bf + (i64)c_lo * N + n0 + g + 8);
-            a3 = __ldg(Bf + (i64)c_hi * N + n0 + g + 8);
-        }
-        uint32_t ra0 = __float_as_uint(a0), ra1 = __float_as_uint(a1);
-        uint32_t ra2 = __float_as_uint(a2), ra3 = __float_as_uint(a3);
         asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra0));
         asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra1));
         asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra2));
@@ -263,6 +333,7 @@ __global__ void sh_fs_tile_spmm_seg_tf32_kernel(
             "{%0,%1,%2,%3}, {%4,%5,%6,%7}, {%8,%9}, {%0,%1,%2,%3};\n"
             : "+f"(d0), "+f"(d1), "+f"(d2), "+f"(d3)
             : "r"(ra0), "r"(ra1), "r"(ra2), "r"(ra3), "r"(rb0), "r"(rb1));
+        if (kStagedTile) __syncwarp();
     }
 
     const int r0 = w * kWindow + tid * 2;
@@ -277,13 +348,15 @@ __global__ void sh_fs_tile_spmm_seg_tf32_kernel(
             if (r1 < M) C[(i64)r1 * N + n0 + g + 8] = d3;
         }
     } else {
+        float* slot = scratch + (i64)seg_scratch[s] * kWindow * N;
+        const int t0 = tid * 2;
         if (p_lo) {
-            if (r0 < M) atomicAdd(&C[(i64)r0 * N + n0 + g], d0);
-            if (r1 < M) atomicAdd(&C[(i64)r1 * N + n0 + g], d1);
+            slot[(i64)t0 * N + n0 + g] = d0;
+            slot[(i64)(t0 + 1) * N + n0 + g] = d1;
         }
         if (p_hi) {
-            if (r0 < M) atomicAdd(&C[(i64)r0 * N + n0 + g + 8], d2);
-            if (r1 < M) atomicAdd(&C[(i64)r1 * N + n0 + g + 8], d3);
+            slot[(i64)t0 * N + n0 + g + 8] = d2;
+            slot[(i64)(t0 + 1) * N + n0 + g + 8] = d3;
         }
     }
 }
@@ -394,6 +467,8 @@ void make_ra_segment_hybrid_plan(
 
     // ---- Balance splitting into segments of <= kSegBlocks blocks ----
     std::vector<int> seg_window, seg_bbegin, seg_bend, zero_rows;
+    std::vector<int> seg_scratch, split_wins, split_off{0};
+    int scratch_slots = 0;
     seg_window.reserve(num_windows + 16);
     for (int w = 0; w < num_windows; ++w) {
         const int b0 = block_offsets[w];
@@ -404,12 +479,16 @@ void make_ra_segment_hybrid_plan(
                 static_cast<int>(static_cast<unsigned>(w) | kSoleSegFlag));
             seg_bbegin.push_back(b0);
             seg_bend.push_back(b1);
+            seg_scratch.push_back(-1);
         } else {
+            split_wins.push_back(w);
             for (int b = b0; b < b1; b += kSegBlocks) {
                 seg_window.push_back(w);
                 seg_bbegin.push_back(b);
                 seg_bend.push_back(std::min(b + kSegBlocks, b1));
+                seg_scratch.push_back(scratch_slots++);
             }
+            split_off.push_back(scratch_slots);
             for (int r = w * kWindow; r < std::min(M, (w + 1) * kWindow); ++r) {
                 zero_rows.push_back(r);
             }
@@ -440,6 +519,11 @@ void make_ra_segment_hybrid_plan(
     plan.d_seg_bbegin    = upload_vec_sh(seg_bbegin);
     plan.d_seg_bend      = upload_vec_sh(seg_bend);
     plan.d_zero_rows     = upload_vec_sh(zero_rows);
+    plan.d_seg_scratch   = upload_vec_sh(seg_scratch);
+    plan.d_split_wins    = upload_vec_sh(split_wins);
+    plan.d_split_off     = upload_vec_sh(split_off);
+    plan.num_split_segs    = scratch_slots;
+    plan.num_split_windows = static_cast<int>(split_wins.size());
 
     plan.num_windows   = num_windows;
     plan.num_segments  = static_cast<int>(seg_window.size());
@@ -491,21 +575,41 @@ void run_ra_segment_hybrid_plan(
             d_B, reinterpret_cast<__half*>(plan.d_bhalf), pairs * 2, total);
     }
 
-    if (plan.num_zero_rows > 0) {
-        const i64 zr_total = (i64)plan.num_zero_rows * N;
-        const int threads = 256;
-        const int blocks = static_cast<int>(
-            std::min<i64>((zr_total + threads - 1) / threads, 65535));
-        sh_zero_rows_kernel<<<blocks, threads, 0, stream>>>(
-            d_C, plan.d_zero_rows, plan.num_zero_rows, N);
+    if (plan.num_split_segs > 0) {
+        const size_t need = (size_t)plan.num_split_segs * 8 * N * sizeof(float);
+        if (plan.scratch_capacity < need) {
+            if (plan.d_scratch) cudaFree(plan.d_scratch);
+            CUDA_CHECK_NEXT(cudaMalloc(&plan.d_scratch, need));
+            plan.scratch_capacity = need;
+        }
     }
 
+    const char* stage_env = std::getenv("RA_TC_STAGED");
+    const bool staged = !(stage_env && stage_env[0] == '0') && (N % 64 == 0);
+
     dim3 grid(plan.num_segments, (N + 63) / 64);
-    sh_fs_tile_spmm_seg_kernel<<<grid, 128, 0, stream>>>(
-        plan.d_seg_window, plan.d_seg_bbegin, plan.d_seg_bend,
-        plan.d_atox, plan.d_vals_f16,
-        reinterpret_cast<const __half*>(plan.d_bhalf), d_C,
-        plan.M, N, plan.num_segments);
+    if (staged) {
+        sh_fs_tile_spmm_seg_kernel<true><<<grid, 128, 0, stream>>>(
+            plan.d_seg_window, plan.d_seg_bbegin, plan.d_seg_bend,
+            plan.d_seg_scratch, plan.d_atox, plan.d_vals_f16,
+            reinterpret_cast<const __half*>(plan.d_bhalf), d_C,
+            plan.d_scratch, plan.M, N, plan.num_segments);
+    } else {
+        sh_fs_tile_spmm_seg_kernel<false><<<grid, 128, 0, stream>>>(
+            plan.d_seg_window, plan.d_seg_bbegin, plan.d_seg_bend,
+            plan.d_seg_scratch, plan.d_atox, plan.d_vals_f16,
+            reinterpret_cast<const __half*>(plan.d_bhalf), d_C,
+            plan.d_scratch, plan.M, N, plan.num_segments);
+    }
+    if (plan.num_split_windows > 0) {
+        const i64 total = (i64)plan.num_split_windows * 8 * N;
+        const int threads = 256;
+        const int blocks = static_cast<int>(
+            std::min<i64>((total + threads - 1) / threads, 65535));
+        sh_merge_split_kernel<<<blocks, threads, 0, stream>>>(
+            plan.d_split_wins, plan.d_split_off, plan.d_scratch, d_C,
+            plan.num_split_windows, plan.M, N);
+    }
 
     CUDA_CHECK_KERNEL();
 }
@@ -524,20 +628,39 @@ void run_ra_segment_hybrid_plan_tf32(
 {
     if (!plan.active || plan.M <= 0 || N <= 0) return;
 
-    if (plan.num_zero_rows > 0) {
-        const i64 zr_total = (i64)plan.num_zero_rows * N;
-        const int threads = 256;
-        const int blocks = static_cast<int>(
-            std::min<i64>((zr_total + threads - 1) / threads, 65535));
-        sh_zero_rows_kernel<<<blocks, threads, 0, stream>>>(
-            d_C, plan.d_zero_rows, plan.num_zero_rows, N);
+    if (plan.num_split_segs > 0) {
+        const size_t need = (size_t)plan.num_split_segs * 8 * N * sizeof(float);
+        if (plan.scratch_capacity < need) {
+            if (plan.d_scratch) cudaFree(plan.d_scratch);
+            CUDA_CHECK_NEXT(cudaMalloc(&plan.d_scratch, need));
+            plan.scratch_capacity = need;
+        }
     }
 
+    const char* stage_env = std::getenv("RA_TC_STAGED");
+    const bool staged = !(stage_env && stage_env[0] == '0') && (N % 64 == 0);
+
     dim3 grid(plan.num_segments, (N + 63) / 64);
-    sh_fs_tile_spmm_seg_tf32_kernel<<<grid, 128, 0, stream>>>(
-        plan.d_seg_window, plan.d_seg_bbegin, plan.d_seg_bend,
-        plan.d_atox, plan.d_vals_f16, d_B, d_C,
-        plan.M, N, plan.num_segments);
+    if (staged) {
+        sh_fs_tile_spmm_seg_tf32_kernel<true><<<grid, 128, 0, stream>>>(
+            plan.d_seg_window, plan.d_seg_bbegin, plan.d_seg_bend,
+            plan.d_seg_scratch, plan.d_atox, plan.d_vals_f16, d_B, d_C,
+            plan.d_scratch, plan.M, N, plan.num_segments);
+    } else {
+        sh_fs_tile_spmm_seg_tf32_kernel<false><<<grid, 128, 0, stream>>>(
+            plan.d_seg_window, plan.d_seg_bbegin, plan.d_seg_bend,
+            plan.d_seg_scratch, plan.d_atox, plan.d_vals_f16, d_B, d_C,
+            plan.d_scratch, plan.M, N, plan.num_segments);
+    }
+    if (plan.num_split_windows > 0) {
+        const i64 total = (i64)plan.num_split_windows * 8 * N;
+        const int threads = 256;
+        const int blocks = static_cast<int>(
+            std::min<i64>((total + threads - 1) / threads, 65535));
+        sh_merge_split_kernel<<<blocks, threads, 0, stream>>>(
+            plan.d_split_wins, plan.d_split_off, plan.d_scratch, d_C,
+            plan.num_split_windows, plan.M, N);
+    }
 
     CUDA_CHECK_KERNEL();
 }
@@ -553,6 +676,12 @@ void free_ra_segment_hybrid_plan(RASegmentHybridPlan& plan) {
     if (plan.d_seg_bbegin)    { cudaFree(plan.d_seg_bbegin);    plan.d_seg_bbegin    = nullptr; }
     if (plan.d_seg_bend)      { cudaFree(plan.d_seg_bend);      plan.d_seg_bend      = nullptr; }
     if (plan.d_zero_rows)     { cudaFree(plan.d_zero_rows);     plan.d_zero_rows     = nullptr; }
+    if (plan.d_seg_scratch)   { cudaFree(plan.d_seg_scratch);   plan.d_seg_scratch   = nullptr; }
+    if (plan.d_split_wins)    { cudaFree(plan.d_split_wins);    plan.d_split_wins    = nullptr; }
+    if (plan.d_split_off)     { cudaFree(plan.d_split_off);     plan.d_split_off     = nullptr; }
+    if (plan.d_scratch)       { cudaFree(plan.d_scratch);       plan.d_scratch       = nullptr; }
+    plan.scratch_capacity = 0;
+    plan.num_split_segs = plan.num_split_windows = 0;
     if (plan.d_bhalf)         { cudaFree(plan.d_bhalf);         plan.d_bhalf         = nullptr; }
     plan.bhalf_capacity = 0;
     plan.num_windows = plan.num_segments = plan.num_zero_rows = 0;

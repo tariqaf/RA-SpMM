@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <climits>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <numeric>
 #include <utility>
@@ -102,6 +103,7 @@ __global__ void ct_convert_b_to_half_tail_kernel(
 
 // Permuted-window variant of the swapped-operand mma kernel: output rows go
 // through d_win_rows (original row per window slot, -1 for padding).
+template <bool kStagedTile>
 __global__ void ct_fs_tile_spmm_perm_kernel(
     const int*      __restrict__ block_offsets,
     const int*      __restrict__ atox,
@@ -111,6 +113,7 @@ __global__ void ct_fs_tile_spmm_perm_kernel(
     float*          __restrict__ C,
     int N, int num_windows)
 {
+    __shared__ __half s_b[4][8][24];
     const int w    = blockIdx.x;
     const int warp = threadIdx.x >> 5;
     const int lane = threadIdx.x & 31;
@@ -131,31 +134,46 @@ __global__ void ct_fs_tile_spmm_perm_kernel(
     for (int b = b_begin; b < b_end; ++b) {
         const uint32_t bfrag = __ldg(reinterpret_cast<const uint32_t*>(
             vals + (i64)b * 64) + lane);
-        const int vbase = b * kVecPerBlock + tid * 2;
-        const int c0 = __ldg(atox + vbase);
-        const int c1 = __ldg(atox + vbase + 1);
-
-        __half a0 = __float2half(0.f), a1 = a0, a2 = a0, a3 = a0;
-        if (p_lo) {
-            a0 = __ldg(Bh + (i64)c0 * N + n0 + g);
-            a1 = __ldg(Bh + (i64)c1 * N + n0 + g);
+        uint32_t afrag0, afrag1;
+        if (kStagedTile) {
+            const int srow   = lane >> 2;
+            const int schunk = lane & 3;
+            const int c = __ldg(atox + b * kVecPerBlock + srow);
+            const uint2 chunk = *reinterpret_cast<const uint2*>(
+                Bh + (i64)c * N + n0 + schunk * 4);
+            *reinterpret_cast<uint2*>(&s_b[warp][srow][schunk * 4]) = chunk;
+            __syncwarp();
+            afrag0 = (static_cast<uint32_t>(
+                          __half_as_ushort(s_b[warp][tid * 2 + 1][g])) << 16) |
+                     __half_as_ushort(s_b[warp][tid * 2][g]);
+            afrag1 = (static_cast<uint32_t>(
+                          __half_as_ushort(s_b[warp][tid * 2 + 1][g + 8])) << 16) |
+                     __half_as_ushort(s_b[warp][tid * 2][g + 8]);
+        } else {
+            const int vbase = b * kVecPerBlock + tid * 2;
+            const int c0 = __ldg(atox + vbase);
+            const int c1 = __ldg(atox + vbase + 1);
+            __half a0 = __float2half(0.f), a1 = a0, a2 = a0, a3 = a0;
+            if (p_lo) {
+                a0 = __ldg(Bh + (i64)c0 * N + n0 + g);
+                a1 = __ldg(Bh + (i64)c1 * N + n0 + g);
+            }
+            if (p_hi) {
+                a2 = __ldg(Bh + (i64)c0 * N + n0 + g + 8);
+                a3 = __ldg(Bh + (i64)c1 * N + n0 + g + 8);
+            }
+            afrag0 = (static_cast<uint32_t>(__half_as_ushort(a1)) << 16) |
+                     __half_as_ushort(a0);
+            afrag1 = (static_cast<uint32_t>(__half_as_ushort(a3)) << 16) |
+                     __half_as_ushort(a2);
         }
-        if (p_hi) {
-            a2 = __ldg(Bh + (i64)c0 * N + n0 + g + 8);
-            a3 = __ldg(Bh + (i64)c1 * N + n0 + g + 8);
-        }
-        const uint32_t afrag0 =
-            (static_cast<uint32_t>(__half_as_ushort(a1)) << 16) |
-            __half_as_ushort(a0);
-        const uint32_t afrag1 =
-            (static_cast<uint32_t>(__half_as_ushort(a3)) << 16) |
-            __half_as_ushort(a2);
 
         asm volatile(
             "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32 "
             "{%0,%1,%2,%3}, {%4,%5}, {%6}, {%0,%1,%2,%3};\n"
             : "+f"(d0), "+f"(d1), "+f"(d2), "+f"(d3)
             : "r"(afrag0), "r"(afrag1), "r"(bfrag));
+        if (kStagedTile) __syncwarp();
     }
 
     const int slot0 = w * kWindow + tid * 2;
@@ -203,6 +221,7 @@ __global__ void ct_zc_expand_vals_kernel(
 // convert pass, no half scratch). Same plan; the lane remaps its two sparse
 // half slots to the tf32 B-fragment layout (rows k = tid and tid+4 of column
 // g) — fp16 -> tf32 is exact. Dense loads are rounded with cvt.rna.
+template <bool kStagedTile>
 __global__ void ct_fs_tile_spmm_perm_tf32_kernel(
     const int*      __restrict__ block_offsets,
     const int*      __restrict__ atox,
@@ -212,6 +231,7 @@ __global__ void ct_fs_tile_spmm_perm_tf32_kernel(
     float*          __restrict__ C,
     int N, int num_windows)
 {
+    __shared__ float s_bf[4][8][24];
     const int w    = blockIdx.x;
     const int warp = threadIdx.x >> 5;
     const int lane = threadIdx.x & 31;
@@ -237,21 +257,35 @@ __global__ void ct_fs_tile_spmm_perm_tf32_kernel(
         uint32_t rb0 = __float_as_uint(__half2float(__ldg(vblk + vslot)));
         uint32_t rb1 = __float_as_uint(__half2float(__ldg(vblk + vslot + 4)));
 
-        const int vbase = b * kVecPerBlock + tid;
-        const int c_lo = __ldg(atox + vbase);
-        const int c_hi = __ldg(atox + vbase + 4);
-
-        float a0 = 0.f, a1 = 0.f, a2 = 0.f, a3 = 0.f;
-        if (p_lo) {
-            a0 = __ldg(Bf + (i64)c_lo * N + n0 + g);
-            a2 = __ldg(Bf + (i64)c_hi * N + n0 + g);
+        uint32_t ra0, ra1, ra2, ra3;
+        if (kStagedTile) {
+            const int srow   = lane >> 2;
+            const int schunk = lane & 3;
+            const int c = __ldg(atox + b * kVecPerBlock + srow);
+            const float4 chunk = *reinterpret_cast<const float4*>(
+                Bf + (i64)c * N + n0 + schunk * 4);
+            *reinterpret_cast<float4*>(&s_bf[warp][srow][schunk * 4]) = chunk;
+            __syncwarp();
+            ra0 = __float_as_uint(s_bf[warp][tid][g]);
+            ra1 = __float_as_uint(s_bf[warp][tid][g + 8]);
+            ra2 = __float_as_uint(s_bf[warp][tid + 4][g]);
+            ra3 = __float_as_uint(s_bf[warp][tid + 4][g + 8]);
+        } else {
+            const int vbase = b * kVecPerBlock + tid;
+            const int c_lo = __ldg(atox + vbase);
+            const int c_hi = __ldg(atox + vbase + 4);
+            float a0 = 0.f, a1 = 0.f, a2 = 0.f, a3 = 0.f;
+            if (p_lo) {
+                a0 = __ldg(Bf + (i64)c_lo * N + n0 + g);
+                a2 = __ldg(Bf + (i64)c_hi * N + n0 + g);
+            }
+            if (p_hi) {
+                a1 = __ldg(Bf + (i64)c_lo * N + n0 + g + 8);
+                a3 = __ldg(Bf + (i64)c_hi * N + n0 + g + 8);
+            }
+            ra0 = __float_as_uint(a0); ra1 = __float_as_uint(a1);
+            ra2 = __float_as_uint(a2); ra3 = __float_as_uint(a3);
         }
-        if (p_hi) {
-            a1 = __ldg(Bf + (i64)c_lo * N + n0 + g + 8);
-            a3 = __ldg(Bf + (i64)c_hi * N + n0 + g + 8);
-        }
-        uint32_t ra0 = __float_as_uint(a0), ra1 = __float_as_uint(a1);
-        uint32_t ra2 = __float_as_uint(a2), ra3 = __float_as_uint(a3);
         asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra0));
         asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra1));
         asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra2));
@@ -262,6 +296,7 @@ __global__ void ct_fs_tile_spmm_perm_tf32_kernel(
             "{%0,%1,%2,%3}, {%4,%5,%6,%7}, {%8,%9}, {%0,%1,%2,%3};\n"
             : "+f"(d0), "+f"(d1), "+f"(d2), "+f"(d3)
             : "r"(ra0), "r"(ra1), "r"(ra2), "r"(ra3), "r"(rb0), "r"(rb1));
+        if (kStagedTile) __syncwarp();
     }
 
     const int slot0 = w * kWindow + tid * 2;
@@ -468,11 +503,21 @@ void run_ra_community_tc_plan(
             d_B, reinterpret_cast<__half*>(plan.d_bhalf), pairs * 2, total);
     }
 
+    const char* stage_env = std::getenv("RA_TC_STAGED");
+    const bool staged = !(stage_env && stage_env[0] == '0') && (N % 64 == 0);
+
     dim3 grid(plan.num_windows, (N + 63) / 64);
-    ct_fs_tile_spmm_perm_kernel<<<grid, 128, 0, stream>>>(
-        plan.d_block_offsets, plan.d_atox, plan.d_vals_f16, plan.d_win_rows,
-        reinterpret_cast<const __half*>(plan.d_bhalf), d_C,
-        N, plan.num_windows);
+    if (staged) {
+        ct_fs_tile_spmm_perm_kernel<true><<<grid, 128, 0, stream>>>(
+            plan.d_block_offsets, plan.d_atox, plan.d_vals_f16, plan.d_win_rows,
+            reinterpret_cast<const __half*>(plan.d_bhalf), d_C,
+            N, plan.num_windows);
+    } else {
+        ct_fs_tile_spmm_perm_kernel<false><<<grid, 128, 0, stream>>>(
+            plan.d_block_offsets, plan.d_atox, plan.d_vals_f16, plan.d_win_rows,
+            reinterpret_cast<const __half*>(plan.d_bhalf), d_C,
+            N, plan.num_windows);
+    }
 
     CUDA_CHECK_KERNEL();
 }
@@ -489,10 +534,19 @@ void run_ra_community_tc_plan_tf32(
 {
     if (!plan.active || plan.M <= 0 || N <= 0) return;
 
+    const char* stage_env = std::getenv("RA_TC_STAGED");
+    const bool staged = !(stage_env && stage_env[0] == '0') && (N % 64 == 0);
+
     dim3 grid(plan.num_windows, (N + 63) / 64);
-    ct_fs_tile_spmm_perm_tf32_kernel<<<grid, 128, 0, stream>>>(
-        plan.d_block_offsets, plan.d_atox, plan.d_vals_f16, plan.d_win_rows,
-        d_B, d_C, N, plan.num_windows);
+    if (staged) {
+        ct_fs_tile_spmm_perm_tf32_kernel<true><<<grid, 128, 0, stream>>>(
+            plan.d_block_offsets, plan.d_atox, plan.d_vals_f16, plan.d_win_rows,
+            d_B, d_C, N, plan.num_windows);
+    } else {
+        ct_fs_tile_spmm_perm_tf32_kernel<false><<<grid, 128, 0, stream>>>(
+            plan.d_block_offsets, plan.d_atox, plan.d_vals_f16, plan.d_win_rows,
+            d_B, d_C, N, plan.num_windows);
+    }
 
     CUDA_CHECK_KERNEL();
 }
