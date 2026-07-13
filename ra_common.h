@@ -240,6 +240,8 @@ struct RouterScores {
 // ---------------------------------------------------------------------------
 struct RouterPlan {
     NextPath    chosen_path;
+    bool        use_tf32 = false;  // precision dimension: run the chosen
+                                   // tile kernel on its TF32-direct path
     std::string decision_reason;
     RouterFeatures features;
     RouterScores   scores;       // NOTE: RouterScores are diagnostic ONLY -- see note below

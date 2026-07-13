@@ -1010,11 +1010,17 @@ RouterPlan route_dispatch(
         const double est_plan_s =
             2e-8 * static_cast<double>(d) * static_cast<double>(M);
         const bool tile_ok = feas(NextPath::TC_DIRECT) && est_plan_s <= 20.0;
-        auto pick_tile = [&](NextPath p, const char* reason) {
+        bool extended_tf32 = false;
+        auto pick_tile = [&](NextPath p, const char* reason,
+                             bool force_tf32 = false) {
             if (tile_ok && feas(p)) {
                 extended_choice = p;
                 extended_reason = reason;
                 extended_risk = 0.06f;
+                // Precision dimension (round 3): TF32 wins where the deleted
+                // B->FP16 conversion outweighs the doubled FP32 gather.
+                extended_tf32 = force_tf32 ||
+                    (d < 5.0f || (M <= 25000 && d < 9.0f));
             } else if (cv < 1.5f) {
                 extended_choice = NextPath::CSR_DIRECT;
                 extended_reason = "csr_direct_tile_gated";
@@ -1037,17 +1043,22 @@ RouterPlan route_dispatch(
         } else if (cv < 0.7f) {
             // Rule 3: uniform / near-uniform family.
             if (d < 4.5f) {
-                extended_choice = NextPath::CSR_DIRECT;
-                extended_reason = "csr_direct_uniform_ultralow_d";
-                extended_risk = 0.05f;
-            } else if (cv < 0.2f && N <= 64 && d >= 25.0f) {
-                extended_choice = NextPath::CSR_DIRECT;
-                extended_reason = "csr_direct_uniform_dense_small_narrowN";
-                extended_risk = 0.05f;
+                if (N <= 256) {
+                    extended_choice = NextPath::CSR_DIRECT;
+                    extended_reason = "csr_direct_uniform_ultralow_d";
+                    extended_risk = 0.05f;
+                } else {
+                    pick_tile(NextPath::TC_DIRECT, "tc_direct_uniform_wideN");
+                }
             } else if (cv >= 0.2f && d < 7.0f) {
-                extended_choice = NextPath::CSR_DIRECT;
-                extended_reason = "csr_direct_synth_community";
-                extended_risk = 0.05f;
+                if (N <= 128) {
+                    extended_choice = NextPath::CSR_DIRECT;
+                    extended_reason = "csr_direct_synth_community";
+                    extended_risk = 0.05f;
+                } else {
+                    pick_tile(NextPath::TC_DIRECT,
+                              "tc_direct_community_wideN", true);
+                }
             } else {
                 pick_tile(NextPath::TC_DIRECT, "tc_direct_uniform");
             }
@@ -1067,7 +1078,7 @@ RouterPlan route_dispatch(
                 extended_choice = NextPath::CUSPARSE;
                 extended_reason = "cusparse_small_dense_narrowN";
                 extended_risk = 0.05f;
-            } else if (N < 384) {
+            } else if (N < 256) {
                 pick_tile(NextPath::SEGMENT_HYBRID, "segment_hybrid_small_dense");
             } else {
                 pick_tile(NextPath::COMMUNITY_TC, "community_tc_small_dense_wideN");
@@ -1077,12 +1088,18 @@ RouterPlan route_dispatch(
             pick_tile(NextPath::COMMUNITY_TC, "community_tc_heavy_mixed");
         } else if (d < 9.0f && cv >= 1.10f && cv <= 1.45f && M >= 250000) {
             // Rule 8: web-locality sparse (web-Google, web-Stanford).
-            pick_tile(NextPath::COMMUNITY_TC, "community_tc_web_locality");
+            pick_tile(NextPath::COMMUNITY_TC, "community_tc_web_locality",
+                      true);
         } else {
             // Default fallthrough.
             pick_tile(NextPath::TC_DIRECT, "tc_direct_default");
         }
 
+        const bool chosen_is_tile =
+            extended_choice == NextPath::TC_DIRECT ||
+            extended_choice == NextPath::COMMUNITY_TC ||
+            extended_choice == NextPath::SEGMENT_HYBRID;
+        plan.use_tf32 = chosen_is_tile && extended_tf32;
         if (plan.feasible[static_cast<int>(extended_choice)]) {
             mark_choice(
                 plan,

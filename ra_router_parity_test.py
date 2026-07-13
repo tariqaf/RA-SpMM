@@ -90,6 +90,8 @@ def main():
             plan = ra_spmm.make_router_plan(
                 rowptr.cpu(), colind.cpu(), vals.cpu(), M, M, int(N), "MAIN")
             cpp_pick = str(plan["chosen_path"])
+            if plan.get("use_tf32", False):
+                cpp_pick += "_TF32"
             n_total += 1
             if py_pick == cpp_pick:
                 n_match += 1

@@ -21,9 +21,11 @@ import sys
 from collections import defaultdict
 
 
-# Final 6-kernel roster
+# Final roster: 6 kernels + the round-3 TF32 precision variants of the
+# three tile kernels (router-selected by the degree/size gate).
 KERNELS = ["CSR_DIRECT", "RODE_ENHANCED", "ZERO_OVERHEAD_CSR",
-           "TC_DIRECT", "COMMUNITY_TC", "SEGMENT_HYBRID"]
+           "TC_DIRECT", "COMMUNITY_TC", "SEGMENT_HYBRID",
+           "TC_DIRECT_TF32", "COMMUNITY_TC_TF32", "SEGMENT_HYBRID_TF32"]
 DEFAULT_RESULTS = "results/spmm/all_graphs_results.csv"
 
 
@@ -49,9 +51,16 @@ def route_with_rules(avg_nnz, degree_cv, M, N, nnz, *, disabled_rules=()):
     tile_ok = (N >= 16) and (float(nnz) * 2e-8 <= 20.0)
 
     def tile(kernel):
-        if tile_ok:
-            return kernel
-        return "CSR_DIRECT" if cv < 1.5 else "ZERO_OVERHEAD_CSR"
+        if not tile_ok:
+            return "CSR_DIRECT" if cv < 1.5 else "ZERO_OVERHEAD_CSR"
+        # Precision dimension (round 3): the TF32 path deletes the B->FP16
+        # conversion pass but doubles gather bytes, so it wins exactly where
+        # conversion dominates: low average degree, or small graphs whose
+        # doubled gather stays L2-resident. Zero mispicks on the fair sweep
+        # for all three tile kernels.
+        if d < 5.0 or (M <= 25000 and d < 9.0):
+            return kernel + "_TF32"
+        return kernel
 
     # 1. Sub-tiny graphs (Cora, CiteSeer, PPI): launch-bound; the dense
     #    fully-resident window plan wins across N.
@@ -67,11 +76,17 @@ def route_with_rules(avg_nnz, degree_cv, M, N, nnz, *, disabled_rules=()):
     #    synthetic communities, uniform dense-small).
     if 3 not in disabled and cv < 0.7:
         if d < 4.5:
-            return "CSR_DIRECT"          # roadNet-*, uniform d=3
-        if cv < 0.2 and N <= 64 and d >= 25.0:
-            return "CSR_DIRECT"          # uniform dense-small at narrow N
+            # roadNet-*, uniform d=3: CSR wins at narrow N; the staged/TF32
+            # tile path overtakes it at wide N (round 3).
+            return "CSR_DIRECT" if N <= 256 else tile("TC_DIRECT")
         if cv >= 0.2 and d < 7.0:
-            return "CSR_DIRECT"          # synth_community_nc*
+            # synth_community_nc*: CSR at narrow N; at wide N the tile path
+            # wins on its TF32 variant (community locality keeps the doubled
+            # FP32 gather cache-resident despite d slightly above the gate).
+            if N <= 128:
+                return "CSR_DIRECT"
+            picked = tile("TC_DIRECT")
+            return picked + "_TF32" if picked == "TC_DIRECT" else picked
         return tile("TC_DIRECT")
 
     # 4. Very skewed (cv >= 3): Yelp-class large -> COMMUNITY_TC,
@@ -89,7 +104,7 @@ def route_with_rules(avg_nnz, degree_cv, M, N, nnz, *, disabled_rules=()):
     if 6 not in disabled and M < 20000 and d >= 25.0:
         if N < 96:
             return "CUSPARSE"
-        if N < 384:
+        if N < 256:
             return tile("SEGMENT_HYBRID")
         return tile("COMMUNITY_TC")
 
@@ -100,7 +115,10 @@ def route_with_rules(avg_nnz, degree_cv, M, N, nnz, *, disabled_rules=()):
     # 8. Web-locality sparse (web-Google, web-Stanford): large M, low d,
     #    moderate cv.
     if 8 not in disabled and d < 9.0 and 1.10 <= cv <= 1.45 and M >= 250000:
-        return tile("COMMUNITY_TC")
+        # Web graphs: the locality sort raises gather reuse enough that the
+        # TF32 path wins here even above the generic degree gate (round 3).
+        picked = tile("COMMUNITY_TC")
+        return picked + "_TF32" if picked == "COMMUNITY_TC" else picked
 
     # Fallthrough: TC_DIRECT (arxiv, Amazon0601, com-DBLP/Amazon, Pokec,
     # twitter, mid-degree skewed/mixed synthetics, ...).

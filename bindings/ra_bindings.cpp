@@ -614,6 +614,7 @@ struct CuSparsePlanWrapper {
 static pybind11::dict plan_to_dict(const RouterPlan& plan) {
     pybind11::dict d;
     d["chosen_path"]      = std::string(next_path_name(plan.chosen_path));
+    d["use_tf32"]         = plan.use_tf32;
     d["chosen_path_int"]  = (int)plan.chosen_path;
     d["decision_reason"]  = plan.decision_reason;
     d["estimated_risk"]   = plan.estimated_risk;
