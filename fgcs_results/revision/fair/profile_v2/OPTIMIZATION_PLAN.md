@@ -204,6 +204,24 @@ fragments → same accumulation order). Measured plan shrink 2.33–2.70×
 (e.g. roadNet-TX 77.2→29.4 MB). A/B benchmark sweep + ncu (regs, occupancy,
 DRAM, L2, stalls, per external review) in progress.
 
+### E2a — staged smem B gather (2026-07-14)
+
+`fs_tile_spmm_staged_kernel`(+tf32) in tc/ra_tc_direct.cu: warp-local 8×16 B
+tile staged with one aligned 8-byte load per lane (vs 4 scattered 2-byte
+fragment loads), 24-element row stride (conflict-free fragment reads), active
+when N%64==0, RA_TC_STAGED=0 reverts. Correction to the mining doc's premise:
+intra-block sector waste was already absorbed by L1 (all 4 warps touch the
+full 128B row strip), so the win is load-instruction width/count, not sector
+efficiency — hence moderate gains, not the hoped-for big lever.
+
+Paired same-plan A/B, all 51 graphs (`revision/tf32/e2a_staged_ab.csv`):
+staged/unstaged warm geomean **fp16 ×1.042, tf32 ×1.011** (DenseSmall +8.7%,
+DenseLarge +8.1%, Mixed +7.0%, Skewed +3.8%, Community +2.4%, Uniform −0.5%
+fp16 / +1.2% tf32). Only regression (roads fp16 −3..−5%) disappears under
+precision routing (roads → tf32 where staged +1.9%). **Decision: staged is
+the default.** E2b (cp.async double-buffer) gate met; queued after S1/C1.
+CT/SH staged port queued with S1 edits.
+
 ### E3 Step 0 — vector fill factors (2026-07-14)
 
 `fgcs_results/revision/tf32/zc_fill_report.csv`, all 51 graphs. **Average

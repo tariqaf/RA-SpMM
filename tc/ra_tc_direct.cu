@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <utility>
 #include <vector>
@@ -257,6 +258,140 @@ __global__ void fs_tile_spmm_tf32_kernel(
         if (r0 < M) C[(i64)r0 * N + n0 + g + 8] = d2;
         if (r1 < M) C[(i64)r1 * N + n0 + g + 8] = d3;
     }
+}
+
+// ---------------------------------------------------------------------------
+// Staged variant of the swapped-operand mma kernel (requires N % 64 == 0):
+// each warp cooperatively stages its 8-row x 16-column B tile into shared
+// memory with one aligned 8-byte load per lane (vs 4 scattered 2-byte loads
+// per lane in fragment order), then feeds the mma from shared memory.
+// Row stride padded to 24 halfs for conflict-free fragment reads.
+// ---------------------------------------------------------------------------
+__global__ void fs_tile_spmm_staged_kernel(
+    const int*      __restrict__ block_offsets,
+    const int*      __restrict__ atox,
+    const uint16_t* __restrict__ vals,
+    const __half*   __restrict__ Bh,
+    float*          __restrict__ C,
+    int M, int N, int num_windows)
+{
+    __shared__ __half s_b[4][8][24];
+
+    const int w    = blockIdx.x;
+    const int warp = threadIdx.x >> 5;
+    const int lane = threadIdx.x & 31;
+    const int n0   = (blockIdx.y * 4 + warp) * 16;
+    if (w >= num_windows || n0 >= N) return;
+
+    const int g   = lane >> 2;
+    const int tid = lane & 3;
+
+    const int srow   = lane >> 2;   // staging: B row within the tile
+    const int schunk = lane & 3;    // staging: 4-half chunk within 16 cols
+
+    const int b_begin = block_offsets[w];
+    const int b_end   = block_offsets[w + 1];
+
+    float d0 = 0.f, d1 = 0.f, d2 = 0.f, d3 = 0.f;
+
+    for (int b = b_begin; b < b_end; ++b) {
+        const uint32_t bfrag = __ldg(reinterpret_cast<const uint32_t*>(
+            vals + (i64)b * 64) + lane);
+
+        const int c = __ldg(atox + b * kVecPerBlock + srow);
+        const uint2 chunk = *reinterpret_cast<const uint2*>(
+            Bh + (i64)c * N + n0 + schunk * 4);
+        *reinterpret_cast<uint2*>(&s_b[warp][srow][schunk * 4]) = chunk;
+        __syncwarp();
+
+        const uint32_t afrag0 =
+            (static_cast<uint32_t>(__half_as_ushort(s_b[warp][tid * 2 + 1][g])) << 16) |
+            __half_as_ushort(s_b[warp][tid * 2][g]);
+        const uint32_t afrag1 =
+            (static_cast<uint32_t>(__half_as_ushort(s_b[warp][tid * 2 + 1][g + 8])) << 16) |
+            __half_as_ushort(s_b[warp][tid * 2][g + 8]);
+
+        asm volatile(
+            "mma.sync.aligned.m16n8k8.row.col.f32.f16.f16.f32 "
+            "{%0,%1,%2,%3}, {%4,%5}, {%6}, {%0,%1,%2,%3};\n"
+            : "+f"(d0), "+f"(d1), "+f"(d2), "+f"(d3)
+            : "r"(afrag0), "r"(afrag1), "r"(bfrag));
+        __syncwarp();
+    }
+
+    const int r0 = w * kWindow + tid * 2;
+    const int r1 = r0 + 1;
+    if (r0 < M) C[(i64)r0 * N + n0 + g] = d0;
+    if (r1 < M) C[(i64)r1 * N + n0 + g] = d1;
+    if (r0 < M) C[(i64)r0 * N + n0 + g + 8] = d2;
+    if (r1 < M) C[(i64)r1 * N + n0 + g + 8] = d3;
+}
+
+// Staged TF32 variant (requires N % 64 == 0): stages FP32 tiles (one float4
+// per lane), converts to tf32 at fragment read.
+__global__ void fs_tile_spmm_staged_tf32_kernel(
+    const int*      __restrict__ block_offsets,
+    const int*      __restrict__ atox,
+    const uint16_t* __restrict__ vals,
+    const float*    __restrict__ Bf,
+    float*          __restrict__ C,
+    int M, int N, int num_windows)
+{
+    __shared__ float s_b[4][8][24];
+
+    const int w    = blockIdx.x;
+    const int warp = threadIdx.x >> 5;
+    const int lane = threadIdx.x & 31;
+    const int n0   = (blockIdx.y * 4 + warp) * 16;
+    if (w >= num_windows || n0 >= N) return;
+
+    const int g   = lane >> 2;
+    const int tid = lane & 3;
+
+    const int srow   = lane >> 2;
+    const int schunk = lane & 3;
+
+    const int b_begin = block_offsets[w];
+    const int b_end   = block_offsets[w + 1];
+
+    const int vslot = (g * 4 + (tid >> 1)) * 2 + (tid & 1);
+
+    float d0 = 0.f, d1 = 0.f, d2 = 0.f, d3 = 0.f;
+
+    for (int b = b_begin; b < b_end; ++b) {
+        const __half* vblk = reinterpret_cast<const __half*>(vals + (i64)b * 64);
+        uint32_t rb0 = __float_as_uint(__half2float(__ldg(vblk + vslot)));
+        uint32_t rb1 = __float_as_uint(__half2float(__ldg(vblk + vslot + 4)));
+
+        const int c = __ldg(atox + b * kVecPerBlock + srow);
+        const float4 chunk = *reinterpret_cast<const float4*>(
+            Bf + (i64)c * N + n0 + schunk * 4);
+        *reinterpret_cast<float4*>(&s_b[warp][srow][schunk * 4]) = chunk;
+        __syncwarp();
+
+        uint32_t ra0 = __float_as_uint(s_b[warp][tid][g]);
+        uint32_t ra1 = __float_as_uint(s_b[warp][tid][g + 8]);
+        uint32_t ra2 = __float_as_uint(s_b[warp][tid + 4][g]);
+        uint32_t ra3 = __float_as_uint(s_b[warp][tid + 4][g + 8]);
+        asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra0));
+        asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra1));
+        asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra2));
+        asm volatile("cvt.rna.tf32.f32 %0, %0;" : "+r"(ra3));
+
+        asm volatile(
+            "mma.sync.aligned.m16n8k8.row.col.f32.tf32.tf32.f32 "
+            "{%0,%1,%2,%3}, {%4,%5,%6,%7}, {%8,%9}, {%0,%1,%2,%3};\n"
+            : "+f"(d0), "+f"(d1), "+f"(d2), "+f"(d3)
+            : "r"(ra0), "r"(ra1), "r"(ra2), "r"(ra3), "r"(rb0), "r"(rb1));
+        __syncwarp();
+    }
+
+    const int r0 = w * kWindow + tid * 2;
+    const int r1 = r0 + 1;
+    if (r0 < M) C[(i64)r0 * N + n0 + g] = d0;
+    if (r1 < M) C[(i64)r1 * N + n0 + g] = d1;
+    if (r0 < M) C[(i64)r0 * N + n0 + g + 8] = d2;
+    if (r1 < M) C[(i64)r1 * N + n0 + g + 8] = d3;
 }
 
 // ---------------------------------------------------------------------------
@@ -699,11 +834,19 @@ void run_ra_tc_direct_plan(
             d_B, reinterpret_cast<__half*>(plan.d_bhalf), pairs * 2, total);
     }
 
+    const char* stage_env = std::getenv("RA_TC_STAGED");
+    const bool kStaged = !(stage_env && stage_env[0] == '0');
+
     dim3 grid(plan.num_windows, (N + 63) / 64);
     if (plan.zc) {
         fs_tile_spmm_zc_kernel<<<grid, 128, 0, stream>>>(
             plan.d_block_offsets, plan.d_atox,
             plan.d_val_masks, plan.d_val_base, plan.d_vals_zc,
+            reinterpret_cast<const __half*>(plan.d_bhalf), d_C,
+            plan.M, N, plan.num_windows);
+    } else if (kStaged && (N % 64 == 0)) {
+        fs_tile_spmm_staged_kernel<<<grid, 128, 0, stream>>>(
+            plan.d_block_offsets, plan.d_atox, plan.d_vals_f16,
             reinterpret_cast<const __half*>(plan.d_bhalf), d_C,
             plan.M, N, plan.num_windows);
     } else {
@@ -728,11 +871,18 @@ void run_ra_tc_direct_plan_tf32(
 {
     if (!plan.active || plan.M <= 0 || N <= 0) return;
 
+    const char* stage_env = std::getenv("RA_TC_STAGED");
+    const bool kStaged = !(stage_env && stage_env[0] == '0');
+
     dim3 grid(plan.num_windows, (N + 63) / 64);
     if (plan.zc) {
         fs_tile_spmm_zc_tf32_kernel<<<grid, 128, 0, stream>>>(
             plan.d_block_offsets, plan.d_atox,
             plan.d_val_masks, plan.d_val_base, plan.d_vals_zc,
+            d_B, d_C, plan.M, N, plan.num_windows);
+    } else if (kStaged && (N % 64 == 0)) {
+        fs_tile_spmm_staged_tf32_kernel<<<grid, 128, 0, stream>>>(
+            plan.d_block_offsets, plan.d_atox, plan.d_vals_f16,
             d_B, d_C, plan.M, N, plan.num_windows);
     } else {
         fs_tile_spmm_tf32_kernel<<<grid, 128, 0, stream>>>(
