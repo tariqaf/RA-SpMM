@@ -23,7 +23,10 @@ from collections import defaultdict
 
 # Final roster: 6 kernels + the round-3 TF32 precision variants of the
 # three tile kernels (router-selected by the degree/size gate).
-KERNELS = ["CSR_DIRECT", "RODE_ENHANCED", "ZERO_OVERHEAD_CSR",
+# Deployed candidate set (round 5): RODE_ENHANCED retired — zero unique
+# oracle wins and zero leave-one-out contribution on the evaluated suite
+# after its round-5 optimization; retained in-tree as ablation evidence.
+KERNELS = ["CSR_DIRECT", "ZERO_OVERHEAD_CSR",
            "TC_DIRECT", "COMMUNITY_TC", "SEGMENT_HYBRID",
            "TC_DIRECT_TF32", "COMMUNITY_TC_TF32", "SEGMENT_HYBRID_TF32"]
 DEFAULT_RESULTS = "results/spmm/all_graphs_results.csv"

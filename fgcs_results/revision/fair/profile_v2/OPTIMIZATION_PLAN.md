@@ -181,6 +181,37 @@ E4/E2b/C1 closure evidence, and the routed-path GNN accuracy gate (below).
 
 ## Findings log
 
+### Round 5 final lock (2026-07-15, ratified)
+
+RODE_ENHANCED retired from the deployed candidate set (kept in-tree as the
+R1.5 ablation chain: under-parallelized design -> flattened-chunk fix ->
+threshold sweep -> ZO head-to-head -> zero unique wins -> empirical
+retirement). Verified with the 5-family / 8-execution-path roster
+(+ cuSPARSE guardrail): oracle 1.706x, router 1.702x, R/O 0.9977, hit
+172/192, 192/192 >= 0.85 - all IDENTICAL to the 6-family roster - and
+Python/C++ parity 192/192 re-certified.
+
+Rule ablations (final set): rule 3 -3.18%, rule 5 -1.17%, rule 8 -1.00%,
+rule 6 -0.51%, rule 2 -0.44%, rule 4 -0.31%, rule 7 -0.11%, rule 1 0.00%
+(duplicates the default fall-through; simplification candidate).
+
+Cold-mode decomposition, N=128 (stages: CSR H2D-in / feature+route /
+O(M) planning / first exec; totals include H2D, which GNN stacks usually
+already paid):
+  graph            direct-total  planned-ZO-total  verdict at K=1
+  com-youtube          30.4 ms        28.6 ms      ZO wins even cold
+  amazon-photo          1.51          1.38         ZO wins even cold
+  twitter               4.43          5.74         direct; ZO never amortizes (ZO exec not faster)
+  ogbn-arxiv            3.89          5.13         direct at K=1; ZO crossover K~22
+  roadNet-TX           11.57         17.31         direct (CSR is the cold pick anyway)
+Terminology locked: "preprocessing-free" = CSR_DIRECT only; ZO/RODE-class =
+"lightweight O(M) planning"; tile kernels = "zero-conversion" only on the
+TF32 path, otherwise format conversion applies. Memory-limit wording is
+model-qualified per protocol (youtube ~within 20% of the cache-aware
+estimate under the current execution model; twitter has locality headroom;
+cv2p5 bracketed).
+
+
 ### Round 5 — CSR-kernel investigation: RODE coverage fix, bounds, and verdict (2026-07-15)
 
 Method upgrade (external review, adopted): high DRAM% is not proof of
