@@ -181,6 +181,48 @@ E4/E2b/C1 closure evidence, and the routed-path GNN accuracy gate (below).
 
 ## Findings log
 
+### Round 5 — CSR-kernel investigation: RODE coverage fix, bounds, and verdict (2026-07-15)
+
+Method upgrade (external review, adopted): high DRAM% is not proof of
+minimum work. Stop-rule now requires measured traffic ~ cache-capacity-aware
+lower bound AND no plausible decomposition improving runtime.
+
+1. Long-pipe defect fixed (commit 8909e00): flattened 256-nnz chunks replace
+   the one-CTA-per-row pipeline (was 4-35% occupancy, barrier-bound, 11% DRAM
+   on com-youtube). RODE full-sweep geomean 0.943 -> 0.995 vs cuSPARSE
+   (192/192 correct); com-youtube 1.93x.
+2. Path composition: at d-bar~5, 43-60% of nnz flow through RODE's residual
+   path (98% of youtube rows) — a design-coverage property of the 32-aligned
+   block/residual split, not a physical limit.
+3. Threshold sweep T in {32..256} x N in {64,128,512} x 6 graphs: FLAT
+   (max 4% on one config class; geomean <<1%). Coverage != performance,
+   confirmed. Default T=128 retained.
+4. Three-tier byte bounds (perfect-reuse floor / no-reuse edgewise /
+   LRU cache-capacity-aware, model optimistic on random columns):
+   measured/cache-LB = 1.19-1.20 (com-youtube: near realistic limit),
+   1.6-1.7 (arxiv), 1.9-2.0 (twitter: real headroom, needs locality
+   scheduling), cv2p5 bracketed [746MB..edgewise 5.46GB], measured ~ edgewise.
+5. Head-to-head ZO vs post-fix RODE (24 configs): ZO wins 19 (up to 1.88x),
+   ties 3, RODE wins only cv>=2.5 synthetics at N=64 by ~5% — configs whose
+   oracle is TC_DIRECT at ~2x regardless. ZO's whole-row binned-subwarp +
+   chunk architecture IS the combined design; RODE's split costs an extra
+   C read-modify-write on every row with both parts.
+6. Leave-one-out oracle (round-5 RODE times included): RODE unique wins = 0,
+   LOO delta = +0.00%. Every other kernel has measurable unique value
+   (TC_TF32 -2.47%, TC -2.34%, CT -2.19%, CT_TF32 -0.69%, CSR -0.54%,
+   SH -0.28%, ZO -0.13%).
+7. Cold budget preserved: RODE build max 52 ms, ZO max 30 ms (O(M) only).
+
+VERDICT (empirical phrasing, per protocol): after a fair optimization round
+(coverage analysis, defect fix worth 1.93x, threshold sweep, byte bounds),
+RODE_ENHANCED is empirically dominated on the evaluated suite - zero unique
+oracle wins warm or cold, dominated 19/24 by ZERO_OVERHEAD_CSR head-to-head.
+Recommendation: retire RODE from the deployed roster (retain in-tree as the
+R1.5 ablation evidence); ZO already embodies the merged CSR-specialist
+design. No physics-limited claim is made except com-youtube, where measured
+traffic is within 20% of the cache-aware bound.
+
+
 ### E1 — TF32 m16n8k8 path (branch `exp-tf32`, 2026-07-14)
 
 Implementation: `fs_tile_spmm_tf32_kernel` in tc/ra_tc_direct.cu (+ ct_/sh_

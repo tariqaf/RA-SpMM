@@ -34,7 +34,17 @@
 // ---------------------------------------------------------------------------
 namespace {
 
-constexpr int kLongRowThreshold = 128;  // regular_nnz >= 128 => long row
+// Long-row threshold; RA_RODE_LONG_T overrides for threshold-sweep
+// experiments (default 128).
+static int rode_long_threshold() {
+    static const int t = []() {
+        const char* e = std::getenv("RA_RODE_LONG_T");
+        const int v = e ? std::atoi(e) : 128;
+        return (v >= 32 && v <= 4096) ? v : 128;
+    }();
+    return t;
+}
+#define kLongRowThreshold (rode_long_threshold())
 constexpr int kSubBlockSize     = 32;   // nnz per sub-block in pipeline
 constexpr int kLongComputeWarps = 7;    // warps 1-7 compute, warp 0 loads
 constexpr int kSmemPad          = 33;   // 33 instead of 32 to avoid bank conflicts
