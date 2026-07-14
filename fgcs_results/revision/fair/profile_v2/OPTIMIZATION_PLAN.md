@@ -121,6 +121,64 @@ efficiency (bandwidth floor) or long_scoreboard minimized with eligible
 warps ≥ ~2 (latency floor). Record the closing ncu snapshot here when a pair
 is closed.
 
+## Final R1 report specification (required contents, per Tariq 2026-07-14)
+
+Not just overall geomean. Must include:
+- overall ORACLE geomean vs cuSPARSE; overall ROUTER geomean vs cuSPARSE;
+  Router/Oracle ratio; oracle hit rate; WORST single-config router/oracle
+  ratio; per-regime router geomeans; per-regime oracle kernels
+- selection counts: how often each kernel/variant is picked, TF32 selection
+  count, ZC selection count, cuSPARSE guardrail count
+- cold-start geomean AND warm geomean; correctness pass count (n/192);
+  Python/C++ router parity (must be 192/192)
+- "Diff from corrected Round 2" table: corrected R2 router geomean ~1.57×,
+  then after E1 TF32 → after E3 ZC → after E2a staging → after S1 atomic-free
+  SH → final R1 router. (Attribution note: E1/E2a/S1 deltas come from paired
+  same-plan A/Bs; cumulative numbers come from final_fair_v3 + R1 refit —
+  mark measured vs derived honestly.)
+
+Terminology caution (paper): do NOT call ZC-BCRS "the default format" until
+proven never worse. Two distinct things:
+1. ZC-transport + on-device expansion — safe to state plainly: produces
+   bit-identical plans and unchanged runtime kernels (never-worse warm by
+   construction), only the build gets faster.
+2. Resident ZC-BCRS execution — a ROUTED format choice; paper phrasing:
+   "the router selects the compressed or uncompressed tile format based on
+   the measured regime."
+
+## Round 4 — closure (2026-07-14)
+
+Goal was >2× overall warm vs FP32 cuSPARSE; success metric per review
+feedback = movement vs the PRECISION-MATCHED baseline (yardstick computed
+first: matched router 1.2218×, matched oracle 1.3802×; per-regime router:
+Community 1.494, DenseLarge 1.554, Uniform 1.254, Mixed 1.204,
+DenseSmall 1.079, Skewed 1.030).
+
+**All levers measured; all closed. Kernels frozen at round-3 state (1.702×).**
+- Adaptive SH segment split (Dense-Small small-grid theory): flat ±4%. Reverted.
+- E2b cp.async double-buffer: −6..−45% (B tiles are L1/L2-resident; cp.async
+  bypasses L1 + per-iteration commit/wait drain). Reverted.
+- E4 multi-window fusion: closed by instrumentation — adjacent CT-window
+  column overlap 0.1–4.8% (17% best case); fill≈1 implies windows are
+  near-disjoint. Never implemented (gate worked as intended).
+- C1 concurrent short-row packing: already implemented in round 2
+  (csr_direct_subwarp: 32/W rows per warp concurrently); synth_d3 runs it at
+  94.7% DRAM = bandwidth wall on structureless graphs. Closed per criterion.
+- ZC2 token format (4B/vector: mask+inline fp16+spill offset; fill=1 is
+  70–94% everywhere): bit-identical, plans 2.2–2.35× smaller, but warm
+  fp16 0.48–0.97×, tf32 ~1.0. Reverted.
+- Staged-TF32 on high-degree Dense-Small: still 0.64–0.80×; precision gate
+  unchanged (ca-CondMat, which it routes, is at parity as predicted).
+
+**Meta-finding (paper-worthy negative result):** three independent
+compressed/pipelined alternatives (ZC v1, cp.async, ZC2) all lose warm —
+the padded fragment-order value array trades cheap streaming bytes for
+zero decode latency/divergence and is empirically optimal at this
+operating point. This quantitatively justifies the format design.
+
+Round-4 deliverables that DID land: the precision-matched yardstick table,
+E4/E2b/C1 closure evidence, and the routed-path GNN accuracy gate (below).
+
 ## Findings log
 
 ### E1 — TF32 m16n8k8 path (branch `exp-tf32`, 2026-07-14)
