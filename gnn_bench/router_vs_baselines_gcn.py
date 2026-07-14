@@ -64,7 +64,7 @@ DATASETS: Dict[str, DatasetSpec] = {
 # ---------------------------------------------------------------------------
 # Backends
 # ---------------------------------------------------------------------------
-ALL_BACKENDS = ("router", "cusparse", "tc_direct", "tc_direct_tf32", "pyg")
+ALL_BACKENDS = ("router", "cusparse", "tc_direct", "tc_direct_tf32", "pyg", "dgl")
 
 
 # ---------------------------------------------------------------------------
@@ -164,6 +164,16 @@ class GraphBackend:
         # -- PyG torch_sparse external baseline --
         elif backend == "pyg":
             executor = ("pyg", self._pyg_get_sparse(transpose))
+
+        # -- DGL sparse external baseline --
+        elif backend == "dgl":
+            import dgl.sparse as dglsp
+            t = self._tensors(transpose)
+            deg = (t["rowptr"][1:] - t["rowptr"][:-1]).long()
+            row = torch.repeat_interleave(
+                torch.arange(M, device=self.device), deg)
+            idx = torch.stack([row, t["colind"].long()])
+            executor = ("dgl", dglsp.spmatrix(idx, t["vals"], shape=(M, K)))
 
         # -- Fixed TC_DIRECT paths (fp16+convert / tf32-direct) --
         elif backend in ("tc_direct", "tc_direct_tf32"):
@@ -270,6 +280,10 @@ class GraphBackend:
         # cuSPARSE / CUSPARSE router-path
         if path in ("cusparse", "CUSPARSE"):
             return spmm_next.run_cusparse_plan(wrapper, B)
+
+        # DGL sparse
+        if path == "dgl":
+            return wrapper @ B
 
         # PyG torch_sparse
         if path == "pyg":
