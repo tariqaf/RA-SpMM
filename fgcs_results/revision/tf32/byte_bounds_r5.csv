@@ -1,0 +1,9 @@
+dataset,kernel,N,measured_MB,floor_MB,edgewise_MB,cache_aware_LB_MB,measured_over_floor,measured_over_cacheLB,model_note
+com-youtube,RODE_ENHANCED,128,2714.1,1221.7,3699.9,2279.3,2.22,1.19,LRU window approx; optimistic on random columns
+com-youtube,ZERO_OVERHEAD_CSR,128,2732.7,1221.7,3699.9,2279.3,2.24,1.2,LRU window approx; optimistic on random columns
+twitter-combined,RODE_ENHANCED,128,289.6,97.4,961.1,145.1,2.97,2.0,LRU window approx; optimistic on random columns
+twitter-combined,ZERO_OVERHEAD_CSR,128,280.6,97.4,961.1,145.1,2.88,1.93,LRU window approx; optimistic on random columns
+synth_sparse_skewed_cv2p5,RODE_ENHANCED,128,5266.7,287.3,5461.9,745.7,18.33,7.06,LRU window approx; optimistic on random columns
+synth_sparse_skewed_cv2p5,ZERO_OVERHEAD_CSR,128,5312.3,287.3,5461.9,745.7,18.49,7.12,LRU window approx; optimistic on random columns
+ogbn-arxiv,RODE_ENHANCED,128,403.5,151.0,693.1,231.6,2.67,1.74,LRU window approx; optimistic on random columns
+ogbn-arxiv,ZERO_OVERHEAD_CSR,128,380.7,151.0,693.1,231.6,2.52,1.64,LRU window approx; optimistic on random columns
