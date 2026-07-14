@@ -1,0 +1,10 @@
+model,logo_geomean,logo_hits,trainfit_geomean
+dtree_d3,1.6284,124,1.6255
+dtree_d4,1.633,122,1.6582
+dtree_d6,1.6419,131,1.7002
+dtree_unlimited,1.6407,130,1.7061
+rforest_200,1.6527,128,1.7061
+dtree_d6_drop_M,1.6195,114,
+dtree_d6_drop_d_bar,1.5844,90,
+dtree_d6_drop_CV_d,1.6242,120,
+dtree_d6_drop_N,1.637,133,
