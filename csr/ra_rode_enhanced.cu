@@ -188,6 +188,73 @@ __global__ void rode_short_vec4_compact_kernel(
 }
 
 // ============================================================================
+// Kernel 2c: Flattened long-row chunk kernel (round 5).
+// One 128-thread CTA per <=256-nnz chunk; 4 warps stripe the feature dim,
+// each streaming the chunk's column/value lists straight from global memory
+// (L1-resident on re-read). No shared memory, no barriers, no loader warp:
+// parallelism scales with total chunk count instead of long-row count.
+// ============================================================================
+__global__ void rode_long_zero_rows_kernel(
+    float* __restrict__ C,
+    const int* __restrict__ row_ids,
+    int num_rows, int N)
+{
+    const i64 total = (i64)num_rows * N;
+    for (i64 idx = (i64)blockIdx.x * blockDim.x + threadIdx.x;
+         idx < total; idx += (i64)gridDim.x * blockDim.x) {
+        const int row = row_ids[idx / N];
+        C[(i64)row * N + (idx % N)] = 0.f;
+    }
+}
+
+__global__ void rode_long_chunked_vec4_kernel(
+    const int*   __restrict__ d_col,
+    const float* __restrict__ d_val,
+    const float* __restrict__ B,
+    float*       __restrict__ C,
+    const int*   __restrict__ chunk_row,
+    const int*   __restrict__ chunk_start,
+    const int*   __restrict__ chunk_nnz,
+    int num_chunks,
+    int N)
+{
+    const int c = blockIdx.x;
+    if (c >= num_chunks) return;
+
+    const unsigned tag = static_cast<unsigned>(chunk_row[c]);
+    const bool sole = (tag & 0x80000000u) != 0u;
+    const int  row  = static_cast<int>(tag & 0x7FFFFFFFu);
+    const int start = chunk_start[c];
+    const int nnz   = chunk_nnz[c];
+
+    const int warp = threadIdx.x / 32;
+    const int lane = threadIdx.x % 32;
+    const int N4 = N / 4;
+
+    for (int n4 = warp * 32 + lane; n4 < N4; n4 += 4 * 32) {
+        float4 acc = make_float4(0.f, 0.f, 0.f, 0.f);
+        for (int p = start; p < start + nnz; ++p) {
+            const float a = __ldg(d_val + p);
+            const float4 b4 = __ldg(
+                reinterpret_cast<const float4*>(B + (i64)__ldg(d_col + p) * N) + n4);
+            acc.x += a * b4.x;
+            acc.y += a * b4.y;
+            acc.z += a * b4.z;
+            acc.w += a * b4.w;
+        }
+        float* c_ptr = C + (i64)row * N + n4 * 4;
+        if (sole) {
+            reinterpret_cast<float4*>(C + (i64)row * N)[n4] = acc;
+        } else {
+            atomicAdd(c_ptr + 0, acc.x);
+            atomicAdd(c_ptr + 1, acc.y);
+            atomicAdd(c_ptr + 2, acc.z);
+            atomicAdd(c_ptr + 3, acc.w);
+        }
+    }
+}
+
+// ============================================================================
 // Kernel 2: Long-row pipelined scalar kernel (regular_nnz >= 128)
 //
 // THE KEY INNOVATION: Double-buffered shared memory pipeline.
@@ -645,6 +712,37 @@ void make_ra_rode_enhanced_plan(RARodeEnhancedPlan& plan,
     plan.d_short_starts    = ra_upload(short_starts);
     plan.d_short_block_nnz = ra_upload(short_block_nnz);
 
+    // Round 5: flatten long blocks into <=256-nnz chunk descriptors.
+    {
+        constexpr int kLongChunk = 256;
+        std::vector<int> ch_row, ch_start, ch_nnz, zero_rows;
+        for (size_t i = 0; i < long_row_ids.size(); ++i) {
+            const int row = long_row_ids[i];
+            const int start = long_starts[i];
+            const int bnnz = long_block_nnz[i];
+            const int nch = (bnnz + kLongChunk - 1) / kLongChunk;
+            if (nch <= 1) {
+                ch_row.push_back(static_cast<int>(
+                    static_cast<unsigned>(row) | 0x80000000u));
+                ch_start.push_back(start);
+                ch_nnz.push_back(bnnz);
+            } else {
+                zero_rows.push_back(row);
+                for (int b = 0; b < bnnz; b += kLongChunk) {
+                    ch_row.push_back(row);
+                    ch_start.push_back(start + b);
+                    ch_nnz.push_back(std::min(kLongChunk, bnnz - b));
+                }
+            }
+        }
+        plan.d_lchunk_row     = ra_upload(ch_row);
+        plan.d_lchunk_start   = ra_upload(ch_start);
+        plan.d_lchunk_nnz     = ra_upload(ch_nnz);
+        plan.d_long_zero_rows = ra_upload(zero_rows);
+        plan.num_long_chunks    = static_cast<int>(ch_row.size());
+        plan.num_long_zero_rows = static_cast<int>(zero_rows.size());
+    }
+
     plan.d_long_row_ids    = ra_upload(long_row_ids);
     plan.d_long_starts     = ra_upload(long_starts);
     plan.d_long_block_nnz  = ra_upload(long_block_nnz);
@@ -727,19 +825,23 @@ void run_ra_rode_enhanced_plan(
         CUDA_CHECK_KERNEL();
     }
 
-    // ---- Launch 2: Long-row pipelined kernel ----
+    // ---- Launch 2: Long-row kernel ----
     if (plan.num_long_rows > 0) {
         if (use_vec4) {
-            const int compute_warps = std::min(
-                kLongComputeWarps, (N / 4 + 31) / 32);
-            const int threads = (1 + std::max(1, compute_warps)) * 32;
-            rode_long_pipelined_vec4_kernel<<<plan.num_long_rows, threads>>>(
+            // Round 5: flattened chunks replace the one-CTA-per-row pipeline
+            // (which ran at 4-35% occupancy on real graphs).
+            if (plan.num_long_zero_rows > 0) {
+                const i64 zr_total = (i64)plan.num_long_zero_rows * N;
+                const int zthreads = 256;
+                const int zblocks = static_cast<int>(
+                    std::min<i64>((zr_total + zthreads - 1) / zthreads, 65535));
+                rode_long_zero_rows_kernel<<<zblocks, zthreads>>>(
+                    d_C, plan.d_long_zero_rows, plan.num_long_zero_rows, N);
+            }
+            rode_long_chunked_vec4_kernel<<<plan.num_long_chunks, 128>>>(
                 d_colind, d_vals, d_B, d_C,
-                plan.d_long_row_ids,
-                plan.d_long_starts,
-                plan.d_long_block_nnz,
-                plan.num_long_rows,
-                N);
+                plan.d_lchunk_row, plan.d_lchunk_start, plan.d_lchunk_nnz,
+                plan.num_long_chunks, N);
         } else {
             const int compute_warps = std::min(
                 kLongComputeWarps, (N + 31) / 32);
@@ -806,6 +908,11 @@ void free_ra_rode_enhanced_plan(RARodeEnhancedPlan& plan)
 
     // Long-row descriptors
     if (plan.d_long_row_ids)    { cudaFree(plan.d_long_row_ids);    plan.d_long_row_ids    = nullptr; }
+    if (plan.d_lchunk_row)      { cudaFree(plan.d_lchunk_row);      plan.d_lchunk_row      = nullptr; }
+    if (plan.d_lchunk_start)    { cudaFree(plan.d_lchunk_start);    plan.d_lchunk_start    = nullptr; }
+    if (plan.d_lchunk_nnz)      { cudaFree(plan.d_lchunk_nnz);      plan.d_lchunk_nnz      = nullptr; }
+    if (plan.d_long_zero_rows)  { cudaFree(plan.d_long_zero_rows);  plan.d_long_zero_rows  = nullptr; }
+    plan.num_long_chunks = plan.num_long_zero_rows = 0;
     if (plan.d_long_starts)     { cudaFree(plan.d_long_starts);     plan.d_long_starts     = nullptr; }
     if (plan.d_long_block_nnz)  { cudaFree(plan.d_long_block_nnz);  plan.d_long_block_nnz  = nullptr; }
 

@@ -548,6 +548,19 @@ struct RARodeEnhancedPlan {
     int  num_long_sub_blocks = 0;
     int  sub_block_size     = 32;       // nnz per sub-block
 
+    // Flattened long-row chunk descriptors (round 5): the pipelined
+    // one-CTA-per-row long kernel starves the GPU on real graphs (few long
+    // rows -> 4-35% occupancy, barrier stalls). Long blocks are instead cut
+    // into <=256-nnz chunks executed by independent CTAs; bit 31 of the row
+    // word marks a sole chunk (direct store), multi-chunk rows are pre-zeroed
+    // and merged with atomicAdd like ZERO_OVERHEAD's chunk path.
+    int* d_lchunk_row         = nullptr;  // [num_long_chunks] row | sole<<31
+    int* d_lchunk_start       = nullptr;  // [num_long_chunks] nnz offset
+    int* d_lchunk_nnz         = nullptr;  // [num_long_chunks]
+    int* d_long_zero_rows     = nullptr;  // rows needing pre-zero (multi-chunk)
+    int  num_long_chunks      = 0;
+    int  num_long_zero_rows   = 0;
+
     // Residual tail (0-31 nnz remainder per row)
     int* d_res_row_ids      = nullptr;
     int* d_res_starts       = nullptr;
