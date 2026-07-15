@@ -24,7 +24,7 @@ import torch
 REPO_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from dtc_baseline import candidate_variants, is_dtc_available, load_dtc_module, preprocess, run_variant
+from dtc_baseline import DTC_EXE_TIME, candidate_variants, is_dtc_available, load_dtc_module, preprocess, run_variant
 from dtc_reorder_utils import load_perm, load_reordered_npz
 from ra_real_graph_eval import load_dataset
 
@@ -62,6 +62,8 @@ def time_kernel_only(module, state, B_perm, M: int, nnz: int, use_balance: bool,
         end.record()
         end.synchronize()
         times_ms.append(float(start.elapsed_time(end)))
+    # Each call spans DTC_EXE_TIME internal launches: normalize to per-op time.
+    times_ms = [t / DTC_EXE_TIME for t in times_ms]
     mean_ms = sum(times_ms) / len(times_ms)
     var = sum((x - mean_ms) ** 2 for x in times_ms) / len(times_ms)
     return mean_ms, math.sqrt(var)
@@ -127,6 +129,9 @@ def main() -> int:
     parser.add_argument("--cold_iters", type=int, default=10)
     parser.add_argument("--seed", type=int, default=123)
     parser.add_argument("--atol", type=float, default=1e-3)
+    parser.add_argument("--only_variant", default="",
+                        help="Restrict to one variant tag (bal|nobal_<exeplan>) "
+                             "so a crashing variant only kills its own process")
     args = parser.parse_args()
 
     if not is_dtc_available():
@@ -165,8 +170,16 @@ def main() -> int:
         return emit({"error": f"dtc_load_failed: {e}"})
 
     variants = candidate_variants(int(args.N))
+    if args.only_variant:
+        variants = [
+            (ub, ep) for ub, ep in variants
+            if f"{'bal' if ub else 'nobal'}_{ep}" == args.only_variant
+        ]
+        if not variants:
+            return emit({"error": f"unknown_variant: {args.only_variant}"})
     preprocess_samples = []
     selection_samples = []
+    selection_deploy_samples = []
     cold_exec_samples = []
     state = None
     best_mean = best_std = best_error = None
@@ -198,6 +211,11 @@ def main() -> int:
                 candidate_timings.append((mean_ms, std_ms, use_balance, exeplan))
             torch.cuda.synchronize()
             selection_samples.append((time.perf_counter() - select_t0) * 1000.0)
+            # Deploy-equivalent selection cost: same sample counts, but one
+            # launch per call instead of the DTC_EXE_TIME the binding forces.
+            selection_deploy_samples.append(sum(
+                (args.selection_warmup_iters + args.selection_timed_iters) * m
+                for m, _s, _ub, _ep in candidate_timings))
             for mean_ms, std_ms, use_balance, exeplan in candidate_timings:
                 max_error = candidate_max_error(
                     module, state, B_orig, B_perm, perm_gpu, rowptr_o, colind_o, vals_o,
@@ -233,15 +251,20 @@ def main() -> int:
         cold_exec_samples.append(float(start.elapsed_time(end)))
 
     preprocess_ms = sum(preprocess_samples) / len(preprocess_samples)
-    selection_variant_ms = sum(selection_samples) / len(selection_samples)
-    cold_exec_ms = sum(cold_exec_samples) / len(cold_exec_samples)
+    selection_wall_ms = sum(selection_samples) / len(selection_samples)
+    selection_variant_ms = sum(selection_deploy_samples) / len(selection_deploy_samples)
     use_balance, exeplan = best_choice
+    # cold_exec / end_to_end wrap one binding call = DTC_EXE_TIME launches:
+    # subtract the (DTC_EXE_TIME - 1) extra warm launches, floor at best_mean.
+    cold_exec_ms = sum(cold_exec_samples) / len(cold_exec_samples)
+    cold_exec_ms = max(best_mean, cold_exec_ms - (DTC_EXE_TIME - 1) * best_mean)
 
     try:
         end_to_end_ms = time_end_to_end(
             module, state, B_orig, perm_gpu, M, nnz, use_balance, exeplan,
             args.warmup_iters, args.timed_iters
         )
+        end_to_end_ms = max(best_mean, end_to_end_ms - (DTC_EXE_TIME - 1) * best_mean)
     except Exception as e:
         return emit({"error": f"dtc_end_to_end_failed: {e}"})
 
@@ -266,6 +289,8 @@ def main() -> int:
         "reorder_ms": float(args.reorder_ms),
         "preprocess_ms": preprocess_ms,
         "selection_variant_ms": selection_variant_ms,
+        "selection_wall_ms": selection_wall_ms,
+        "dtc_exe_time": int(DTC_EXE_TIME),
         "mean_kernel_ms": float(best_mean),
         "std_kernel_ms": float(best_std if best_std is not None else 0.0),
         "end_to_end_ms": float(end_to_end_ms),

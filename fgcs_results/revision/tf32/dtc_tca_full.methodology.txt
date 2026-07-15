@@ -1,0 +1,7 @@
+Reordering uses DTC's custom TCA reordering tool (MinHash-LSH/Jaccard clustering followed by cache-aware cluster ordering) from external/DTC-SpMM_ASPLOS24/reordering/TCA_reorder.py.
+Reorder version: auto-detected from external repo git SHA when available.
+This sweep restricted reordered DTC to datasets with M <= 3000000, which is 18 enabled paper graphs in the current manifest.
+Per graph: reorder once, record reorder_ms, save reordered CSR.
+Per (graph, N): preprocess on reordered CSR, run variant selection/tuning, then measure best mean kernel time with warmup=1 and timed_iters=5.
+Correctness uses permute-in / inverse-permute-out against cuSPARSE on the original CSR.
+Timing normalization: the upstream DTC bindings run_DTCSpMM/run_DTCSpMM_balance launch the kernel EXE_TIME=1000 times per call and return only the output, so external timers span 1000 executions; mean/std/cold/e2e kernel times are normalized to per-op values. selection_variant_ms is the deploy-equivalent selection cost (per-op basis at the same sample counts); selection_wall_ms is the in-child measured wall (includes the forced 1000x loop); selection_harness_wall_ms additionally includes per-variant subprocess startup.

@@ -16,12 +16,15 @@ import argparse
 import csv
 import json
 import subprocess
+import os
 import sys
 import tempfile
+import time
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from dtc_reorder_utils import REORDER_METHOD, REORDER_METHOD_NOTE, DEFAULT_CACHE_DIR, reorder_once
+from dtc_reorder_utils import (
+    IDENTITY_METHOD, REORDER_METHOD, REORDER_METHOD_NOTE, DEFAULT_CACHE_DIR, reorder_once)
 from ra_real_graph_eval import load_dataset
 
 
@@ -69,7 +72,70 @@ def run_child(
     seed: int,
     atol: float,
 ) -> Tuple[Optional[Dict[str, object]], Optional[str], str]:
-    cmd = [
+    def child_cmd(extra):
+        return [
+            sys.executable, str(CHILD),
+            "--dataset_json_entry", entry_json,
+            "--reordered_npz", str(reorder_info["reordered_npz"]),
+            "--reorder_perm_npz", str(reorder_info["reorder_perm_npz"]),
+            "--dataset_name", str(entry.get("name", "")),
+            "--category", str(entry.get("category", "")),
+            "--reorder_method", str(reorder_info["reorder_method"]),
+            "--reorder_version", str(reorder_info["reorder_version"]),
+            "--reorder_ms", str(float(reorder_info["reorder_ms"])),
+            "--N", str(int(n)),
+            "--seed", str(int(seed)),
+            "--atol", str(float(atol)),
+            "--selection_warmup_iters", "1",
+            "--selection_timed_iters", "5",
+        ] + extra
+
+    # Phase 1: probe each candidate variant in its own subprocess so a
+    # crashing variant (DTC calls exit(-1) on CUDA errors) cannot poison
+    # the scan. The summed wall time of the probes is the honest
+    # selection cost, crashes included.
+    from dtc_baseline import candidate_variants
+    tags = [f"{'bal' if ub else 'nobal'}_{ep}" for ub, ep in candidate_variants(int(n))]
+    variant_status = {}
+    probe_best = None
+    sel_inproc_ms = 0.0
+    sel_wall_child_ms = 0.0
+    sel_wall_t0 = time.perf_counter()
+    for tag in tags:
+        pcmd = child_cmd(["--only_variant", tag, "--cold_iters", "1",
+                          "--warmup_iters", str(int(warmup_iters)),
+                          "--timed_iters", str(int(timed_iters))])
+        try:
+            pp = subprocess.run(pcmd, capture_output=True, text=True,
+                                timeout=max(1, int(timeout_s)) if timeout_s > 0 else None,
+                                cwd=str(REPO_ROOT))
+        except subprocess.TimeoutExpired:
+            variant_status[tag] = "timeout"
+            continue
+        payload, _ = extract_json_payload(pp.stdout or "")
+        if payload is None:
+            variant_status[tag] = f"crash_rc{pp.returncode}"
+            continue
+        if "error" in payload:
+            variant_status[tag] = str(payload["error"])[:60]
+            continue
+        variant_status[tag] = "ok"
+        sel_inproc_ms += float(payload.get("selection_variant_ms", 0.0))
+        sel_wall_child_ms += float(payload.get("selection_wall_ms", 0.0))
+        ms = float(payload.get("dtc_ms", 1e30))
+        if probe_best is None or ms < probe_best[1]:
+            probe_best = (tag, ms)
+    selection_wall_ms = (time.perf_counter() - sel_wall_t0) * 1000.0
+    if probe_best is None:
+        return None, "all_variants_failed", ";".join(
+            f"{t}={s}" for t, s in variant_status.items())
+
+    # Phase 2: full measurement restricted to the surviving best variant.
+    cmd = child_cmd(["--only_variant", probe_best[0],
+                     "--cold_iters", "10",
+                     "--warmup_iters", str(int(warmup_iters)),
+                     "--timed_iters", str(int(timed_iters))])
+    _unused = [
         sys.executable,
         str(CHILD),
         "--dataset_json_entry", entry_json,
@@ -99,6 +165,16 @@ def run_child(
 
     stdout = (proc.stdout or "").strip()
     stderr = (proc.stderr or "").strip()
+    if proc.returncode == 0:
+        payload_probe, _d = extract_json_payload(stdout)
+        if isinstance(payload_probe, dict) and "error" not in payload_probe:
+            payload_probe["selection_variant_ms"] = round(sel_inproc_ms, 3)
+            payload_probe["selection_wall_ms"] = round(sel_wall_child_ms, 3)
+            payload_probe["selection_harness_wall_ms"] = round(selection_wall_ms, 3)
+            payload_probe["variant_count"] = len(tags)
+            payload_probe["variant_status"] = ";".join(
+                f"{t}={s}" for t, s in variant_status.items())
+            return payload_probe, None, ""
     if proc.returncode != 0:
         detail = stderr.splitlines()[-1] if stderr else (stdout.splitlines()[-1] if stdout else "")
         return None, "nonzero_returncode", f"returncode={proc.returncode} detail={detail}"
@@ -123,11 +199,15 @@ def failure_row(entry: Dict[str, object], n: int, reorder_info: Dict[str, object
         "reorder_ms": round(float(reorder_info.get("reorder_ms", 0.0)), 3) if reorder_info else "",
         "preprocess_ms": "",
         "selection_variant_ms": "",
+        "selection_wall_ms": "",
+        "selection_harness_wall_ms": "",
         "mean_kernel_ms": "",
         "std_kernel_ms": "",
         "end_to_end_ms": "",
+        "cold_exec_ms": "",
         "best_variant": "",
         "variant_count": "",
+        "variant_status": "",
         "correct": "",
         "max_error": "",
         "failure_class": failure_class,
@@ -142,6 +222,9 @@ def main() -> None:
     parser.add_argument("--output", default="ra_dtc_breakdown_reordered.csv")
     parser.add_argument("--category", default="")
     parser.add_argument("--dataset", default="")
+    parser.add_argument("--dtc_order", choices=["tca", "identity"], default="tca",
+                        help="tca = DTC's TCA proper-order reorder; identity = original "
+                             "CSR ordering (no-TCA DTC kernel baseline)")
     parser.add_argument("--reorder_threshold", type=int, default=16)
     parser.add_argument("--max_rows", type=int, default=500000)
     parser.add_argument("--cache_dir", default=str(DEFAULT_CACHE_DIR))
@@ -191,13 +274,20 @@ def main() -> None:
                 data = load_dataset(entry)
                 if data is None:
                     raise RuntimeError("dataset_load_failed")
+                # Fair strict gate: DTC is a TF32 tensor-core kernel, so it
+                # receives the same tolerance model as our tile kernels:
+                # 1e-3 * sqrt(max_row_nnz) * 10.
+                _deg = data["rowptr"][1:] - data["rowptr"][:-1]
+                _maxrow = max(1, int(_deg.max().item()))
+                fair_atol = 1e-3 * max(1.0, _maxrow ** 0.5) * 10.0
                 reorder_info = reorder_once(
                     entry,
                     data,
                     args.reorder_threshold,
                     cache_dir=args.cache_dir,
-                    python_exe=sys.executable,
+                    python_exe=os.environ.get("RA_DTC_REORDER_PYTHON", sys.executable),
                     timeout_s=args.reorder_timeout if args.reorder_timeout > 0 else None,
+                    method=IDENTITY_METHOD if args.dtc_order == "identity" else REORDER_METHOD,
                 )
                 cache_note = "cache-hit" if reorder_info.get("cache_hit") else "new"
                 print(
@@ -214,7 +304,7 @@ def main() -> None:
             for n in ns:
                 payload, failure_class, detail = run_child(
                     entry_json, reorder_info, entry, n, args.per_point_timeout,
-                    args.warmup_iters, args.timed_iters, args.seed, args.atol
+                    args.warmup_iters, args.timed_iters, args.seed, fair_atol
                 )
                 if payload is None:
                     row = failure_row(entry, n, reorder_info, failure_class or "unknown_failure", detail)
@@ -230,12 +320,16 @@ def main() -> None:
                         "reorder_version": payload["reorder_version"],
                         "reorder_ms": round(float(payload["reorder_ms"]), 3),
                         "preprocess_ms": round(float(payload["preprocess_ms"]), 3),
-                        "selection_variant_ms": round(float(payload["selection_variant_ms"]), 3),
-                        "mean_kernel_ms": round(float(payload["mean_kernel_ms"]), 3),
-                        "std_kernel_ms": round(float(payload["std_kernel_ms"]), 3),
-                        "end_to_end_ms": round(float(payload["end_to_end_ms"]), 3),
+                        "selection_variant_ms": round(float(payload["selection_variant_ms"]), 4),
+                        "selection_wall_ms": round(float(payload.get("selection_wall_ms", 0.0)), 3),
+                        "selection_harness_wall_ms": round(float(payload.get("selection_harness_wall_ms", 0.0)), 3),
+                        "mean_kernel_ms": round(float(payload["mean_kernel_ms"]), 6),
+                        "std_kernel_ms": round(float(payload["std_kernel_ms"]), 6),
+                        "end_to_end_ms": round(float(payload["end_to_end_ms"]), 6),
+                        "cold_exec_ms": round(float(payload.get("cold_exec_ms", 0.0)), 6),
                         "best_variant": payload["dtc_variant"],
                         "variant_count": payload["variant_count"],
+                        "variant_status": payload.get("variant_status", ""),
                         "correct": payload["correct"],
                         "max_error": payload["max_error"],
                         "failure_class": "",
@@ -257,9 +351,10 @@ def main() -> None:
 
     fieldnames = [
         "dataset", "category", "M", "nnz", "N", "reorder_method", "reorder_version",
-        "reorder_ms", "preprocess_ms", "selection_variant_ms", "mean_kernel_ms",
-        "std_kernel_ms", "end_to_end_ms", "best_variant", "variant_count",
-        "correct", "max_error", "failure_class", "failure_detail",
+        "reorder_ms", "preprocess_ms", "selection_variant_ms", "selection_wall_ms",
+        "selection_harness_wall_ms", "mean_kernel_ms", "std_kernel_ms",
+        "end_to_end_ms", "cold_exec_ms", "best_variant", "variant_count",
+        "variant_status", "correct", "max_error", "failure_class", "failure_detail",
     ]
     with open(args.output, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -282,6 +377,15 @@ def main() -> None:
         )
         f.write(
             "Correctness uses permute-in / inverse-permute-out against cuSPARSE on the original CSR.\n"
+        )
+        f.write(
+            "Timing normalization: the upstream DTC bindings run_DTCSpMM/run_DTCSpMM_balance "
+            "launch the kernel EXE_TIME=1000 times per call and return only the output, so "
+            "external timers span 1000 executions; mean/std/cold/e2e kernel times are "
+            "normalized to per-op values. selection_variant_ms is the deploy-equivalent "
+            "selection cost (per-op basis at the same sample counts); selection_wall_ms is "
+            "the in-child measured wall (includes the forced 1000x loop); "
+            "selection_harness_wall_ms additionally includes per-variant subprocess startup.\n"
         )
     print(f"\nWrote {len(rows)} rows to {args.output}")
 

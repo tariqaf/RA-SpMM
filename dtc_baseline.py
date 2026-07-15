@@ -11,6 +11,12 @@ import torch
 BLK_H = 16
 BLK_W = 8
 
+# The upstream bindings run_DTCSpMM / run_DTCSpMM_balance launch the kernel
+# EXE_TIME times per call (DTCSpMM_kernel.cu: #define EXE_TIME 1000) and this
+# build returns only the output tensor, so any external timer around one call
+# measures 1000 kernel executions. Divide by this to get per-op time.
+DTC_EXE_TIME = 1000
+
 _DTC_MODULE = None
 
 
