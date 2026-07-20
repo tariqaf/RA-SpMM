@@ -1,0 +1,9 @@
+MP-SpMM profiler capture (ncu, RTX 3090 sm_86, 2026-07-16)
+Binary: baselines/MP-SpMM_code/MP-SpMM_SC25/mpspmm/SpMM/spmm_sm86
+Graph: amazon-computers (router-win config), N=128, data via impl_cu_sm86 match-and-pad.
+KERNEL NAME: sparse_mma_kernel_base_Buint64_Cfloat4(int,int,int,const __half*,const unsigned int*,const int*,const int*,__half*,float*)
+  -> "sparse_mma" = 2:4 structured sparse Tensor-Core MMA (mma.sp), half in / float out. Confirmed.
+Tensor-pipe evidence: sm__inst_executed_pipe_tensor.sum = 519,536 inst over 6 launches (Tensor Cores active).
+Block 128, Grid 860, 4+ invocations. The MP-win synthetic community graph exercises the SAME kernel binary.
+Correctness gate: MP verify uses tolerance = 1e-3 * max(1, sqrt(max_degree)) * 10 -- same tolerance model
+as our tile kernels and the DTC fair gate (verified in bench_mpspmm.verify_spmm).

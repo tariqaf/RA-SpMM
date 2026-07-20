@@ -1,0 +1,9 @@
+regime,n_ran,geomean_RA_over_HC,geomean_router_faster,n_crash,n_incorrect
+Sparse Uniform,7,0.662993,1.508312,1,5
+Sparse Skewed,0,,,6,1
+Dense Small,3,0.602131,1.660768,5,2
+Dense Large-Scale,0,,,4,0
+Community,1,0.743313,1.345328,2,5
+Mixed/Irregular,3,0.474046,2.109501,6,0
+OVERALL,14,0.609363,1.641057,24,13
+REGIME_BALANCED,4,0.612418,1.632871,,

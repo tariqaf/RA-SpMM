@@ -1,0 +1,7 @@
+HC-SpMM crash error class (captured 2026-07-16, RTX 3090 sm_86, CUDA_LAUNCH_BLOCKING=1)
+Worker: experiments/bench_hcspmm_worker.py --dataset amazon-computers --Ns 64
+REAL error (masked as generic "TORCH_USE_CUDA_DSA" in hcspmm.csv):
+  RuntimeError: CUDA error: an illegal memory access was encountered
+  (cudaErrorIllegalAddress, code 700), raised at torch.cuda.synchronize() after the HC kernel call.
+=> Genuine out-of-bounds device memory access inside HC-SpMM's hybrid kernel, NOT a coverage limit.
+   The crash corrupts the CUDA context, which is why HC is run one-graph-per-subprocess.

@@ -1,0 +1,10 @@
+regime,n,geomean_RA_over_MP,geomean_router_faster,split
+Sparse Uniform,9,1.918354,0.521280,all
+Sparse Skewed,2,1.439993,0.694448,all
+Dense Small,10,0.856137,1.168038,all
+Community,7,1.718508,0.581900,all
+Mixed/Irregular,5,0.550975,1.814965,all
+OVERALL,33,1.193924,0.837574,all
+REGIME_BALANCED,5,1.174960,0.851093,all
+REAL_ALL,17,0.871569,1.147357,real
+SYN_ALL,16,1.667992,0.599523,syn
