@@ -108,4 +108,4 @@ See `CITATION.cff`. Please cite the FGCS paper when using this code or the bench
 
 ## License
 
-MIT for the code in this repository. Dataset licenses are listed in `DATASETS.md`.
+MIT for the code and evaluation scripts in this repository (`LICENSE`). The measurement CSVs under `fgcs_results/` are CC-BY-4.0 (`LICENSE-DATA`). Licences and attributions for the benchmark graphs are listed in `DATASETS.md`.

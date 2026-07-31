@@ -1,0 +1,14 @@
+Creative Commons Attribution 4.0 International (CC-BY-4.0)
+
+Copyright (c) 2026 Tariq Habib Afridi and Young-Koo Lee
+
+The measurement data in this repository -- every CSV and JSON file under
+`fgcs_results/`, including the per-configuration sweeps, router-quality tables,
+baseline comparisons, and profiling exports -- is released under the Creative
+Commons Attribution 4.0 International License:
+
+    https://creativecommons.org/licenses/by/4.0/
+
+The source code and evaluation scripts are covered separately by the MIT License
+in LICENSE. Licences and attributions for the benchmark graphs themselves are
+listed in DATASETS.md.
