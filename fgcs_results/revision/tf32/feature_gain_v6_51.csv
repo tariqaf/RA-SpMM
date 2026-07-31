@@ -1,0 +1,5 @@
+scope,feature_set,model,seed,graphs,n,hits,hit_rate,geomean_vs_cusparse,router_oracle
+v5_47graph,base,dtree_depth4,0,47,178,118,0.6629,1.6561,0.9642
+v5_47graph,base+index,dtree_depth4,0,47,178,112,0.6292,1.644,0.9571
+v6_51graph,base,dtree_depth4,0,51,192,122,0.6354,1.633,0.9572
+v6_51graph,base+index,dtree_depth4,0,51,192,122,0.6354,1.6044,0.9405

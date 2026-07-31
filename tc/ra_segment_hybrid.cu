@@ -4,7 +4,8 @@
 // Same engine as TC_DIRECT (FlashSparse-style 8x1 vectors, swapped-operand
 // mma.m16n8k8, FP16 inputs / FP32 accumulate) with FlashSparse's "_balance"
 // load balancing: natural-order 8-row windows whose mma-block list exceeds
-// kSegBlocks are split into equal segments processed by independent thread
+// kSegBlocks are split into segments of at most kSegBlocks blocks (the final
+// segment of a split window may be shorter), processed by independent thread
 // blocks; each segment writes partials to a private scratch slot and a
 // deterministic merge kernel sums the slots in fixed ascending order (no
 // atomics), so hub windows on skewed graphs no longer serialize a single

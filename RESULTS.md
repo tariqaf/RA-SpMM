@@ -70,7 +70,8 @@ results can be checked independently. All paths are relative to `fgcs_results/re
 | Rule ablation (full seven-rule router 1.702x/173; per-rule rows) | `tf32/rule_ablation_v5.csv` | direct (`oracle_hits` = matches against the floored oracle; `oracle_hits_kernelonly` also provided). `tf32/rule_ablation_8rule.csv` records the earlier eight-rule candidate set, whose sub-5K-row rule changed no metric and was pruned |
 | Feature leave-one-out | `tf32/feature_loo_v5.csv` | direct |
 | Max-row-degree feature study | `tf32/feature_gain_maxdeg.csv` | direct (leave-one-graph-out Router/Oracle) |
-| Positional-feature study (118 to 104 hits, 1.656x to 1.636x) | `../feature_gain/feature_gain_v5.csv` | direct |
+| Positional-feature study, all 51 graphs / 192 configs (hits 122 to 122; Router/Oracle 0.957 to 0.941) | `tf32/feature_gain_v6_51.csv` | direct, from `experiments/positional_gain_51.py` |
+| Positional-feature study, superseded 47-graph run | `../feature_gain/feature_gain_v5.csv` | retained for provenance; its 47-graph positional input was never released, so its `base+index` row is not reproducible |
 | Learned-selector comparison | `tf32/learned_selector.csv`, generator `experiments/learned_selector.py` | direct (LOGO and train-fit columns) |
 | Kernel leave-one-candidate-out | `tf32/final_fair_v3.csv` | oracle over the eight deployed paths with the cuSPARSE floor; remove one candidate; per-axis geomean delta |
 | Byte-bound analysis | `tf32/byte_bounds_r5.csv` | direct |
