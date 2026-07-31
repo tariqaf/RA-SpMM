@@ -1,0 +1,10 @@
+[gnn-bench] dataset=Reddit backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gnn-bench] dataset=ogbn-proteins backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gnn-bench] dataset=ogbn-arxiv backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gnn-bench] dataset=PPI backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gnn-bench] dataset=amazon-photo backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gnn-bench] dataset=amazon-computers backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gnn-bench] dataset=Cora backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gnn-bench] dataset=CiteSeer backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+rows=40
+csv=/mnt/shared/development/tariq/RA-SpMM/fgcs_results/revision/tf32/gnn_corrected/gcn/gcn_end_to_end.csv

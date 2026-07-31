@@ -1,0 +1,5 @@
+model,features,router_oracle_ratio
+dtree_depth4,base4,0.957
+dtree_depth4,base4+max_row_degree,0.951
+rforest_200,base4,0.969
+rforest_200,base4+max_row_degree,0.964

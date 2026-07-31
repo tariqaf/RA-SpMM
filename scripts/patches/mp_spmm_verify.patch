@@ -1,0 +1,324 @@
+--- /dev/null
++++ b/mpspmm/SpMM/spmm_verify.cu
+@@ -0,0 +1,321 @@
++#include <stdio.h>
++#include <cuda.h>
++#include <cuda_runtime.h>
++#include <mma.h>
++#include <cuda_fp16.h>
++#include <assert.h>
++#include <random>
++#include <iostream>
++#include <ctime>
++#include <vector>
++#include <algorithm>
++#include <map>
++#include "data_reader.h"
++#include "config.h"
++#include "kernels.cu"
++
++using namespace nvcuda;
++
++// #define WARP_SIZE 32
++// #define tile_M 16
++// #define tile_K 16
++// #define tile_N 8
++
++int valueToStorage(int value) {
++    switch (value) {
++        case 0: return 0b00;
++        case 1: return 0b01;
++        case 2: return 0b10;
++        case 3: return 0b11;
++        default: return 0; 
++    }
++}
++
++void storeArrayInUint32(int *metadata_old, uint32_t *metadata_new, int block_row, int block_col, int block_start) {
++ 
++  int start_row = (block_start+block_col) * tile_M * tile_K / 2;
++  //printf("%d ,%d ,%d \n",block_start,block_col,block_count_each_window);
++   for (int r = 0; r < 16 / 2; ++r) { 
++       for (int c = 0; c < 8 / 2; ++c) {  
++           int value_lower0 = metadata_old[start_row + r *  tile_K/2  + c * 2];
++           int value_lower1 = metadata_old[start_row + r *  tile_K/2 + c * 2 + 1];   
++           int value_upper0 = metadata_old[start_row + (r+8) * tile_K/2 + c * 2];
++           int value_upper1 = metadata_old[start_row + (r+8) *  tile_K/2 + c * 2 + 1]; 
++          //  int value_lower0 = metadata_old[(r) * tile_K/2  + c * 2];
++          //  int value_lower1 = metadata_old[(r) * tile_K/2  + c * 2 + 1];   
++          //  int value_upper0 = metadata_old[(r+8) * tile_K/2  + c * 2];
++          //  int value_upper1 = metadata_old[(r+8) * tile_K/2  + c * 2 + 1]; 
++           int storageValue_lower0 = valueToStorage(value_lower0);
++           int storageValue_lower1 = valueToStorage(value_lower1);    
++           int storageValue_upper0 = valueToStorage(value_upper0); 
++           int storageValue_upper1 = valueToStorage(value_upper1); 
++
++           int bit_pos_lower0 = c * 4;
++           int bit_pos_lower1 = c * 4 + 2;   
++           int bit_pos_upper0 = c * 4 + 16;
++           int bit_pos_upper1 = c * 4 + 16 + 2; 
++           int idx =  r + (block_start + block_col) * 8;
++           //printf("%d ",idx);
++           metadata_new[idx] |= (storageValue_lower0 << bit_pos_lower0);
++           metadata_new[idx] |= (storageValue_lower1 << bit_pos_lower1);  
++           metadata_new[idx] |= (storageValue_upper0 << bit_pos_upper0);
++           metadata_new[idx] |= (storageValue_upper1 << bit_pos_upper1);   
++       }
++   }
++}
++
++void storeArrayInUint32ForLargeMatrix(int *metadata_old, uint32_t *metadata_new, std::vector<int> tcblocks_offset) {
++  for(int block_row = 0;block_row < tcblocks_offset.size()-1;block_row++){
++    int block_start = tcblocks_offset[block_row];
++    int block_end = tcblocks_offset[block_row + 1];
++    int block_count_each_window = tcblocks_offset[block_row + 1] - tcblocks_offset[block_row];
++      for (int block_col = 0; block_col < block_count_each_window; ++block_col) {  
++          storeArrayInUint32(metadata_old, metadata_new, block_row, block_col, block_start);
++  }
++  }  
++}
++
++void sparse_dense_multiply(
++  std::vector<int> A_rows,
++  std::vector<int> A_cols,
++  std::vector<half> A_values,
++  half* B,    
++  int B_cols,          
++  float *C          
++) {
++
++  for (size_t i = 0; i < A_values.size(); ++i) {
++      const int row = A_rows[i];
++      const int col = A_cols[i];
++      const half val = A_values[i];
++
++      const int B_offset = col * B_cols;
++      const int C_offset = row * B_cols; 
++      
++      for (int k = 0; k < B_cols; ++k) {     
++          C[C_offset + k] = static_cast<float>(C[C_offset + k]) +
++          __half2float(val) * __half2float(B[B_offset + k]);
++      }
++  }
++}
++
++void compare_cpu_gpu(float *CPU, float *GPU, size_t size)
++{
++  for (size_t i = 0; i < size; i++)
++  {
++    if (CPU[i] != GPU[i]){
++       printf("error: CPU: %f, GPU: %f\n", CPU[i], GPU[i]);
++    }else{
++       printf("correct: CPU: %f, GPU: %f\n", CPU[i], GPU[i]);
++    }
++  }
++}
++
++// check results
++void all_close(float* array1, float* array2, size_t length, std::vector<size_t> &different_indices, float rtol=1e-3, float atol=1e-3) {  
++    float tolerance;  
++  
++    for (size_t i = 0; i < length; i++) {  
++        tolerance = atol + rtol * std::fabs(array2[i]);  
++        if (std::fabs(array1[i] - array2[i]) > tolerance) {  
++            different_indices.push_back(i); 
++        }  
++    } 
++
++    if (different_indices.size() == 0){
++        std::cout << "Results Check Passed !!! " << std::endl;  
++    } else {
++        std::cout << "Number of different elements: " << different_indices.size() << std::endl;  
++ 
++        size_t max_to_print = std::min(different_indices.size(), size_t(10));  
++        for (size_t i = 0; i < max_to_print; i++) {  
++            std::cout << "Index: " << different_indices[i] << ", Value: " << array1[different_indices[i]] << ' ' << array2[different_indices[i]]<< std::endl;  
++        } 
++        std::cout << std::endl; 
++    }  
++}
++
++
++int main(int argc, char** argv) { 
++
++  // set device
++  int DEV_ID = 0;
++  cudaDeviceReset();
++  cudaSetDevice(DEV_ID);
++
++  if (argc != 3) {
++      std::cerr << "Usage: " << argv[0] << " <data_bin>" << std::endl;
++      return 1;
++  }
++  std::string data_bin = argv[1];
++  int N = std::stoi(argv[2]);
++  std::vector<int> tcblocks_offset;
++  std::vector<double> opdA;
++  std::vector<int> metadata;
++  std::vector<int> old_col_all;
++  int num_rows, num_cols, num_nonzeros;
++  std::string data_bin_path = data_bin;
++  if (!read_data_from_files(
++      data_bin_path,  
++      tcblocks_offset,
++      opdA,
++      metadata,
++      old_col_all,
++      num_rows,
++      num_cols,
++      num_nonzeros
++      )) {
++      std::cerr << "error open file" << std::endl;
++              return 1;
++      }
++      std::vector<__half> opdA_half;
++      std::vector<__half> values_half;
++
++  for (auto& val : opdA) {
++    if (std::isnan(val)){val = 0;}
++          opdA_half.push_back(__float2half(static_cast<float>(val)));
++  }
++
++  for (auto& val : old_col_all) {
++      if(val == -1){val = 0;}
++  }
++
++
++  //A: MxK, B: KxN, C: MxN
++  size_t M = num_rows;
++  M=(num_rows + 15)&~(size_t)15;
++  size_t K = num_cols;
++
++  // std::cout<< "----------------------"<<std::endl;
++  // std::cout<< "M: " << M << ", N: " << N << ", K: " << K << " " <<std::endl;
++
++  // std::cout<< "num_nonzeros: " << num_nonzeros <<std::endl;
++
++
++  // std::cout<< "block size: " << tile_M << "x"<< tile_K <<std::endl;
++  // std::cout<< "block count: " << tcblocks_offset.back() <<std::endl;
++
++  // std::cout<< "----------------------"<<std::endl;
++
++  printf("%zu,%zu,%d,",M,K,num_nonzeros);
++
++  std::vector<int> block_window_index;
++  for (size_t window_id = 0; window_id < tcblocks_offset.size() - 1; ++window_id) {
++      int start = tcblocks_offset[window_id];
++      int end = tcblocks_offset[window_id + 1];
++      for (int i = start; i < end; ++i) {
++          block_window_index.push_back(window_id);
++      }
++  }
++
++
++  size_t iter = 50;
++  half *CPU_B;
++  float *CPU_C, *GPU_to_CPU_C;
++
++  CPU_B = (half *)malloc(K * N * sizeof(half));
++  CPU_C = (float *)malloc(M * N * sizeof(float));
++  GPU_to_CPU_C = (float *)malloc(M * N * sizeof(float));
++
++  uint32_t *metadata_new; 
++  metadata_new = (uint32_t *)malloc(metadata.size() / 16 * sizeof(uint32_t));
++  memset(metadata_new, 0, metadata.size() / 16 * sizeof(uint32_t)); 
++
++  int* metadata_array = metadata.data();
++  storeArrayInUint32ForLargeMatrix(metadata_array, metadata_new, tcblocks_offset);
++
++  // init B values
++  for (size_t i = 0; i < K*N; i++) {
++    CPU_B[i] = __float2half(1.0f);
++  }
++  // init C values
++  for (size_t i = 0; i < M*N; i++) {
++    CPU_C[i] = 0.0f;
++    GPU_to_CPU_C[i] = 0.0f;
++  }
++
++  half *GPU_opd_A, *GPU_B;
++  float *GPU_C;
++  uint32_t *GPU_metadata;
++
++  cudaMalloc((void **)&GPU_opd_A, opdA_half.size() * sizeof(half));
++  cudaMalloc((void **)&GPU_metadata, metadata.size() / 16 * sizeof(uint32_t));
++  cudaMalloc((void **)&GPU_B, K * N * sizeof(half));
++  cudaMalloc((void **)&GPU_C, M * N * sizeof(float));
++  cudaMemset(GPU_C, 0, M * N * sizeof(float));
++  
++  half* opdA_array = opdA_half.data();
++  cudaMemcpy(GPU_opd_A, opdA_array, opdA_half.size() * sizeof(half), cudaMemcpyHostToDevice);
++  cudaMemcpy(GPU_B, CPU_B, K * N * sizeof(half), cudaMemcpyHostToDevice);
++  cudaMemcpy(GPU_metadata, metadata_new,  metadata.size() / 16 * sizeof(uint32_t), cudaMemcpyHostToDevice);
++
++
++  int* GPU_tcblocks_offset;
++  int* GPU_old_col_all;
++  cudaMalloc((void**)&GPU_tcblocks_offset, tcblocks_offset.size() * sizeof(int));
++  cudaMalloc((void**)&GPU_old_col_all, old_col_all.size() * sizeof(int));
++  cudaMemcpy(GPU_tcblocks_offset, tcblocks_offset.data(), tcblocks_offset.size() * sizeof(int), cudaMemcpyHostToDevice);
++  cudaMemcpy(GPU_old_col_all, old_col_all.data(), old_col_all.size() * sizeof(int), cudaMemcpyHostToDevice);
++  
++  cudaEvent_t start, end;
++  cudaEventCreate(&start);
++  cudaEventCreate(&end);
++  float milliseconds = 0;
++
++  int num_row_windows = (M + tile_M - 1) / tile_M; 
++  dim3 grid(num_row_windows, 1, 1);
++
++  int warpCount = (N + tile_N -1) / tile_N;
++  // warpSize, warpCount
++  dim3 block(WARP_SIZE, warpCount, 1);
++
++  dim3 block_half2(WARP_SIZE, warpCount / 2, 1);
++  dim3 block_uint64(WARP_SIZE, warpCount / 4, 1);
++
++  double gflops = 0;
++  // Pre-run to warm up
++  for (size_t i = 0; i < iter; i++) {
++    if (N == 32) {
++      cudaFuncSetAttribute(sparse_mma_kernel_base_Bhalf2_Cfloat4, cudaFuncAttributePreferredSharedMemoryCarveout, 0);
++      sparse_mma_kernel_base_Bhalf2_Cfloat4<<<grid, block_half2>>>(M, N, K, GPU_opd_A, GPU_metadata, GPU_tcblocks_offset, GPU_old_col_all, GPU_B, GPU_C);
++    } else if (N == 128) {
++      cudaFuncSetAttribute(sparse_mma_kernel_base_Buint64_Cfloat4, cudaFuncAttributePreferredSharedMemoryCarveout, 0);
++      sparse_mma_kernel_base_Buint64_Cfloat4<<<grid, block_uint64>>>(M, N, K, GPU_opd_A, GPU_metadata, GPU_tcblocks_offset, GPU_old_col_all, GPU_B, GPU_C);
++    }
++  }
++
++  // Record execution time
++  cudaEventRecord(start);
++  for (size_t i = 0; i < iter; i++) {
++    if (N == 32) {
++      sparse_mma_kernel_base_Bhalf2_Cfloat4<<<grid, block_half2>>>(M, N, K, GPU_opd_A, GPU_metadata, GPU_tcblocks_offset, GPU_old_col_all, GPU_B, GPU_C);
++    } else if (N == 128) {
++      sparse_mma_kernel_base_Buint64_Cfloat4<<<grid, block_uint64>>>(M, N, K, GPU_opd_A, GPU_metadata, GPU_tcblocks_offset, GPU_old_col_all, GPU_B, GPU_C);
++    }
++  }
++  cudaEventRecord(end);
++  cudaEventSynchronize(end);
++  cudaEventElapsedTime(&milliseconds, start, end);
++
++  // Calculate and print performance
++  gflops = ((double)iter * 2 * (double)opdA_half.size() * N) / (milliseconds * 1e6);
++  printf("%.5fms,%f\n", milliseconds / iter, gflops);
++
++  cudaMemcpy(GPU_to_CPU_C, GPU_C, M * N * sizeof(float), cudaMemcpyDeviceToHost);
++  { const char* vp = getenv("VERIFY_OUT"); if(vp){ FILE* vf=fopen(vp,"w"); double s=0; for(int r=0;r<M;r++){ float v=GPU_to_CPU_C[(size_t)r*N]; fprintf(vf,"%.1f\n", v); s+=v; } fclose(vf); fprintf(stderr,"VERIFY_SUM_COL0=%.1f M=%zu\n", s, M);} }
++  
++  //free
++  free(CPU_B);
++  free(CPU_C);
++  free(GPU_to_CPU_C);
++  free(metadata_new);
++
++  cudaFree(GPU_opd_A);
++  cudaFree(GPU_metadata);
++  cudaFree(GPU_B);
++  cudaFree(GPU_C);
++  cudaFree(GPU_tcblocks_offset);
++  cudaFree(GPU_old_col_all);
++
++   return 0;
++}

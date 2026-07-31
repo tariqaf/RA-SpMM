@@ -1,0 +1,14 @@
+WARM gcn: R/cus gm=1.373x R/pyg gm=1.869x -> gnn_warm_gcn.csv
+COLD gcn: R/cus gm(medians)=2.525x (200 per-trial rows) -> gnn_cold_gcn.csv
+WARM graphsage: R/cus gm=1.264x R/pyg gm=1.998x -> gnn_warm_graphsage.csv
+COLD graphsage: R/cus gm(medians)=1.479x (200 per-trial rows) -> gnn_cold_graphsage.csv
+WARM gin: R/cus gm=1.259x R/pyg gm=1.836x -> gnn_warm_gin.csv
+COLD gin: R/cus gm(medians)=1.427x (200 per-trial rows) -> gnn_cold_gin.csv
+Traceback (most recent call last):
+  File "/mnt/shared/development/tariq/RA-SpMM/experiments/emit_gnn_warmcold_csvs.py", line 187, in <module>
+    manifest()
+  File "/mnt/shared/development/tariq/RA-SpMM/experiments/emit_gnn_warmcold_csvs.py", line 176, in manifest
+    "operators": operator_manifest(),
+  File "/mnt/shared/development/tariq/RA-SpMM/experiments/emit_gnn_warmcold_csvs.py", line 113, in operator_manifest
+    from gnn_bench.router_vs_baselines_gcn import (
+ModuleNotFoundError: No module named 'gnn_bench'

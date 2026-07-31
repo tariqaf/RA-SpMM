@@ -1,0 +1,9 @@
+dataset,M,nnz,N,path,built_arch,ran,rel_frob,kernel_ms,status,detail
+Cora,2708,10556,128,fp16_8x8,sm_86,True,0.030474,0.01536,OK,
+Cora,2708,10556,128,tf32_8x4,sm_86,True,0.030475,0.01434,OK,
+ca-HepTh,9877,51971,128,fp16_8x8,sm_86,True,0.01525,0.01946,OK,
+ca-HepTh,9877,51971,128,tf32_8x4,sm_86,True,0.01525,0.02458,OK,
+PPI,1767,32318,128,fp16_8x8,sm_86,True,0.000675,0.01946,OK,
+PPI,1767,32318,128,tf32_8x4,sm_86,True,0.000416,0.01843,OK,
+ogbn-arxiv,169343,1166243,128,fp16_8x8,sm_86,True,0.008659,0.29594,OK,
+ogbn-arxiv,169343,1166243,128,tf32_8x4,sm_86,True,0.008655,0.5335,OK,

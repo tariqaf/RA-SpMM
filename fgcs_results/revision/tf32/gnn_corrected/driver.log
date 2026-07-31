@@ -1,0 +1,84 @@
+===== WARM GCN =====
+[gnn-bench] dataset=Reddit backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gnn-bench] dataset=ogbn-proteins backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gnn-bench] dataset=ogbn-arxiv backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gnn-bench] dataset=PPI backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gnn-bench] dataset=amazon-photo backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gnn-bench] dataset=amazon-computers backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gnn-bench] dataset=Cora backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gnn-bench] dataset=CiteSeer backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+rows=40
+csv=/mnt/shared/development/tariq/RA-SpMM/fgcs_results/revision/tf32/gnn_corrected/gcn/gcn_end_to_end.csv
+===== WARM SAGE =====
+[sage-bench] dataset=Reddit backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[sage-bench] dataset=ogbn-proteins backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[sage-bench] dataset=ogbn-arxiv backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[sage-bench] dataset=PPI backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[sage-bench] dataset=amazon-photo backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[sage-bench] dataset=amazon-computers backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[sage-bench] dataset=Cora backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[sage-bench] dataset=CiteSeer backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+rows=40
+csv=/mnt/shared/development/tariq/RA-SpMM/fgcs_results/revision/tf32/gnn_corrected/sage/graphsage_end_to_end.csv
+===== WARM GIN =====
+[gin-bench] dataset=Reddit backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gin-bench] dataset=ogbn-proteins backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gin-bench] dataset=ogbn-arxiv backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gin-bench] dataset=PPI backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gin-bench] dataset=amazon-photo backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gin-bench] dataset=amazon-computers backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gin-bench] dataset=Cora backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[gin-bench] dataset=CiteSeer backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+rows=40
+csv=/mnt/shared/development/tariq/RA-SpMM/fgcs_results/revision/tf32/gnn_corrected/gin8/gin_end_to_end.csv
+===== COLD GCN =====
+Reddit             router=209.937(IQR0.186) cus=173.449 R/cus=0.83x correct=True
+ogbn-proteins      router=69.681(IQR0.340) cus=75.839 R/cus=1.09x correct=True
+ogbn-arxiv         router=13.477(IQR0.082) cus=11.328 R/cus=0.84x correct=True
+PPI                router=1.300(IQR0.305) cus=6.958 R/cus=5.35x correct=True
+amazon-photo       router=1.378(IQR0.117) cus=6.877 R/cus=4.99x correct=True
+amazon-computers   router=2.263(IQR0.042) cus=7.305 R/cus=3.23x correct=True
+Cora               router=1.353(IQR0.381) cus=7.232 R/cus=5.35x correct=True
+CiteSeer           router=1.383(IQR0.250) cus=6.787 R/cus=4.91x correct=True
+
+cold gcn router_vs_cusparse geomean(dataset medians): 2.525x
+wrote /mnt/shared/development/tariq/RA-SpMM/fgcs_results/revision/tf32/gnn_corrected/cold_gcn.csv (200 per-trial rows)
+===== COLD SAGE =====
+Reddit             router=673.587(IQR0.691) cus=441.193 R/cus=0.65x correct=True
+ogbn-proteins      router=45.107(IQR0.385) cus=52.000 R/cus=1.15x correct=True
+ogbn-arxiv         router=13.719(IQR0.012) cus=13.239 R/cus=0.97x correct=True
+PPI                router=1.506(IQR0.057) cus=5.635 R/cus=3.74x correct=True
+amazon-photo       router=3.796(IQR0.047) cus=6.065 R/cus=1.60x correct=True
+amazon-computers   router=9.271(IQR0.195) cus=6.628 R/cus=0.71x correct=True
+Cora               router=1.791(IQR0.086) cus=6.189 R/cus=3.46x correct=True
+CiteSeer           router=3.051(IQR0.018) cus=6.467 R/cus=2.12x correct=True
+
+cold graphsage router_vs_cusparse geomean(dataset medians): 1.479x
+wrote /mnt/shared/development/tariq/RA-SpMM/fgcs_results/revision/tf32/gnn_corrected/cold_graphsage.csv (200 per-trial rows)
+===== COLD GIN =====
+Reddit             router=678.372(IQR0.412) cus=446.087 R/cus=0.66x correct=True
+ogbn-proteins      router=47.201(IQR1.000) cus=53.999 R/cus=1.14x correct=True
+ogbn-arxiv         router=16.731(IQR0.027) cus=16.246 R/cus=0.97x correct=True
+PPI                router=1.998(IQR0.517) cus=6.598 R/cus=3.30x correct=True
+amazon-photo       router=4.039(IQR0.029) cus=6.813 R/cus=1.69x correct=True
+amazon-computers   router=9.688(IQR0.228) cus=7.080 R/cus=0.73x correct=True
+Cora               router=2.497(IQR0.272) cus=6.631 R/cus=2.66x correct=True
+CiteSeer           router=3.156(IQR0.006) cus=6.960 R/cus=2.21x correct=True
+
+cold gin router_vs_cusparse geomean(dataset medians): 1.427x
+wrote /mnt/shared/development/tariq/RA-SpMM/fgcs_results/revision/tf32/gnn_corrected/cold_gin.csv (200 per-trial rows)
+===== EMIT CSVs + MANIFEST =====
+WARM gcn: R/cus gm=1.373x R/pyg gm=1.869x -> gnn_warm_gcn.csv
+COLD gcn: R/cus gm(medians)=2.525x (200 per-trial rows) -> gnn_cold_gcn.csv
+WARM graphsage: R/cus gm=1.264x R/pyg gm=1.998x -> gnn_warm_graphsage.csv
+COLD graphsage: R/cus gm(medians)=1.479x (200 per-trial rows) -> gnn_cold_graphsage.csv
+WARM gin: R/cus gm=1.259x R/pyg gm=1.836x -> gnn_warm_gin.csv
+COLD gin: R/cus gm(medians)=1.427x (200 per-trial rows) -> gnn_cold_gin.csv
+Traceback (most recent call last):
+  File "/mnt/shared/development/tariq/RA-SpMM/experiments/emit_gnn_warmcold_csvs.py", line 187, in <module>
+    manifest()
+  File "/mnt/shared/development/tariq/RA-SpMM/experiments/emit_gnn_warmcold_csvs.py", line 176, in manifest
+    "operators": operator_manifest(),
+  File "/mnt/shared/development/tariq/RA-SpMM/experiments/emit_gnn_warmcold_csvs.py", line 113, in operator_manifest
+    from gnn_bench.router_vs_baselines_gcn import (
+ModuleNotFoundError: No module named 'gnn_bench'

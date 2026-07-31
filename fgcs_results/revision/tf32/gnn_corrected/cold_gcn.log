@@ -1,0 +1,11 @@
+Reddit             router=209.937(IQR0.186) cus=173.449 R/cus=0.83x correct=True
+ogbn-proteins      router=69.681(IQR0.340) cus=75.839 R/cus=1.09x correct=True
+ogbn-arxiv         router=13.477(IQR0.082) cus=11.328 R/cus=0.84x correct=True
+PPI                router=1.300(IQR0.305) cus=6.958 R/cus=5.35x correct=True
+amazon-photo       router=1.378(IQR0.117) cus=6.877 R/cus=4.99x correct=True
+amazon-computers   router=2.263(IQR0.042) cus=7.305 R/cus=3.23x correct=True
+Cora               router=1.353(IQR0.381) cus=7.232 R/cus=5.35x correct=True
+CiteSeer           router=1.383(IQR0.250) cus=6.787 R/cus=4.91x correct=True
+
+cold gcn router_vs_cusparse geomean(dataset medians): 2.525x
+wrote /mnt/shared/development/tariq/RA-SpMM/fgcs_results/revision/tf32/gnn_corrected/cold_gcn.csv (200 per-trial rows)

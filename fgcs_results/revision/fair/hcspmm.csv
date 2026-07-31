@@ -1,0 +1,193 @@
+dataset,category,M,nnz,N,kernel,status,ms_warm,preprocess_ms,cold_exec_ms,ms_cold,ms_cusparse_warm,ms_cusparse_cold,speedup_vs_cusparse_warm,speedup_vs_cusparse_cold,correct,soft_fail,hard_fail,max_error,tolerance,warmup,timed_iters,cold_iters,error
+roadNet-CA,Sparse Uniform,1971281,5533214,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+roadNet-CA,Sparse Uniform,1971281,5533214,64,HC-SpMM,OK,2.219064,14.214643,2.277274,16.491917,2.540933,4.167852,1.145047,0.252721,True,False,False,9.5e-07,0.034641016151377546,50,200,10,
+roadNet-PA,Sparse Uniform,1090920,3083796,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+roadNet-PA,Sparse Uniform,1090920,3083796,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+roadNet-PA,Sparse Uniform,1090920,3083796,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+roadNet-PA,Sparse Uniform,1090920,3083796,64,HC-SpMM,OK,1.214525,3.526432,1.251942,4.778374,1.406628,5.669499,1.158171,1.186491,True,False,False,9.5e-07,0.03,50,200,10,
+roadNet-TX,Sparse Uniform,1393383,3843320,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+roadNet-TX,Sparse Uniform,1393383,3843320,64,HC-SpMM,OK,1.526487,14.42824,1.57184,16.00008,1.761106,3.148043,1.153699,0.196752,True,False,False,9.5e-07,0.034641016151377546,50,200,10,
+Amazon0601,Sparse Uniform,403394,3387388,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+Amazon0601,Sparse Uniform,403394,3387388,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+Amazon0601,Sparse Uniform,403394,3387388,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+Amazon0601,Sparse Uniform,403394,3387388,64,HC-SpMM,OK,0.916623,10.034859,0.956826,10.991685,1.000218,14.380295,1.091198,1.308289,True,False,False,2.86e-06,0.03162277660168379,50,200,10,
+web-Google,Sparse Uniform,916428,5105039,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+web-Google,Sparse Uniform,916428,5105039,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+web-Google,Sparse Uniform,916428,5105039,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+web-Google,Sparse Uniform,916428,5105039,64,HC-SpMM,OK,1.808036,12.191912,1.863987,14.055899,1.889009,3.192237,1.044785,0.22711,True,False,False,3.052e-05,0.21354156504062624,50,200,10,
+web-Stanford,Sparse Uniform,281904,2312497,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+web-Stanford,Sparse Uniform,281904,2312497,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+web-Stanford,Sparse Uniform,281904,2312497,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+web-Stanford,Sparse Uniform,281904,2312497,64,HC-SpMM,OK,0.507535,14.887015,0.548045,15.43506,0.555873,3.524427,1.09524,0.228339,True,False,False,2.67e-05,0.1596871942267131,50,200,10,
+ogbn-arxiv,Sparse Uniform,169343,1166243,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+ogbn-arxiv,Sparse Uniform,169343,1166243,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+ogbn-arxiv,Sparse Uniform,169343,1166243,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+ogbn-arxiv,Sparse Uniform,169343,1166243,64,HC-SpMM,OK,0.270546,2.049181,0.300442,2.349622,0.2914,1.557495,1.07708,0.66287,True,False,False,2.861e-05,0.208806130178211,50,200,10,
+Yelp,Sparse Uniform,716847,13954819,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+Yelp,Sparse Uniform,716847,13954819,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+Yelp,Sparse Uniform,716847,13954819,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+twitter-combined,Sparse Skewed,81306,1768149,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+twitter-combined,Sparse Skewed,81306,1768149,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+twitter-combined,Sparse Skewed,81306,1768149,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+twitter-combined,Sparse Skewed,81306,1768149,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+soc-Pokec,Sparse Skewed,1632803,30622564,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+soc-Pokec,Sparse Skewed,1632803,30622564,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+soc-Pokec,Sparse Skewed,1632803,30622564,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+ca-GrQc,Dense Small,5242,28980,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+ca-GrQc,Dense Small,5242,28980,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+ca-GrQc,Dense Small,5242,28980,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+ca-GrQc,Dense Small,5242,28980,64,HC-SpMM,OK,0.016461,0.436296,0.047923,0.48422,0.016404,1.093271,0.996579,2.2578,True,False,False,9.54e-06,0.09000000000000001,50,200,10,
+ca-HepTh,Dense Small,9877,51946,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+ca-HepTh,Dense Small,9877,51946,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+ca-HepTh,Dense Small,9877,51946,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+ca-HepTh,Dense Small,9877,51971,64,HC-SpMM,OK,0.015892,0.448632,0.042598,0.49123,0.019302,1.095437,1.214562,2.229986,True,False,False,6.68e-06,0.0806225774829855,50,200,10,
+ca-CondMat,Dense Small,23133,186936,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+ca-CondMat,Dense Small,23133,186936,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+ca-CondMat,Dense Small,23133,186936,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+ca-CondMat,Dense Small,23133,186936,64,HC-SpMM,OK,0.046838,1.216171,0.078438,1.294609,0.049879,1.192652,1.064932,0.921244,True,False,False,1.907e-05,0.16733200530681513,50,200,10,
+amazon-computers,Dense Small,13752,491722,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+amazon-computers,Dense Small,13752,491722,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+amazon-computers,Dense Small,13752,491722,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+amazon-computers,Dense Small,13752,491722,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+amazon-photo,Dense Small,7650,238162,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+amazon-photo,Dense Small,7650,238162,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+amazon-photo,Dense Small,7650,238162,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+amazon-photo,Dense Small,7650,238162,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+gplus-combined,Dense Large-Scale,107614,13673453,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+gplus-combined,Dense Large-Scale,107614,13673453,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+gplus-combined,Dense Large-Scale,107614,13673453,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+gplus-combined,Dense Large-Scale,107614,13673453,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+Reddit,Dense Large-Scale,232965,114615892,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+Reddit,Dense Large-Scale,232965,114615892,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+Reddit,Dense Large-Scale,232965,114615892,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+ogbn-products,Dense Large-Scale,2449029,123718152,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+ogbn-products,Dense Large-Scale,2449029,123718152,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+ogbn-proteins,Dense Large-Scale,132534,79122504,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+ogbn-proteins,Dense Large-Scale,132534,79122504,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+com-DBLP,Community,317080,2099732,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+com-DBLP,Community,317080,2099732,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+com-DBLP,Community,317080,2099732,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+com-DBLP,Community,317080,2099732,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+com-Amazon,Community,334863,1851744,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+com-Amazon,Community,334863,1851744,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+com-Amazon,Community,334863,1851744,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+com-Amazon,Community,334863,1851744,64,HC-SpMM,OK,0.743926,5.092038,0.787866,5.879904,0.780908,1.993815,1.049712,0.33909,True,False,False,4.959e-05,0.23430749027719963,50,200,10,
+com-youtube,Community,1157828,5975248,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+com-youtube,Community,1157828,5975248,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+com-youtube,Community,1157828,5975248,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+Cora,Mixed/Irregular,2708,10556,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+Cora,Mixed/Irregular,2708,10556,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+Cora,Mixed/Irregular,2708,10556,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+Cora,Mixed/Irregular,2708,10556,64,HC-SpMM,OK,0.013875,0.342657,0.039526,0.382184,0.016143,1.087736,1.163469,2.846107,True,False,False,1.526e-05,0.12961481396815722,50,200,10,
+CiteSeer,Mixed/Irregular,3327,9104,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+CiteSeer,Mixed/Irregular,3327,9104,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+CiteSeer,Mixed/Irregular,3327,9104,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+CiteSeer,Mixed/Irregular,3327,9104,64,HC-SpMM,OK,0.013517,0.290518,0.0384,0.328918,0.015811,1.109188,1.169697,3.372235,True,False,False,7.63e-06,0.099498743710662,50,200,10,
+PPI,Mixed/Irregular,1767,32318,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+PPI,Mixed/Irregular,1767,32318,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+PPI,Mixed/Irregular,1767,32318,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+PPI,Mixed/Irregular,1767,32318,64,HC-SpMM,OK,0.021873,0.702718,0.046182,0.748901,0.025242,1.092229,1.154026,1.458443,True,False,False,2.289e-05,0.16911534525287764,50,200,10,
+Flickr,Mixed/Irregular,89250,899756,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+Flickr,Mixed/Irregular,89250,899756,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+Flickr,Mixed/Irregular,89250,899756,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+Flickr,Mixed/Irregular,89250,899756,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,64,HC-SpMM,INCORRECT,nan,5.384988,nan,nan,1.213414,2.438304,,,False,False,True,19.63375854,0.07745966692414835,50,200,10,
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_community_nc10,Community,200000,1089063,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_community_nc10,Community,200000,1089063,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_community_nc10,Community,200000,1089063,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_community_nc10,Community,200000,1089063,64,HC-SpMM,INCORRECT,nan,2.722482,nan,nan,0.353449,1.591264,,,False,False,True,9.31724453,0.04358898943540675,50,200,10,
+synth_community_nc50,Community,200000,1098216,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_community_nc50,Community,200000,1098216,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_community_nc50,Community,200000,1098216,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_community_nc50,Community,200000,1098216,64,HC-SpMM,INCORRECT,nan,2.718684,nan,nan,0.297144,1.574557,,,False,False,True,9.44073296,0.04242640687119285,50,200,10,
+synth_community_nc100,Community,200000,1098420,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_community_nc100,Community,200000,1098420,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_community_nc100,Community,200000,1098420,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_community_nc100,Community,200000,1098420,64,HC-SpMM,INCORRECT,nan,2.669064,nan,nan,0.293883,1.535685,,,False,False,True,9.33327293,0.04242640687119285,50,200,10,
+synth_community_nc500,Community,200000,1100450,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_community_nc500,Community,200000,1100450,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_community_nc500,Community,200000,1100450,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_community_nc500,Community,200000,1100450,64,HC-SpMM,INCORRECT,nan,2.66666,nan,nan,0.291789,1.567359,,,False,False,True,10.71219063,0.04242640687119285,50,200,10,
+synth_community_nc1000,Community,200000,1101854,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_community_nc1000,Community,200000,1101854,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_community_nc1000,Community,200000,1101854,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_community_nc1000,Community,200000,1101854,64,HC-SpMM,INCORRECT,nan,2.741917,nan,nan,0.292101,1.521483,,,False,False,True,10.42904472,0.0412310562561766,50,200,10,
+synth_mixed_v1,Mixed/Irregular,200000,4001390,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_mixed_v1,Mixed/Irregular,200000,4001390,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_mixed_v1,Mixed/Irregular,200000,4001390,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_mixed_v1,Mixed/Irregular,200000,4001390,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_mixed_v2,Mixed/Irregular,200000,5457270,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_mixed_v2,Mixed/Irregular,200000,5457270,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_mixed_v2,Mixed/Irregular,200000,5457270,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_mixed_v2,Mixed/Irregular,200000,5457270,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_mixed_v3,Mixed/Irregular,200000,5576937,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_mixed_v3,Mixed/Irregular,200000,5576937,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_mixed_v3,Mixed/Irregular,200000,5576937,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_mixed_v3,Mixed/Irregular,200000,5576937,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_mixed_v4,Mixed/Irregular,200000,7410217,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_mixed_v4,Mixed/Irregular,200000,7410217,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_mixed_v4,Mixed/Irregular,200000,7410217,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_mixed_v4,Mixed/Irregular,200000,7410217,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_mixed_v5,Mixed/Irregular,200000,7276677,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_mixed_v5,Mixed/Irregular,200000,7276677,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_mixed_v5,Mixed/Irregular,200000,7276677,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_mixed_v5,Mixed/Irregular,200000,7276677,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_dense_small_d30,Dense Small,10000,300000,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_dense_small_d30,Dense Small,10000,300000,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_dense_small_d30,Dense Small,10000,300000,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_dense_small_d30,Dense Small,10000,300000,64,HC-SpMM,INCORRECT,nan,2.125235,nan,nan,0.050227,1.185973,,,False,False,True,15.60157299,0.05477225575051661,50,200,10,
+synth_dense_small_d50,Dense Small,10000,500000,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_dense_small_d50,Dense Small,10000,500000,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_dense_small_d50,Dense Small,10000,500000,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_dense_small_d50,Dense Small,10000,500000,64,HC-SpMM,INCORRECT,nan,2.432191,nan,nan,0.075279,1.277855,,,False,False,True,19.29476357,0.07071067811865475,50,200,10,
+synth_dense_small_d70,Dense Small,10000,700000,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_dense_small_d70,Dense Small,10000,700000,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_dense_small_d70,Dense Small,10000,700000,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_dense_small_d70,Dense Small,10000,700000,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_dense_small_d90,Dense Small,10000,900000,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_dense_small_d90,Dense Small,10000,900000,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_dense_small_d90,Dense Small,10000,900000,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_dense_small_d90,Dense Small,10000,900000,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_dense_small_d120,Dense Small,10000,1200000,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_dense_small_d120,Dense Small,10000,1200000,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_dense_small_d120,Dense Small,10000,1200000,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_dense_small_d120,Dense Small,10000,1200000,64,HC-SpMM,CRASH,,,,,,,,,False,False,False,,,50,200,10,Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,64,HC-SpMM,INCORRECT,nan,2.41418,nan,nan,0.475254,1.72974,,,False,False,True,6.47732925,0.017320508075688773,50,200,10,
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,64,HC-SpMM,INCORRECT,nan,2.942737,nan,nan,0.67582,1.928404,,,False,False,True,8.68730736,0.0223606797749979,50,200,10,
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,64,HC-SpMM,INCORRECT,nan,3.920601,nan,nan,0.936489,2.172586,,,False,False,True,10.7046442,0.028284271247461905,50,200,10,
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,64,HC-SpMM,INCORRECT,nan,5.136718,nan,nan,1.316265,2.550372,,,False,False,True,11.96546173,0.034641016151377546,50,200,10,
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,128,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,256,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,512,HC-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,,,False,False,False,,,50,200,10,HC-SpMM artifact exposes stable fixed kernels only for N=32 and N=64
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,64,HC-SpMM,INCORRECT,nan,7.22502,nan,nan,1.907313,3.122667,,,False,False,True,13.08138466,0.04242640687119285,50,200,10,

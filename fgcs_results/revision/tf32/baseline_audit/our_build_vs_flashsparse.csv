@@ -1,0 +1,5 @@
+kernel_family,host_or_device,build_fn,mean_ms,median_ms,max_ms,n_graphs,vs_flashsparse_80p5_factor
+FlashSparse_block,device,external/flashsparse/.../Block_gpu/block_kernel.cu:784 seg_sort_dequ_fs (thrust::sort+kernels),80.500,80.500,80.500,1,1.00
+TC_DIRECT,host,tc/ra_tc_direct.cu:627 build_ra_tc_direct_plan_impl (OpenMP host),144.366,78.874,1431.997,51,1.793
+COMMUNITY_TC,host,tc/ra_community_tc.cu:320 make_ra_community_tc_plan (host reorder+build),1366.980,267.030,31274.326,51,16.981
+SEGMENT_HYBRID,host,tc/ra_segment_hybrid.cu:369 make_ra_segment_hybrid_plan (OpenMP host),16.445,7.015,153.483,51,0.204

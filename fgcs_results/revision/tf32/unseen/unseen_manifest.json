@@ -1,0 +1,330 @@
+{
+  "candidate_paths": [
+    "CSR_DIRECT",
+    "ZERO_OVERHEAD_CSR",
+    "TC_DIRECT",
+    "TC_DIRECT_TF32",
+    "COMMUNITY_TC",
+    "COMMUNITY_TC_TF32",
+    "SEGMENT_HYBRID",
+    "SEGMENT_HYBRID_TF32",
+    "CUSPARSE(CUSPARSE_SPMM_CSR_ALG2)"
+  ],
+  "cuda_version": "11.8",
+  "descriptor_category_method": "nearest per-category centroid of the 51 labeled suite graphs in z-scored (log10 M, log10 avg_nnz, cv_d); paper's explicit numeric bands not committed in-repo -- substitute if available",
+  "driver": "575.51.02",
+  "evaluation_harness_commit": "8be1a78929530b5aa26bdfc23b68ba791dbd4605",
+  "gpu_name": "NVIDIA GeForce RTX 3090",
+  "graphs": {
+    "Coauthor-CS": {
+      "K": 18333,
+      "M": 18333,
+      "avg_nnz_per_row": 8.93405,
+      "cv_d": 1.01934,
+      "deduplicated": true,
+      "descriptor_category": "Mixed/Irregular",
+      "directed": false,
+      "loader": "npz-adj",
+      "nnz": 163788,
+      "self_loops_added": false,
+      "self_loops_in_source": 0,
+      "sha256": "933c745734e78908c7eb77172a673fee0503f30e26e5a99b36814d88534c42e3",
+      "source_url": "https://github.com/shchur/gnn-benchmark/raw/master/data/npz/ms_academic_cs.npz",
+      "symmetrized": true,
+      "unit_values": true
+    },
+    "as-Skitter": {
+      "K": 1696415,
+      "M": 1696415,
+      "avg_nnz_per_row": 13.08088,
+      "cv_d": 10.46265,
+      "deduplicated": true,
+      "descriptor_category": "Community",
+      "directed": false,
+      "loader": "snap-edgelist",
+      "nnz": 22190596,
+      "self_loops_added": false,
+      "self_loops_in_source": 0,
+      "sha256": "743d4f91fbcbcace4a70d44d1190fe75869faa1398d3eb73bb2d7663c2417510",
+      "source_url": "https://snap.stanford.edu/data/as-skitter.txt.gz",
+      "symmetrized": true,
+      "unit_values": true
+    },
+    "ca-AstroPh": {
+      "K": 18772,
+      "M": 18772,
+      "avg_nnz_per_row": 21.10377,
+      "cv_d": 1.44846,
+      "deduplicated": true,
+      "descriptor_category": "Dense Small",
+      "directed": false,
+      "loader": "snap-edgelist",
+      "nnz": 396160,
+      "self_loops_added": false,
+      "self_loops_in_source": 60,
+      "sha256": "51bf1e2cace269b884481a8502474efa67c0fd01d998ff7f5a154d7d3e527f27",
+      "source_url": "https://snap.stanford.edu/data/ca-AstroPh.txt.gz",
+      "symmetrized": true,
+      "unit_values": true
+    },
+    "cit-Patents": {
+      "K": 3774768,
+      "M": 3774768,
+      "avg_nnz_per_row": 4.37615,
+      "cv_d": 1.77809,
+      "deduplicated": true,
+      "descriptor_category": "Sparse Uniform",
+      "directed": true,
+      "loader": "snap-edgelist",
+      "nnz": 16518948,
+      "self_loops_added": false,
+      "self_loops_in_source": 1,
+      "sha256": "9d05955aa997fbc84953c9eb7786675af80336a356404e75dc18aaa90d3553b0",
+      "source_url": "https://snap.stanford.edu/data/cit-Patents.txt.gz",
+      "symmetrized": false,
+      "unit_values": true
+    },
+    "email-Enron": {
+      "K": 36692,
+      "M": 36692,
+      "avg_nnz_per_row": 10.02022,
+      "cv_d": 3.60272,
+      "deduplicated": true,
+      "descriptor_category": "Mixed/Irregular",
+      "directed": false,
+      "loader": "snap-edgelist",
+      "nnz": 367662,
+      "self_loops_added": false,
+      "self_loops_in_source": 0,
+      "sha256": "55cfead79b1f0161786179a48796c2a119bd7026a246238b257b6be9d8b69b68",
+      "source_url": "https://snap.stanford.edu/data/email-Enron.txt.gz",
+      "symmetrized": true,
+      "unit_values": true
+    },
+    "p2p-Gnutella31": {
+      "K": 62586,
+      "M": 62586,
+      "avg_nnz_per_row": 2.36302,
+      "cv_d": 1.85845,
+      "deduplicated": true,
+      "descriptor_category": "Community",
+      "directed": true,
+      "loader": "snap-edgelist",
+      "nnz": 147892,
+      "self_loops_added": false,
+      "self_loops_in_source": 0,
+      "sha256": "20cf3b0642718e7628c7aa15a41b21e663aea872946878d5b9abc80ee360f869",
+      "source_url": "https://snap.stanford.edu/data/p2p-Gnutella31.txt.gz",
+      "symmetrized": false,
+      "unit_values": true
+    },
+    "soc-Slashdot0902": {
+      "K": 82168,
+      "M": 82168,
+      "avg_nnz_per_row": 11.54299,
+      "cv_d": 3.1983,
+      "deduplicated": true,
+      "descriptor_category": "Mixed/Irregular",
+      "directed": true,
+      "loader": "snap-edgelist",
+      "nnz": 948464,
+      "self_loops_added": false,
+      "self_loops_in_source": 78303,
+      "sha256": "3224079a19bc363c7f68390375dcc3c7b1866618bd528c1ade6dfb088306ddec",
+      "source_url": "https://snap.stanford.edu/data/soc-Slashdot0902.txt.gz",
+      "symmetrized": false,
+      "unit_values": true
+    },
+    "web-NotreDame": {
+      "K": 325729,
+      "M": 325729,
+      "avg_nnz_per_row": 4.59626,
+      "cv_d": 4.67265,
+      "deduplicated": true,
+      "descriptor_category": "Community",
+      "directed": true,
+      "loader": "snap-edgelist",
+      "nnz": 1497134,
+      "self_loops_added": false,
+      "self_loops_in_source": 27455,
+      "sha256": "d4f4916db2b45060d4dde21fca2d6d757f245f4397528f72230eff3bb57e499e",
+      "source_url": "https://snap.stanford.edu/data/web-NotreDame.txt.gz",
+      "symmetrized": false,
+      "unit_values": true
+    },
+    "wiki-Talk": {
+      "K": 2394385,
+      "M": 2394385,
+      "avg_nnz_per_row": 2.09716,
+      "cv_d": 47.643,
+      "deduplicated": true,
+      "descriptor_category": "Mixed/Irregular",
+      "directed": true,
+      "loader": "snap-edgelist",
+      "nnz": 5021410,
+      "self_loops_added": false,
+      "self_loops_in_source": 0,
+      "sha256": "0f3fd7bb8435ad0d46bd3cd06d2fb947c72d298a9310c8ce82b4d29ef973fb9f",
+      "source_url": "https://snap.stanford.edu/data/wiki-Talk.txt.gz",
+      "symmetrized": false,
+      "unit_values": true
+    }
+  },
+  "kernel_source_commit": "8be1a78929530b5aa26bdfc23b68ba791dbd4605",
+  "kernel_source_sha256": {
+    "ra_community_tc.cu": "430478f3a9f349001dc4fac4d7f756d6f7df6d7ab37b327959def25d3e3e34b4",
+    "ra_locality_tiled.cu": "c562ecd4a1f0a524633cb66daf26a8ab6d2b5e260274e53548d935ee6eb0ae41",
+    "ra_segment_hybrid.cu": "90247eff5f658dc50a83b9f1e6bcb986b13402625ef357658aebc195cbd761bb",
+    "ra_tc_direct.cu": "b2c8473484a7bd833dde782ccb081b8d401173048d3cd9f8a3bf0bd0f3704beb"
+  },
+  "load_failures": [],
+  "note_soc_slashdot": "requested name soc-Slashdot0922 has no SNAP file (erroneous filename); SNAP soc-Slashdot0902 (82168 nodes / 948464 edges, matching the stated size) is used throughout under the name soc-Slashdot0902",
+  "provenance_method": "grep of paper_datasets.json, all repo CSV/JSON/py, and git log --all -S <name>; zero hits for every graph",
+  "retuning_performed": false,
+  "rode_excluded": true,
+  "router_frozen": true,
+  "router_source_sha256": "2b195810df28dfc969b119c86ac02fde5a7ac795b226e3d07172d20a1f66c512",
+  "router_thresholds_sha256": "82448e0f42cc52c65c81569bde553ff419b5a8bcaebd95b9228beac56a3872d7",
+  "skipped_configs": [
+    {
+      "N": 512,
+      "dataset": "wiki-Talk",
+      "kernel": "CSR_DIRECT",
+      "reason": "OOM: CUDA out of memory. Tried to allocate 4.57 GiB. GPU 0 has a total capacity of 23.56 GiB of which 2.6"
+    },
+    {
+      "N": 512,
+      "dataset": "wiki-Talk",
+      "kernel": "ZERO_OVERHEAD_CSR",
+      "reason": "OOM: CUDA out of memory. Tried to allocate 4.57 GiB. GPU 0 has a total capacity of 23.56 GiB of which 2.6"
+    },
+    {
+      "N": 512,
+      "dataset": "wiki-Talk",
+      "kernel": "TC_DIRECT",
+      "reason": "OOM: CUDA out of memory. Tried to allocate 4.57 GiB. GPU 0 has a total capacity of 23.56 GiB of which 267"
+    },
+    {
+      "N": 512,
+      "dataset": "wiki-Talk",
+      "kernel": "TC_DIRECT_TF32",
+      "reason": "OOM: CUDA out of memory. Tried to allocate 4.57 GiB. GPU 0 has a total capacity of 23.56 GiB of which 2.5"
+    },
+    {
+      "N": 512,
+      "dataset": "wiki-Talk",
+      "kernel": "COMMUNITY_TC",
+      "reason": "OOM: CUDA out of memory. Tried to allocate 4.57 GiB. GPU 0 has a total capacity of 23.56 GiB of which 261"
+    },
+    {
+      "N": 512,
+      "dataset": "wiki-Talk",
+      "kernel": "COMMUNITY_TC_TF32",
+      "reason": "OOM: CUDA out of memory. Tried to allocate 4.57 GiB. GPU 0 has a total capacity of 23.56 GiB of which 2.5"
+    },
+    {
+      "N": 512,
+      "dataset": "wiki-Talk",
+      "kernel": "SEGMENT_HYBRID",
+      "reason": "OOM: CUDA out of memory. Tried to allocate 4.57 GiB. GPU 0 has a total capacity of 23.56 GiB of which 123"
+    },
+    {
+      "N": 512,
+      "dataset": "wiki-Talk",
+      "kernel": "SEGMENT_HYBRID_TF32",
+      "reason": "OOM: CUDA out of memory. Tried to allocate 4.57 GiB. GPU 0 has a total capacity of 23.56 GiB of which 2.4"
+    },
+    {
+      "N": 512,
+      "dataset": "cit-Patents",
+      "kernel": "CSR_DIRECT",
+      "reason": "OOM: CUDA out of memory. Tried to allocate 7.20 GiB. GPU 0 has a total capacity of 23.56 GiB of which 5.1"
+    },
+    {
+      "N": 512,
+      "dataset": "cit-Patents",
+      "kernel": "ZERO_OVERHEAD_CSR",
+      "reason": "OOM: CUDA out of memory. Tried to allocate 7.20 GiB. GPU 0 has a total capacity of 23.56 GiB of which 5.0"
+    },
+    {
+      "N": 512,
+      "dataset": "cit-Patents",
+      "kernel": "TC_DIRECT",
+      "reason": "OOM: CUDA out of memory. Tried to allocate 7.20 GiB. GPU 0 has a total capacity of 23.56 GiB of which 4.7"
+    },
+    {
+      "N": 512,
+      "dataset": "cit-Patents",
+      "kernel": "TC_DIRECT_TF32",
+      "reason": "OOM: CUDA out of memory. Tried to allocate 7.20 GiB. GPU 0 has a total capacity of 23.56 GiB of which 4.7"
+    },
+    {
+      "N": 512,
+      "dataset": "cit-Patents",
+      "kernel": "COMMUNITY_TC",
+      "reason": "OOM: CUDA out of memory. Tried to allocate 7.20 GiB. GPU 0 has a total capacity of 23.56 GiB of which 4.8"
+    },
+    {
+      "N": 512,
+      "dataset": "cit-Patents",
+      "kernel": "COMMUNITY_TC_TF32",
+      "reason": "OOM: CUDA out of memory. Tried to allocate 7.20 GiB. GPU 0 has a total capacity of 23.56 GiB of which 4.8"
+    },
+    {
+      "N": 512,
+      "dataset": "cit-Patents",
+      "kernel": "SEGMENT_HYBRID",
+      "reason": "OOM: CUDA out of memory. Tried to allocate 7.20 GiB. GPU 0 has a total capacity of 23.56 GiB of which 4.7"
+    },
+    {
+      "N": 512,
+      "dataset": "cit-Patents",
+      "kernel": "SEGMENT_HYBRID_TF32",
+      "reason": "OOM: CUDA out of memory. Tried to allocate 7.20 GiB. GPU 0 has a total capacity of 23.56 GiB of which 4.7"
+    }
+  ],
+  "statistics": {
+    "config_geomean_oracle": 1.33426,
+    "config_geomean_router": 1.19686,
+    "config_router_oracle": 0.89702,
+    "feasible_configs": 34,
+    "graph_bootstrap95_router": [
+      1.09264,
+      1.3286
+    ],
+    "graph_macro_geomean_router": 1.19293,
+    "graph_macro_router_oracle": 0.89975,
+    "hit_count": 11,
+    "hit_rate": 0.32353,
+    "min_ratio": 0.62884,
+    "min_ratio_config": "web-NotreDame N=64 router=COMMUNITY_TC_TF32",
+    "per_rule_firing_feasible34": {
+      "R1": 7,
+      "R3": 12,
+      "default": 15
+    },
+    "per_rule_firing_planned36": {
+      "R1": 8,
+      "R3": 12,
+      "default": 16
+    },
+    "rules_exercised": [
+      "R1",
+      "R3",
+      "default"
+    ],
+    "rules_not_exercised": [
+      "R2",
+      "R4",
+      "R5",
+      "R6",
+      "R7"
+    ]
+  },
+  "timed_iters": 200,
+  "tolerance_rule": "1e-3*sqrt(max_i nnz_i), x10 for mixed-precision tile paths",
+  "torch_version": "2.7.1+cu118",
+  "used_in_prior_router_pilots": false,
+  "used_in_threshold_design": false,
+  "warmup_iters": 50
+}

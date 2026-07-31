@@ -1,0 +1,10 @@
+[sage-bench] dataset=Reddit backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[sage-bench] dataset=ogbn-proteins backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[sage-bench] dataset=ogbn-arxiv backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[sage-bench] dataset=PPI backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[sage-bench] dataset=amazon-photo backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[sage-bench] dataset=amazon-computers backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[sage-bench] dataset=Cora backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+[sage-bench] dataset=CiteSeer backends=router,cusparse,tc_direct,tc_direct_tf32,pyg
+rows=40
+csv=/mnt/shared/development/tariq/RA-SpMM/fgcs_results/revision/tf32/gnn_corrected/sage/graphsage_end_to_end.csv

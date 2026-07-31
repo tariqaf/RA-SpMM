@@ -1,0 +1,69 @@
+# Verification & audit artifacts (server-side build/test outputs)
+verification/
+
+# Build outputs
+build/
+dist/
+*.egg-info/
+*.so
+*.o
+*.obj
+*.dll
+*.dylib
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# CUDA build artifacts
+*.cubin
+*.fatbin
+*.ptx
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Local data caches (not part of the public release)
+datasets/
+external/
+baselines/
+logs/
+cache/
+DTCSpMM_exe_time_and_throughput.csv
+
+# Reproducible Nsight intermediates; parsed per-pair metrics remain tracked.
+*.ncu-rep
+*.ncu.csv
+
+# Temporary
+*.tmp
+*.bak
+*.JACCARD_BACKUP
+SERVER_PROMPT*.md
+
+# Local paper drafts / unrelated manuscripts
+/My Survey paper/
+
+# Large local FGCS experiment outputs
+/fgcs_results/revision/baseline_3090/
+/fgcs_results/revision/convaware/
+/fgcs_results/revision/cublas/
+/fgcs_results/revision/dense/
+/fgcs_results/revision/featbreak/
+/fgcs_results/revision/for_4090/
+/fgcs_results/revision/profile/
+/fgcs_results/spmm/
+/fgcs_results/summary/
+/fgcs_results/synthetic/
+manuscript/
+
+# Unseen-graph raw SNAP/PyG data (not redistributable; fetch via experiments/download_unseen_graphs.py)
+datasets/unseen/*.txt.gz
+datasets/unseen/*.npz

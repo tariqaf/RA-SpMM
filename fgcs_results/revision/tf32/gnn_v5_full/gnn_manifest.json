@@ -1,0 +1,33 @@
+{
+  "architectures": [
+    "gcn",
+    "graphsage",
+    "gin"
+  ],
+  "code_commit": "167cad0",
+  "cold_reset_definition": "graph-specific plans/descriptors built INSIDE the timed region (router: feature+route+native-CSR; cusparse: descriptor+workspace); optimizer(Adam) state preinitialized and identical model+optimizer+RNG snapshot restored before every trial; between trials only graph-specific state destroyed + synchronize, no empty_cache; per-trial median over 25 trials",
+  "cuda_version": "11.8",
+  "cusparse_algorithm": "CUSPARSE_SPMM_CSR_ALG2",
+  "datasets": [
+    "Reddit",
+    "ogbn-proteins",
+    "ogbn-arxiv",
+    "PPI",
+    "amazon-photo",
+    "amazon-computers",
+    "Cora",
+    "CiteSeer"
+  ],
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "precision": "fp32",
+  "pyg_backend": "torch_sparse SparseTensor fused SpMM path (sparse-aggregation backend), NOT full torch_geometric message-passing layers",
+  "pyg_torch_sparse_version": "0.6.18+pt27cu118",
+  "pytorch_version": "2.7.1+cu118",
+  "router_rule_count": 7,
+  "timed_unit": "zero_grad,forward,cross_entropy_loss,backward,optimizer_step,cuda_synchronized_both_ends",
+  "tolerance": "per_spmm BASE_ATOL*sqrt(max_row_nnz); logits/gradients relative<=1e-2; loss relative<=1e-3",
+  "trial_count_cold": 25,
+  "warm_reset_definition": "graph-specific plans/descriptors built ONCE outside the timed region; timed unit = zero_grad+forward+cross_entropy+backward+optimizer.step, mean of 100 timed steps",
+  "warm_timed_steps": 100,
+  "warm_warmup_steps": 20
+}

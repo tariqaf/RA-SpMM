@@ -1,0 +1,5 @@
+regime,n_configs,geomean_router_faster_warm,min_router_faster_warm,max_router_faster_warm,n_cublas_wins_warm
+Dense Small,40,20.647054,5.377623,122.205294,0
+Mixed/Irregular,12,12.898598,4.54584,28.848885,0
+OVERALL,52,18.522872,4.54584,122.205294,0
+REGIME_BALANCED,2,16.772826,,,

@@ -1,0 +1,920 @@
+{
+  "architectures": [
+    "gcn",
+    "graphsage",
+    "gin"
+  ],
+  "code_commit": "5bad1d39ddd80562d0a2069266f42804d3e5b194",
+  "cold_reset_definition": "graph-specific plans/descriptors built INSIDE the timed region (router: feature+route+native-CSR; cusparse: descriptor+workspace); optimizer(Adam) state preinitialized and identical model+optimizer+RNG snapshot restored before every trial; between trials only graph-specific state destroyed + synchronize, no empty_cache; per-trial median over 25 trials",
+  "cuda_version": "11.8",
+  "cusparse_algorithm": "CUSPARSE_SPMM_CSR_ALG2",
+  "datasets": [
+    "Reddit",
+    "ogbn-proteins",
+    "ogbn-arxiv",
+    "PPI",
+    "amazon-photo",
+    "amazon-computers",
+    "Cora",
+    "CiteSeer"
+  ],
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "operator_definitions": {
+    "gcn": "A_hat = D~^-1/2 (A + I) D~^-1/2, self-loop added only where absent",
+    "gin": "raw adjacency A ((1+eps) self term supplied inside the model)",
+    "graphsage": "A_mean = D^-1 A, no self-loop, zero-degree rows preserved"
+  },
+  "operators": {
+    "CiteSeer": {
+      "gcn": {
+        "forward_descriptors": {
+          "CV_d": 0.90484,
+          "M": 3327,
+          "d_bar": 3.7364,
+          "nnz": 12431
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": true
+          },
+          "backward_out": {
+            "N": 6,
+            "resolved_path": "CSR_DIRECT",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": false
+          },
+          "forward_out": {
+            "N": 6,
+            "resolved_path": "CSR_DIRECT",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 0.90484,
+          "M": 3327,
+          "d_bar": 3.7364,
+          "nnz": 12431
+        }
+      },
+      "gin": {
+        "forward_descriptors": {
+          "CV_d": 1.23551,
+          "M": 3327,
+          "d_bar": 2.7364,
+          "nnz": 9104
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": true
+          },
+          "backward_in": {
+            "N": 3703,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": false
+          },
+          "forward_in": {
+            "N": 3703,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.23551,
+          "M": 3327,
+          "d_bar": 2.7364,
+          "nnz": 9104
+        }
+      },
+      "graphsage": {
+        "forward_descriptors": {
+          "CV_d": 1.23551,
+          "M": 3327,
+          "d_bar": 2.7364,
+          "nnz": 9104
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": true
+          },
+          "backward_in": {
+            "N": 3703,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": false
+          },
+          "forward_in": {
+            "N": 3703,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.23551,
+          "M": 3327,
+          "d_bar": 2.7364,
+          "nnz": 9104
+        }
+      }
+    },
+    "Cora": {
+      "gcn": {
+        "forward_descriptors": {
+          "CV_d": 1.06732,
+          "M": 2708,
+          "d_bar": 4.89808,
+          "nnz": 13264
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": true
+          },
+          "backward_out": {
+            "N": 7,
+            "resolved_path": "CSR_DIRECT",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": false
+          },
+          "forward_out": {
+            "N": 7,
+            "resolved_path": "CSR_DIRECT",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.06732,
+          "M": 2708,
+          "d_bar": 4.89808,
+          "nnz": 13264
+        }
+      },
+      "gin": {
+        "forward_descriptors": {
+          "CV_d": 1.34113,
+          "M": 2708,
+          "d_bar": 3.89808,
+          "nnz": 10556
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": true
+          },
+          "backward_in": {
+            "N": 1433,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": false
+          },
+          "forward_in": {
+            "N": 1433,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.34113,
+          "M": 2708,
+          "d_bar": 3.89808,
+          "nnz": 10556
+        }
+      },
+      "graphsage": {
+        "forward_descriptors": {
+          "CV_d": 1.34113,
+          "M": 2708,
+          "d_bar": 3.89808,
+          "nnz": 10556
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": true
+          },
+          "backward_in": {
+            "N": 1433,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": false
+          },
+          "forward_in": {
+            "N": 1433,
+            "resolved_path": "TC_DIRECT_TF32",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.34113,
+          "M": 2708,
+          "d_bar": 3.89808,
+          "nnz": 10556
+        }
+      }
+    },
+    "PPI": {
+      "gcn": {
+        "forward_descriptors": {
+          "CV_d": 1.379,
+          "M": 1767,
+          "d_bar": 19.28976,
+          "nnz": 34085
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT",
+            "transpose": true
+          },
+          "backward_out": {
+            "N": 121,
+            "resolved_path": "TC_DIRECT",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT",
+            "transpose": false
+          },
+          "forward_out": {
+            "N": 121,
+            "resolved_path": "TC_DIRECT",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.379,
+          "M": 1767,
+          "d_bar": 19.28976,
+          "nnz": 34085
+        }
+      },
+      "gin": {
+        "forward_descriptors": {
+          "CV_d": 1.4544,
+          "M": 1767,
+          "d_bar": 18.28976,
+          "nnz": 32318
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT",
+            "transpose": true
+          },
+          "backward_in": {
+            "N": 50,
+            "resolved_path": "TC_DIRECT",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT",
+            "transpose": false
+          },
+          "forward_in": {
+            "N": 50,
+            "resolved_path": "TC_DIRECT",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.4544,
+          "M": 1767,
+          "d_bar": 18.28976,
+          "nnz": 32318
+        }
+      },
+      "graphsage": {
+        "forward_descriptors": {
+          "CV_d": 1.4544,
+          "M": 1767,
+          "d_bar": 18.28976,
+          "nnz": 32318
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT",
+            "transpose": true
+          },
+          "backward_in": {
+            "N": 50,
+            "resolved_path": "TC_DIRECT",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT",
+            "transpose": false
+          },
+          "forward_in": {
+            "N": 50,
+            "resolved_path": "TC_DIRECT",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.4544,
+          "M": 1767,
+          "d_bar": 18.28976,
+          "nnz": 32318
+        }
+      }
+    },
+    "Reddit": {
+      "gcn": {
+        "forward_descriptors": {
+          "CV_d": 1.62239,
+          "M": 232965,
+          "d_bar": 492.9876,
+          "nnz": 114848857
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": true
+          },
+          "backward_out": {
+            "N": 41,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": false
+          },
+          "forward_out": {
+            "N": 41,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.62239,
+          "M": 232965,
+          "d_bar": 492.9876,
+          "nnz": 114848857
+        }
+      },
+      "gin": {
+        "forward_descriptors": {
+          "CV_d": 1.62569,
+          "M": 232965,
+          "d_bar": 491.9876,
+          "nnz": 114615892
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": true
+          },
+          "backward_in": {
+            "N": 602,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": false
+          },
+          "forward_in": {
+            "N": 602,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.62569,
+          "M": 232965,
+          "d_bar": 491.9876,
+          "nnz": 114615892
+        }
+      },
+      "graphsage": {
+        "forward_descriptors": {
+          "CV_d": 1.62569,
+          "M": 232965,
+          "d_bar": 491.9876,
+          "nnz": 114615892
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": true
+          },
+          "backward_in": {
+            "N": 602,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": false
+          },
+          "forward_in": {
+            "N": 602,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.62569,
+          "M": 232965,
+          "d_bar": 491.9876,
+          "nnz": 114615892
+        }
+      }
+    },
+    "amazon-computers": {
+      "gcn": {
+        "forward_descriptors": {
+          "CV_d": 1.91274,
+          "M": 13752,
+          "d_bar": 36.7564,
+          "nnz": 505474
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "SEGMENT_HYBRID",
+            "transpose": true
+          },
+          "backward_out": {
+            "N": 10,
+            "resolved_path": "CUSPARSE",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "SEGMENT_HYBRID",
+            "transpose": false
+          },
+          "forward_out": {
+            "N": 10,
+            "resolved_path": "CUSPARSE",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.91274,
+          "M": 13752,
+          "d_bar": 36.7564,
+          "nnz": 505474
+        }
+      },
+      "gin": {
+        "forward_descriptors": {
+          "CV_d": 1.96624,
+          "M": 13752,
+          "d_bar": 35.7564,
+          "nnz": 491722
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "SEGMENT_HYBRID",
+            "transpose": true
+          },
+          "backward_in": {
+            "N": 767,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "SEGMENT_HYBRID",
+            "transpose": false
+          },
+          "forward_in": {
+            "N": 767,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.96624,
+          "M": 13752,
+          "d_bar": 35.7564,
+          "nnz": 491722
+        }
+      },
+      "graphsage": {
+        "forward_descriptors": {
+          "CV_d": 1.96624,
+          "M": 13752,
+          "d_bar": 35.7564,
+          "nnz": 491722
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "SEGMENT_HYBRID",
+            "transpose": true
+          },
+          "backward_in": {
+            "N": 767,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "SEGMENT_HYBRID",
+            "transpose": false
+          },
+          "forward_in": {
+            "N": 767,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.96624,
+          "M": 13752,
+          "d_bar": 35.7564,
+          "nnz": 491722
+        }
+      }
+    },
+    "amazon-photo": {
+      "gcn": {
+        "forward_descriptors": {
+          "CV_d": 1.47125,
+          "M": 7650,
+          "d_bar": 32.13229,
+          "nnz": 245812
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "SEGMENT_HYBRID",
+            "transpose": true
+          },
+          "backward_out": {
+            "N": 8,
+            "resolved_path": "CUSPARSE",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "SEGMENT_HYBRID",
+            "transpose": false
+          },
+          "forward_out": {
+            "N": 8,
+            "resolved_path": "CUSPARSE",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.47125,
+          "M": 7650,
+          "d_bar": 32.13229,
+          "nnz": 245812
+        }
+      },
+      "gin": {
+        "forward_descriptors": {
+          "CV_d": 1.5185,
+          "M": 7650,
+          "d_bar": 31.13229,
+          "nnz": 238162
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "SEGMENT_HYBRID",
+            "transpose": true
+          },
+          "backward_in": {
+            "N": 745,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "SEGMENT_HYBRID",
+            "transpose": false
+          },
+          "forward_in": {
+            "N": 745,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.5185,
+          "M": 7650,
+          "d_bar": 31.13229,
+          "nnz": 238162
+        }
+      },
+      "graphsage": {
+        "forward_descriptors": {
+          "CV_d": 1.5185,
+          "M": 7650,
+          "d_bar": 31.13229,
+          "nnz": 238162
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "SEGMENT_HYBRID",
+            "transpose": true
+          },
+          "backward_in": {
+            "N": 745,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "SEGMENT_HYBRID",
+            "transpose": false
+          },
+          "forward_in": {
+            "N": 745,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.5185,
+          "M": 7650,
+          "d_bar": 31.13229,
+          "nnz": 238162
+        }
+      }
+    },
+    "ogbn-arxiv": {
+      "gcn": {
+        "forward_descriptors": {
+          "CV_d": 1.12585,
+          "M": 169343,
+          "d_bar": 7.88687,
+          "nnz": 1335586
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "ZERO_OVERHEAD_CSR",
+            "transpose": true
+          },
+          "backward_out": {
+            "N": 40,
+            "resolved_path": "ZERO_OVERHEAD_CSR",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT",
+            "transpose": false
+          },
+          "forward_out": {
+            "N": 40,
+            "resolved_path": "TC_DIRECT",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 8.5711,
+          "M": 169343,
+          "d_bar": 7.88687,
+          "nnz": 1335586
+        }
+      },
+      "gin": {
+        "forward_descriptors": {
+          "CV_d": 1.28932,
+          "M": 169343,
+          "d_bar": 6.88687,
+          "nnz": 1166243
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "ZERO_OVERHEAD_CSR",
+            "transpose": true
+          },
+          "backward_in": {
+            "N": 128,
+            "resolved_path": "ZERO_OVERHEAD_CSR",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT",
+            "transpose": false
+          },
+          "forward_in": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 9.81565,
+          "M": 169343,
+          "d_bar": 6.88687,
+          "nnz": 1166243
+        }
+      },
+      "graphsage": {
+        "forward_descriptors": {
+          "CV_d": 1.28932,
+          "M": 169343,
+          "d_bar": 6.88687,
+          "nnz": 1166243
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "ZERO_OVERHEAD_CSR",
+            "transpose": true
+          },
+          "backward_in": {
+            "N": 128,
+            "resolved_path": "ZERO_OVERHEAD_CSR",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT",
+            "transpose": false
+          },
+          "forward_in": {
+            "N": 128,
+            "resolved_path": "TC_DIRECT",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 9.81565,
+          "M": 169343,
+          "d_bar": 6.88687,
+          "nnz": 1166243
+        }
+      }
+    },
+    "ogbn-proteins": {
+      "gcn": {
+        "forward_descriptors": {
+          "CV_d": 1.03926,
+          "M": 132534,
+          "d_bar": 597.99778,
+          "nnz": 79255038
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": true
+          },
+          "backward_out": {
+            "N": 112,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": false
+          },
+          "forward_out": {
+            "N": 112,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.03926,
+          "M": 132534,
+          "d_bar": 597.99778,
+          "nnz": 79255038
+        }
+      },
+      "gin": {
+        "forward_descriptors": {
+          "CV_d": 1.041,
+          "M": 132534,
+          "d_bar": 596.99778,
+          "nnz": 79122504
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": true
+          },
+          "backward_in": {
+            "N": 8,
+            "resolved_path": "CSR_DIRECT",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": false
+          },
+          "forward_in": {
+            "N": 8,
+            "resolved_path": "CSR_DIRECT",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.041,
+          "M": 132534,
+          "d_bar": 596.99778,
+          "nnz": 79122504
+        }
+      },
+      "graphsage": {
+        "forward_descriptors": {
+          "CV_d": 1.041,
+          "M": 132534,
+          "d_bar": 596.99778,
+          "nnz": 79122504
+        },
+        "sites": {
+          "backward_hidden": {
+            "N": 128,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": true
+          },
+          "backward_in": {
+            "N": 8,
+            "resolved_path": "CSR_DIRECT",
+            "transpose": true
+          },
+          "forward_hidden": {
+            "N": 128,
+            "resolved_path": "COMMUNITY_TC",
+            "transpose": false
+          },
+          "forward_in": {
+            "N": 8,
+            "resolved_path": "CSR_DIRECT",
+            "transpose": false
+          }
+        },
+        "transposed_descriptors": {
+          "CV_d": 1.041,
+          "M": 132534,
+          "d_bar": 596.99778,
+          "nnz": 79122504
+        }
+      }
+    }
+  },
+  "precision": "per-site; FP32 baseline with router-gated TF32 tile paths (see operators[dataset][model].sites[*].resolved_path \u2014 a _TF32 suffix denotes the TF32 mma tile path, FP32 accumulate)",
+  "pyg_backend": "torch_sparse SparseTensor fused SpMM path (sparse-aggregation backend), NOT full torch_geometric message-passing layers",
+  "pyg_torch_sparse_version": "0.6.18+pt27cu118",
+  "pytorch_version": "2.7.1+cu118",
+  "router_rule_count": 7,
+  "timed_unit": "zero_grad,forward,cross_entropy_loss,backward,optimizer_step,cuda_synchronized_both_ends",
+  "tolerance": "per_spmm BASE_ATOL*sqrt(max_row_nnz); logits/gradients relative<=1e-2; loss relative<=1e-3",
+  "trial_count_cold": 25,
+  "warm_reset_definition": "graph-specific plans/descriptors built ONCE outside the timed region; timed unit = zero_grad+forward+cross_entropy+backward+optimizer.step, mean of 100 timed steps",
+  "warm_timed_steps": 100,
+  "warm_warmup_steps": 20
+}

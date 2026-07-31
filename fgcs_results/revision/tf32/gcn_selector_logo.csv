@@ -1,0 +1,6 @@
+model,seed,logo_geomean,logo_hits,trainfit_geomean
+gcn_selector,0,1.5515,90,1.5631
+gcn_selector,1,1.5463,81,1.577
+gcn_selector,2,1.5429,85,1.5771
+gcn_selector,3,1.5501,95,1.5855
+gcn_selector,4,1.5522,88,1.5701

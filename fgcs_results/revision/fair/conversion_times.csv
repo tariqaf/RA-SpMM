@@ -1,0 +1,1153 @@
+dataset,category,M,nnz,N,kernel,feature_source,feature_ms,conversion_ms,first_exec_ms,warm_exec_ms
+Amazon0601,Sparse Uniform,403394,3387388,64,COMMUNITY_TC,production_full_cpu_input_ms,662.4697,347.000038,0.790323,0.707159
+Amazon0601,Sparse Uniform,403394,3387388,64,CSR_DIRECT,production_full_cpu_input_ms,662.4697,0.0,1.031475,1.014026
+Amazon0601,Sparse Uniform,403394,3387388,64,RODE_ENHANCED,production_full_cpu_input_ms,662.4697,5.056641,1.282154,1.21751
+Amazon0601,Sparse Uniform,403394,3387388,64,SEGMENT_HYBRID,production_full_cpu_input_ms,662.4697,10.656447,1.300883,1.245814
+Amazon0601,Sparse Uniform,403394,3387388,64,TC_DIRECT,production_full_cpu_input_ms,662.4697,85.562472,0.953059,0.863002
+Amazon0601,Sparse Uniform,403394,3387388,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,662.4697,2.1949,1.024416,0.984038
+Amazon0601,Sparse Uniform,403394,3387388,128,COMMUNITY_TC,production_full_cpu_input_ms,662.4697,355.246022,1.527603,1.443574
+Amazon0601,Sparse Uniform,403394,3387388,128,CSR_DIRECT,production_full_cpu_input_ms,662.4697,0.0,2.2144,2.19136
+Amazon0601,Sparse Uniform,403394,3387388,128,RODE_ENHANCED,production_full_cpu_input_ms,662.4697,3.962201,2.278963,2.218435
+Amazon0601,Sparse Uniform,403394,3387388,128,SEGMENT_HYBRID,production_full_cpu_input_ms,662.4697,10.649677,2.303498,2.233984
+Amazon0601,Sparse Uniform,403394,3387388,128,TC_DIRECT,production_full_cpu_input_ms,662.4697,86.906254,1.895824,1.804124
+Amazon0601,Sparse Uniform,403394,3387388,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,662.4697,1.852371,2.08648,2.050995
+Amazon0601,Sparse Uniform,403394,3387388,256,COMMUNITY_TC,production_full_cpu_input_ms,662.4697,379.823761,3.242803,3.15883
+Amazon0601,Sparse Uniform,403394,3387388,256,CSR_DIRECT,production_full_cpu_input_ms,662.4697,0.0,4.69248,4.670551
+Amazon0601,Sparse Uniform,403394,3387388,256,RODE_ENHANCED,production_full_cpu_input_ms,662.4697,3.982388,4.661155,4.59924
+Amazon0601,Sparse Uniform,403394,3387388,256,SEGMENT_HYBRID,production_full_cpu_input_ms,662.4697,11.194224,4.713648,4.621706
+Amazon0601,Sparse Uniform,403394,3387388,256,TC_DIRECT,production_full_cpu_input_ms,662.4697,99.568167,3.879715,3.790664
+Amazon0601,Sparse Uniform,403394,3387388,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,662.4697,1.851228,4.310474,4.274181
+Amazon0601,Sparse Uniform,403394,3387388,512,COMMUNITY_TC,production_full_cpu_input_ms,662.4697,375.952172,6.853837,6.760054
+Amazon0601,Sparse Uniform,403394,3387388,512,CSR_DIRECT,production_full_cpu_input_ms,662.4697,0.0,9.71305,9.685305
+Amazon0601,Sparse Uniform,403394,3387388,512,RODE_ENHANCED,production_full_cpu_input_ms,662.4697,4.075642,9.4312,9.374955
+Amazon0601,Sparse Uniform,403394,3387388,512,SEGMENT_HYBRID,production_full_cpu_input_ms,662.4697,11.043973,9.485162,9.404017
+Amazon0601,Sparse Uniform,403394,3387388,512,TC_DIRECT,production_full_cpu_input_ms,662.4697,125.858096,7.879706,7.780065
+Amazon0601,Sparse Uniform,403394,3387388,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,662.4697,1.893145,8.819139,8.774231
+CiteSeer,Mixed/Irregular,3327,9104,64,COMMUNITY_TC,production_full_cpu_input_ms,1.3762,22.780427,0.070144,0.015155
+CiteSeer,Mixed/Irregular,3327,9104,64,CSR_DIRECT,production_full_cpu_input_ms,1.3762,0.0,0.028774,0.014694
+CiteSeer,Mixed/Irregular,3327,9104,64,RODE_ENHANCED,production_full_cpu_input_ms,1.3762,0.085604,0.040243,0.018918
+CiteSeer,Mixed/Irregular,3327,9104,64,SEGMENT_HYBRID,production_full_cpu_input_ms,1.3762,0.107701,0.047718,0.018263
+CiteSeer,Mixed/Irregular,3327,9104,64,TC_DIRECT,production_full_cpu_input_ms,1.3762,24.416973,0.06441,0.014797
+CiteSeer,Mixed/Irregular,3327,9104,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1.3762,0.052442,0.054477,0.034386
+CiteSeer,Mixed/Irregular,3327,9104,128,COMMUNITY_TC,production_full_cpu_input_ms,1.3762,4.479377,0.05335,0.016317
+CiteSeer,Mixed/Irregular,3327,9104,128,CSR_DIRECT,production_full_cpu_input_ms,1.3762,0.0,0.03072,0.016092
+CiteSeer,Mixed/Irregular,3327,9104,128,RODE_ENHANCED,production_full_cpu_input_ms,1.3762,0.255877,0.04649,0.02004
+CiteSeer,Mixed/Irregular,3327,9104,128,SEGMENT_HYBRID,production_full_cpu_input_ms,1.3762,0.104585,0.042803,0.020076
+CiteSeer,Mixed/Irregular,3327,9104,128,TC_DIRECT,production_full_cpu_input_ms,1.3762,27.636958,0.089293,0.016246
+CiteSeer,Mixed/Irregular,3327,9104,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1.3762,0.055241,0.055808,0.059438
+CiteSeer,Mixed/Irregular,3327,9104,256,COMMUNITY_TC,production_full_cpu_input_ms,1.3762,32.084801,0.246374,0.031739
+CiteSeer,Mixed/Irregular,3327,9104,256,CSR_DIRECT,production_full_cpu_input_ms,1.3762,0.0,0.046797,0.032251
+CiteSeer,Mixed/Irregular,3327,9104,256,RODE_ENHANCED,production_full_cpu_input_ms,1.3762,0.086581,0.049766,0.029271
+CiteSeer,Mixed/Irregular,3327,9104,256,SEGMENT_HYBRID,production_full_cpu_input_ms,1.3762,0.109589,0.574771,0.029256
+CiteSeer,Mixed/Irregular,3327,9104,256,TC_DIRECT,production_full_cpu_input_ms,1.3762,27.646491,0.090112,0.031288
+CiteSeer,Mixed/Irregular,3327,9104,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1.3762,0.053671,0.071475,0.052869
+CiteSeer,Mixed/Irregular,3327,9104,512,COMMUNITY_TC,production_full_cpu_input_ms,1.3762,19.758154,0.122573,0.073907
+CiteSeer,Mixed/Irregular,3327,9104,512,CSR_DIRECT,production_full_cpu_input_ms,1.3762,0.0,0.088064,0.076155
+CiteSeer,Mixed/Irregular,3327,9104,512,RODE_ENHANCED,production_full_cpu_input_ms,1.3762,0.086678,0.080179,0.063565
+CiteSeer,Mixed/Irregular,3327,9104,512,SEGMENT_HYBRID,production_full_cpu_input_ms,1.3762,0.107348,0.081408,0.063462
+CiteSeer,Mixed/Irregular,3327,9104,512,TC_DIRECT,production_full_cpu_input_ms,1.3762,21.499495,0.113971,0.07297
+CiteSeer,Mixed/Irregular,3327,9104,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1.3762,0.053905,0.104755,0.088545
+Cora,Mixed/Irregular,2708,10556,64,COMMUNITY_TC,production_full_cpu_input_ms,1.2944,18.308834,0.10281,0.020229
+Cora,Mixed/Irregular,2708,10556,64,CSR_DIRECT,production_full_cpu_input_ms,1.2944,0.0,0.035738,0.020762
+Cora,Mixed/Irregular,2708,10556,64,RODE_ENHANCED,production_full_cpu_input_ms,1.2944,0.113972,0.055706,0.031974
+Cora,Mixed/Irregular,2708,10556,64,SEGMENT_HYBRID,production_full_cpu_input_ms,1.2944,0.131598,0.057856,0.031539
+Cora,Mixed/Irregular,2708,10556,64,TC_DIRECT,production_full_cpu_input_ms,1.2944,23.724922,0.099328,0.022303
+Cora,Mixed/Irregular,2708,10556,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1.2944,0.052663,0.053555,0.033162
+Cora,Mixed/Irregular,2708,10556,128,COMMUNITY_TC,production_full_cpu_input_ms,1.2944,20.716399,0.102707,0.022318
+Cora,Mixed/Irregular,2708,10556,128,CSR_DIRECT,production_full_cpu_input_ms,1.2944,0.0,0.037888,0.022518
+Cora,Mixed/Irregular,2708,10556,128,RODE_ENHANCED,production_full_cpu_input_ms,1.2944,0.114453,0.056115,0.033331
+Cora,Mixed/Irregular,2708,10556,128,SEGMENT_HYBRID,production_full_cpu_input_ms,1.2944,0.127288,0.057037,0.03328
+Cora,Mixed/Irregular,2708,10556,128,TC_DIRECT,production_full_cpu_input_ms,1.2944,21.985815,0.102298,0.024049
+Cora,Mixed/Irregular,2708,10556,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1.2944,0.054719,0.056422,0.034509
+Cora,Mixed/Irregular,2708,10556,256,COMMUNITY_TC,production_full_cpu_input_ms,1.2944,20.683732,0.11264,0.037494
+Cora,Mixed/Irregular,2708,10556,256,CSR_DIRECT,production_full_cpu_input_ms,1.2944,0.0,0.053146,0.039644
+Cora,Mixed/Irregular,2708,10556,256,RODE_ENHANCED,production_full_cpu_input_ms,1.2944,0.114275,0.058982,0.03733
+Cora,Mixed/Irregular,2708,10556,256,SEGMENT_HYBRID,production_full_cpu_input_ms,1.2944,0.126146,0.060211,0.037586
+Cora,Mixed/Irregular,2708,10556,256,TC_DIRECT,production_full_cpu_input_ms,1.2944,23.419393,0.120115,0.041139
+Cora,Mixed/Irregular,2708,10556,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1.2944,0.053506,0.05929,0.041078
+Cora,Mixed/Irregular,2708,10556,512,COMMUNITY_TC,production_full_cpu_input_ms,1.2944,18.332795,0.171725,0.102456
+Cora,Mixed/Irregular,2708,10556,512,CSR_DIRECT,production_full_cpu_input_ms,1.2944,0.0,0.120627,0.108477
+Cora,Mixed/Irregular,2708,10556,512,RODE_ENHANCED,production_full_cpu_input_ms,1.2944,0.114889,0.097997,0.080384
+Cora,Mixed/Irregular,2708,10556,512,SEGMENT_HYBRID,production_full_cpu_input_ms,1.2944,0.129383,0.09984,0.080302
+Cora,Mixed/Irregular,2708,10556,512,TC_DIRECT,production_full_cpu_input_ms,1.2944,21.378514,0.175002,0.109839
+Cora,Mixed/Irregular,2708,10556,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1.2944,0.056609,0.099226,0.080681
+Flickr,Mixed/Irregular,89250,899756,64,COMMUNITY_TC,production_full_cpu_input_ms,290.2407,116.029442,1.251021,1.156997
+Flickr,Mixed/Irregular,89250,899756,64,CSR_DIRECT,production_full_cpu_input_ms,290.2407,0.0,1.279386,1.262075
+Flickr,Mixed/Irregular,89250,899756,64,RODE_ENHANCED,production_full_cpu_input_ms,290.2407,1.090373,1.097728,1.059139
+Flickr,Mixed/Irregular,89250,899756,64,SEGMENT_HYBRID,production_full_cpu_input_ms,290.2407,2.811576,1.105773,1.058959
+Flickr,Mixed/Irregular,89250,899756,64,TC_DIRECT,production_full_cpu_input_ms,290.2407,60.007777,1.10336,1.010698
+Flickr,Mixed/Irregular,89250,899756,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,290.2407,0.418007,0.369971,0.340362
+Flickr,Mixed/Irregular,89250,899756,128,COMMUNITY_TC,production_full_cpu_input_ms,290.2407,112.281553,1.520947,1.439831
+Flickr,Mixed/Irregular,89250,899756,128,CSR_DIRECT,production_full_cpu_input_ms,290.2407,0.0,1.651712,1.632497
+Flickr,Mixed/Irregular,89250,899756,128,RODE_ENHANCED,production_full_cpu_input_ms,290.2407,1.107919,1.424678,1.388221
+Flickr,Mixed/Irregular,89250,899756,128,SEGMENT_HYBRID,production_full_cpu_input_ms,290.2407,2.715436,1.432406,1.388283
+Flickr,Mixed/Irregular,89250,899756,128,TC_DIRECT,production_full_cpu_input_ms,290.2407,69.566877,1.384653,1.292191
+Flickr,Mixed/Irregular,89250,899756,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,290.2407,0.412559,0.628634,0.602045
+Flickr,Mixed/Irregular,89250,899756,256,COMMUNITY_TC,production_full_cpu_input_ms,290.2407,118.162918,3.006464,2.900255
+Flickr,Mixed/Irregular,89250,899756,256,CSR_DIRECT,production_full_cpu_input_ms,290.2407,0.0,3.445658,3.423083
+Flickr,Mixed/Irregular,89250,899756,256,RODE_ENHANCED,production_full_cpu_input_ms,290.2407,1.099381,2.09689,2.060662
+Flickr,Mixed/Irregular,89250,899756,256,SEGMENT_HYBRID,production_full_cpu_input_ms,290.2407,2.738429,2.109818,2.060682
+Flickr,Mixed/Irregular,89250,899756,256,TC_DIRECT,production_full_cpu_input_ms,290.2407,52.21687,2.764698,2.679608
+Flickr,Mixed/Irregular,89250,899756,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,290.2407,0.41581,1.228493,1.20043
+Flickr,Mixed/Irregular,89250,899756,512,COMMUNITY_TC,production_full_cpu_input_ms,290.2407,113.840972,6.011597,5.898895
+Flickr,Mixed/Irregular,89250,899756,512,CSR_DIRECT,production_full_cpu_input_ms,290.2407,0.0,7.207322,7.184532
+Flickr,Mixed/Irregular,89250,899756,512,RODE_ENHANCED,production_full_cpu_input_ms,290.2407,1.105182,3.459443,3.422592
+Flickr,Mixed/Irregular,89250,899756,512,SEGMENT_HYBRID,production_full_cpu_input_ms,290.2407,2.754962,3.468608,3.422495
+Flickr,Mixed/Irregular,89250,899756,512,TC_DIRECT,production_full_cpu_input_ms,290.2407,48.651787,5.599949,5.525366
+Flickr,Mixed/Irregular,89250,899756,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,290.2407,0.42237,2.497024,2.467057
+PPI,Mixed/Irregular,1767,32318,64,COMMUNITY_TC,production_full_cpu_input_ms,1.6181,19.051045,0.104858,0.031089
+PPI,Mixed/Irregular,1767,32318,64,CSR_DIRECT,production_full_cpu_input_ms,1.6181,0.0,0.045568,0.031483
+PPI,Mixed/Irregular,1767,32318,64,RODE_ENHANCED,production_full_cpu_input_ms,1.6181,0.112245,0.062362,0.039634
+PPI,Mixed/Irregular,1767,32318,64,SEGMENT_HYBRID,production_full_cpu_input_ms,1.6181,0.130692,0.065638,0.03967
+PPI,Mixed/Irregular,1767,32318,64,TC_DIRECT,production_full_cpu_input_ms,1.6181,22.559526,0.104243,0.030541
+PPI,Mixed/Irregular,1767,32318,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1.6181,0.050009,0.055706,0.036204
+PPI,Mixed/Irregular,1767,32318,128,COMMUNITY_TC,production_full_cpu_input_ms,1.6181,18.712157,0.108954,0.035133
+PPI,Mixed/Irregular,1767,32318,128,CSR_DIRECT,production_full_cpu_input_ms,1.6181,0.0,0.049254,0.035246
+PPI,Mixed/Irregular,1767,32318,128,RODE_ENHANCED,production_full_cpu_input_ms,1.6181,0.108476,0.064717,0.043407
+PPI,Mixed/Irregular,1767,32318,128,SEGMENT_HYBRID,production_full_cpu_input_ms,1.6181,0.132233,0.068198,0.043448
+PPI,Mixed/Irregular,1767,32318,128,TC_DIRECT,production_full_cpu_input_ms,1.6181,21.814547,0.104346,0.035318
+PPI,Mixed/Irregular,1767,32318,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1.6181,0.050893,0.059187,0.038354
+PPI,Mixed/Irregular,1767,32318,256,COMMUNITY_TC,production_full_cpu_input_ms,1.6181,19.265933,0.152986,0.073518
+PPI,Mixed/Irregular,1767,32318,256,CSR_DIRECT,production_full_cpu_input_ms,1.6181,0.0,0.076595,0.063872
+PPI,Mixed/Irregular,1767,32318,256,RODE_ENHANCED,production_full_cpu_input_ms,1.6181,0.108639,0.070963,0.050237
+PPI,Mixed/Irregular,1767,32318,256,SEGMENT_HYBRID,production_full_cpu_input_ms,1.6181,0.134312,0.081101,0.057462
+PPI,Mixed/Irregular,1767,32318,256,TC_DIRECT,production_full_cpu_input_ms,1.6181,24.576629,0.17111,0.062792
+PPI,Mixed/Irregular,1767,32318,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1.6181,0.052875,0.067277,0.04735
+PPI,Mixed/Irregular,1767,32318,512,COMMUNITY_TC,production_full_cpu_input_ms,1.6181,18.48547,0.20439,0.129802
+PPI,Mixed/Irregular,1767,32318,512,CSR_DIRECT,production_full_cpu_input_ms,1.6181,0.0,0.158822,0.146596
+PPI,Mixed/Irregular,1767,32318,512,RODE_ENHANCED,production_full_cpu_input_ms,1.6181,0.112796,0.099021,0.080108
+PPI,Mixed/Irregular,1767,32318,512,SEGMENT_HYBRID,production_full_cpu_input_ms,1.6181,0.135157,0.094515,0.070676
+PPI,Mixed/Irregular,1767,32318,512,TC_DIRECT,production_full_cpu_input_ms,1.6181,21.951283,0.206848,0.14998
+PPI,Mixed/Irregular,1767,32318,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1.6181,0.052803,0.100557,0.083809
+Reddit,Dense Large-Scale,232965,114615892,64,COMMUNITY_TC,production_full_cpu_input_ms,13510.2044,10737.408696,25.556685,25.342043
+Reddit,Dense Large-Scale,232965,114615892,64,CSR_DIRECT,production_full_cpu_input_ms,13510.2044,0.0,27.987251,27.928657
+Reddit,Dense Large-Scale,232965,114615892,64,RODE_ENHANCED,production_full_cpu_input_ms,13510.2044,35.945838,26.094794,26.187551
+Reddit,Dense Large-Scale,232965,114615892,64,SEGMENT_HYBRID,production_full_cpu_input_ms,13510.2044,70.09715,26.052896,26.142798
+Reddit,Dense Large-Scale,232965,114615892,64,TC_DIRECT,production_full_cpu_input_ms,13510.2044,722.3268,21.553562,21.514287
+Reddit,Dense Large-Scale,232965,114615892,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,13510.2044,1.397432,66.311697,66.238608
+Reddit,Dense Large-Scale,232965,114615892,128,COMMUNITY_TC,production_full_cpu_input_ms,13510.2044,10557.485923,55.914291,55.631309
+Reddit,Dense Large-Scale,232965,114615892,128,CSR_DIRECT,production_full_cpu_input_ms,13510.2044,0.0,60.517069,60.464814
+Reddit,Dense Large-Scale,232965,114615892,128,RODE_ENHANCED,production_full_cpu_input_ms,13510.2044,36.209229,58.757955,58.697979
+Reddit,Dense Large-Scale,232965,114615892,128,SEGMENT_HYBRID,production_full_cpu_input_ms,13510.2044,70.034513,58.731321,58.675474
+Reddit,Dense Large-Scale,232965,114615892,128,TC_DIRECT,production_full_cpu_input_ms,13510.2044,741.854185,49.347789,49.294927
+Reddit,Dense Large-Scale,232965,114615892,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,13510.2044,1.417433,90.800153,90.710498
+Reddit,Dense Large-Scale,232965,114615892,256,COMMUNITY_TC,production_full_cpu_input_ms,13510.2044,10353.232025,124.59356,124.268301
+Reddit,Dense Large-Scale,232965,114615892,256,CSR_DIRECT,production_full_cpu_input_ms,13510.2044,0.0,130.326117,130.282939
+Reddit,Dense Large-Scale,232965,114615892,256,RODE_ENHANCED,production_full_cpu_input_ms,13510.2044,35.957125,124.585585,124.52251
+Reddit,Dense Large-Scale,232965,114615892,256,SEGMENT_HYBRID,production_full_cpu_input_ms,13510.2044,70.088612,124.563552,124.509219
+Reddit,Dense Large-Scale,232965,114615892,256,TC_DIRECT,production_full_cpu_input_ms,13510.2044,730.16264,112.638053,112.699268
+Reddit,Dense Large-Scale,232965,114615892,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,13510.2044,1.406509,155.508026,155.501162
+Yelp,Sparse Uniform,716847,13954819,64,COMMUNITY_TC,production_full_cpu_input_ms,6125.0865,2343.005826,4.780339,4.623939
+Yelp,Sparse Uniform,716847,13954819,64,CSR_DIRECT,production_full_cpu_input_ms,6125.0865,0.0,4.740813,4.725356
+Yelp,Sparse Uniform,716847,13954819,64,RODE_ENHANCED,production_full_cpu_input_ms,6125.0865,10.425679,4.803066,4.74879
+Yelp,Sparse Uniform,716847,13954819,64,SEGMENT_HYBRID,production_full_cpu_input_ms,6125.0865,27.446245,4.803869,4.736635
+Yelp,Sparse Uniform,716847,13954819,64,TC_DIRECT,production_full_cpu_input_ms,6125.0865,232.480436,4.653146,4.581407
+Yelp,Sparse Uniform,716847,13954819,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,6125.0865,5.894847,5.981962,5.972542
+Yelp,Sparse Uniform,716847,13954819,128,COMMUNITY_TC,production_full_cpu_input_ms,6125.0865,2298.971748,9.060659,8.925097
+Yelp,Sparse Uniform,716847,13954819,128,CSR_DIRECT,production_full_cpu_input_ms,6125.0865,0.0,9.268429,9.246546
+Yelp,Sparse Uniform,716847,13954819,128,RODE_ENHANCED,production_full_cpu_input_ms,6125.0865,11.052956,9.237098,9.179182
+Yelp,Sparse Uniform,716847,13954819,128,SEGMENT_HYBRID,production_full_cpu_input_ms,6125.0865,29.287484,9.242138,9.175275
+Yelp,Sparse Uniform,716847,13954819,128,TC_DIRECT,production_full_cpu_input_ms,6125.0865,225.021807,8.982739,8.88981
+Yelp,Sparse Uniform,716847,13954819,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,6125.0865,5.908094,9.839517,9.855253
+Yelp,Sparse Uniform,716847,13954819,256,COMMUNITY_TC,production_full_cpu_input_ms,6125.0865,2147.83857,18.959667,18.736625
+Yelp,Sparse Uniform,716847,13954819,256,CSR_DIRECT,production_full_cpu_input_ms,6125.0865,0.0,19.35872,19.30988
+Yelp,Sparse Uniform,716847,13954819,256,RODE_ENHANCED,production_full_cpu_input_ms,6125.0865,10.82267,18.75929,18.714143
+Yelp,Sparse Uniform,716847,13954819,256,SEGMENT_HYBRID,production_full_cpu_input_ms,6125.0865,27.417856,18.764688,18.709335
+Yelp,Sparse Uniform,716847,13954819,256,TC_DIRECT,production_full_cpu_input_ms,6125.0865,229.080091,18.763565,18.625377
+Yelp,Sparse Uniform,716847,13954819,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,6125.0865,6.010011,18.830141,18.837791
+amazon-computers,Dense Small,13752,491722,64,COMMUNITY_TC,production_full_cpu_input_ms,43.8619,37.231218,0.506368,0.422093
+amazon-computers,Dense Small,13752,491722,64,CSR_DIRECT,production_full_cpu_input_ms,43.8619,0.0,0.359014,0.339123
+amazon-computers,Dense Small,13752,491722,64,RODE_ENHANCED,production_full_cpu_input_ms,43.8619,0.353405,0.335462,0.307917
+amazon-computers,Dense Small,13752,491722,64,SEGMENT_HYBRID,production_full_cpu_input_ms,43.8619,0.723455,0.343654,0.308111
+amazon-computers,Dense Small,13752,491722,64,TC_DIRECT,production_full_cpu_input_ms,43.8619,25.348961,0.4864,0.410726
+amazon-computers,Dense Small,13752,491722,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,43.8619,0.152996,0.176128,0.155479
+amazon-computers,Dense Small,13752,491722,128,COMMUNITY_TC,production_full_cpu_input_ms,43.8619,35.847715,0.559718,0.477537
+amazon-computers,Dense Small,13752,491722,128,CSR_DIRECT,production_full_cpu_input_ms,43.8619,0.0,0.421888,0.409667
+amazon-computers,Dense Small,13752,491722,128,RODE_ENHANCED,production_full_cpu_input_ms,43.8619,0.347368,0.391578,0.366935
+amazon-computers,Dense Small,13752,491722,128,SEGMENT_HYBRID,production_full_cpu_input_ms,43.8619,0.730119,0.398029,0.366945
+amazon-computers,Dense Small,13752,491722,128,TC_DIRECT,production_full_cpu_input_ms,43.8619,25.141385,0.545178,0.476692
+amazon-computers,Dense Small,13752,491722,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,43.8619,0.152317,0.214835,0.196163
+amazon-computers,Dense Small,13752,491722,256,COMMUNITY_TC,production_full_cpu_input_ms,43.8619,37.378427,0.974131,0.908698
+amazon-computers,Dense Small,13752,491722,256,CSR_DIRECT,production_full_cpu_input_ms,43.8619,0.0,0.849101,0.854108
+amazon-computers,Dense Small,13752,491722,256,RODE_ENHANCED,production_full_cpu_input_ms,43.8619,0.352052,0.559616,0.533796
+amazon-computers,Dense Small,13752,491722,256,SEGMENT_HYBRID,production_full_cpu_input_ms,43.8619,0.747526,0.567398,0.533519
+amazon-computers,Dense Small,13752,491722,256,TC_DIRECT,production_full_cpu_input_ms,43.8619,26.225191,0.967066,0.903219
+amazon-computers,Dense Small,13752,491722,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,43.8619,0.158669,0.348877,0.328361
+amazon-computers,Dense Small,13752,491722,512,COMMUNITY_TC,production_full_cpu_input_ms,43.8619,35.461877,2.229248,2.135516
+amazon-computers,Dense Small,13752,491722,512,CSR_DIRECT,production_full_cpu_input_ms,43.8619,0.0,2.137088,2.115062
+amazon-computers,Dense Small,13752,491722,512,RODE_ENHANCED,production_full_cpu_input_ms,43.8619,0.350436,1.023488,0.999117
+amazon-computers,Dense Small,13752,491722,512,SEGMENT_HYBRID,production_full_cpu_input_ms,43.8619,0.739077,1.035264,0.99838
+amazon-computers,Dense Small,13752,491722,512,TC_DIRECT,production_full_cpu_input_ms,43.8619,27.396535,2.201702,2.100326
+amazon-computers,Dense Small,13752,491722,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,43.8619,0.157263,0.727245,0.707804
+amazon-photo,Dense Small,7650,238162,64,COMMUNITY_TC,production_full_cpu_input_ms,17.3003,26.391793,0.222822,0.145121
+amazon-photo,Dense Small,7650,238162,64,CSR_DIRECT,production_full_cpu_input_ms,17.3003,0.0,0.156365,0.143396
+amazon-photo,Dense Small,7650,238162,64,RODE_ENHANCED,production_full_cpu_input_ms,17.3003,0.2162,0.184013,0.158474
+amazon-photo,Dense Small,7650,238162,64,SEGMENT_HYBRID,production_full_cpu_input_ms,17.3003,0.41367,0.191078,0.157926
+amazon-photo,Dense Small,7650,238162,64,TC_DIRECT,production_full_cpu_input_ms,17.3003,24.024073,0.217805,0.150482
+amazon-photo,Dense Small,7650,238162,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,17.3003,0.100522,0.090726,0.069832
+amazon-photo,Dense Small,7650,238162,128,COMMUNITY_TC,production_full_cpu_input_ms,17.3003,26.735382,0.287744,0.215747
+amazon-photo,Dense Small,7650,238162,128,CSR_DIRECT,production_full_cpu_input_ms,17.3003,0.0,0.198758,0.186066
+amazon-photo,Dense Small,7650,238162,128,RODE_ENHANCED,production_full_cpu_input_ms,17.3003,0.223766,0.212173,0.184023
+amazon-photo,Dense Small,7650,238162,128,SEGMENT_HYBRID,production_full_cpu_input_ms,17.3003,0.41704,0.216269,0.184105
+amazon-photo,Dense Small,7650,238162,128,TC_DIRECT,production_full_cpu_input_ms,17.3003,26.176335,0.295219,0.220872
+amazon-photo,Dense Small,7650,238162,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,17.3003,0.101909,0.115302,0.093445
+amazon-photo,Dense Small,7650,238162,256,COMMUNITY_TC,production_full_cpu_input_ms,17.3003,27.064044,0.43776,0.387886
+amazon-photo,Dense Small,7650,238162,256,CSR_DIRECT,production_full_cpu_input_ms,17.3003,0.0,0.372736,0.360678
+amazon-photo,Dense Small,7650,238162,256,RODE_ENHANCED,production_full_cpu_input_ms,17.3003,0.218052,0.26839,0.24748
+amazon-photo,Dense Small,7650,238162,256,SEGMENT_HYBRID,production_full_cpu_input_ms,17.3003,0.421191,0.278323,0.247711
+amazon-photo,Dense Small,7650,238162,256,TC_DIRECT,production_full_cpu_input_ms,17.3003,23.798056,0.453018,0.399058
+amazon-photo,Dense Small,7650,238162,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,17.3003,0.100838,0.183808,0.161915
+amazon-photo,Dense Small,7650,238162,512,COMMUNITY_TC,production_full_cpu_input_ms,17.3003,26.479538,0.805683,0.744622
+amazon-photo,Dense Small,7650,238162,512,CSR_DIRECT,production_full_cpu_input_ms,17.3003,0.0,0.764006,0.751539
+amazon-photo,Dense Small,7650,238162,512,RODE_ENHANCED,production_full_cpu_input_ms,17.3003,0.220892,0.441037,0.418109
+amazon-photo,Dense Small,7650,238162,512,SEGMENT_HYBRID,production_full_cpu_input_ms,17.3003,0.428458,0.446669,0.417997
+amazon-photo,Dense Small,7650,238162,512,TC_DIRECT,production_full_cpu_input_ms,17.3003,23.708513,0.859238,0.792346
+amazon-photo,Dense Small,7650,238162,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,17.3003,0.104064,0.327987,0.305239
+ca-CondMat,Dense Small,23133,186936,64,COMMUNITY_TC,production_full_cpu_input_ms,26.9041,31.594611,0.136499,0.063411
+ca-CondMat,Dense Small,23133,186936,64,CSR_DIRECT,production_full_cpu_input_ms,26.9041,0.0,0.088474,0.077215
+ca-CondMat,Dense Small,23133,186936,64,RODE_ENHANCED,production_full_cpu_input_ms,26.9041,0.330942,0.128765,0.101028
+ca-CondMat,Dense Small,23133,186936,64,SEGMENT_HYBRID,production_full_cpu_input_ms,26.9041,0.729171,0.133264,0.101053
+ca-CondMat,Dense Small,23133,186936,64,TC_DIRECT,production_full_cpu_input_ms,26.9041,25.321395,0.125542,0.058644
+ca-CondMat,Dense Small,23133,186936,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,26.9041,0.229631,0.100045,0.079237
+ca-CondMat,Dense Small,23133,186936,128,COMMUNITY_TC,production_full_cpu_input_ms,26.9041,31.440178,0.180224,0.107602
+ca-CondMat,Dense Small,23133,186936,128,CSR_DIRECT,production_full_cpu_input_ms,26.9041,0.0,0.147354,0.135578
+ca-CondMat,Dense Small,23133,186936,128,RODE_ENHANCED,production_full_cpu_input_ms,26.9041,0.328806,0.180518,0.15552
+ca-CondMat,Dense Small,23133,186936,128,SEGMENT_HYBRID,production_full_cpu_input_ms,26.9041,0.725671,0.184365,0.155551
+ca-CondMat,Dense Small,23133,186936,128,TC_DIRECT,production_full_cpu_input_ms,26.9041,26.01674,0.171827,0.103905
+ca-CondMat,Dense Small,23133,186936,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,26.9041,0.231002,0.151962,0.130898
+ca-CondMat,Dense Small,23133,186936,256,COMMUNITY_TC,production_full_cpu_input_ms,26.9041,30.58017,0.316518,0.241966
+ca-CondMat,Dense Small,23133,186936,256,CSR_DIRECT,production_full_cpu_input_ms,26.9041,0.0,0.315904,0.303181
+ca-CondMat,Dense Small,23133,186936,256,RODE_ENHANCED,production_full_cpu_input_ms,26.9041,0.336845,0.329389,0.302239
+ca-CondMat,Dense Small,23133,186936,256,SEGMENT_HYBRID,production_full_cpu_input_ms,26.9041,0.733992,0.334102,0.302121
+ca-CondMat,Dense Small,23133,186936,256,TC_DIRECT,production_full_cpu_input_ms,26.9041,26.765735,0.307098,0.23852
+ca-CondMat,Dense Small,23133,186936,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,26.9041,0.229645,0.264602,0.244541
+ca-CondMat,Dense Small,23133,186936,512,COMMUNITY_TC,production_full_cpu_input_ms,26.9041,32.041717,0.610816,0.540206
+ca-CondMat,Dense Small,23133,186936,512,CSR_DIRECT,production_full_cpu_input_ms,26.9041,0.0,0.672666,0.662963
+ca-CondMat,Dense Small,23133,186936,512,RODE_ENHANCED,production_full_cpu_input_ms,26.9041,0.347144,0.62959,0.602409
+ca-CondMat,Dense Small,23133,186936,512,SEGMENT_HYBRID,production_full_cpu_input_ms,26.9041,0.738201,0.632669,0.601917
+ca-CondMat,Dense Small,23133,186936,512,TC_DIRECT,production_full_cpu_input_ms,26.9041,26.169084,0.590643,0.52734
+ca-CondMat,Dense Small,23133,186936,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,26.9041,0.232915,0.518554,0.499523
+ca-GrQc,Dense Small,5242,28980,64,COMMUNITY_TC,production_full_cpu_input_ms,3.4908,21.464402,0.112538,0.014643
+ca-GrQc,Dense Small,5242,28980,64,CSR_DIRECT,production_full_cpu_input_ms,3.4908,0.0,0.028877,0.015452
+ca-GrQc,Dense Small,5242,28980,64,RODE_ENHANCED,production_full_cpu_input_ms,3.4908,0.104471,0.042598,0.019866
+ca-GrQc,Dense Small,5242,28980,64,SEGMENT_HYBRID,production_full_cpu_input_ms,3.4908,0.180723,0.049254,0.019476
+ca-GrQc,Dense Small,5242,28980,64,TC_DIRECT,production_full_cpu_input_ms,3.4908,23.231986,0.109261,0.014024
+ca-GrQc,Dense Small,5242,28980,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,3.4908,0.072693,0.056422,0.037427
+ca-GrQc,Dense Small,5242,28980,128,COMMUNITY_TC,production_full_cpu_input_ms,3.4908,19.912308,0.109568,0.017864
+ca-GrQc,Dense Small,5242,28980,128,CSR_DIRECT,production_full_cpu_input_ms,3.4908,0.0,0.031334,0.020767
+ca-GrQc,Dense Small,5242,28980,128,RODE_ENHANCED,production_full_cpu_input_ms,3.4908,0.106044,0.04393,0.023101
+ca-GrQc,Dense Small,5242,28980,128,SEGMENT_HYBRID,production_full_cpu_input_ms,3.4908,0.179099,0.050074,0.023096
+ca-GrQc,Dense Small,5242,28980,128,TC_DIRECT,production_full_cpu_input_ms,3.4908,21.277174,0.104141,0.016988
+ca-GrQc,Dense Small,5242,28980,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,3.4908,0.07498,0.059699,0.042066
+ca-GrQc,Dense Small,5242,28980,256,COMMUNITY_TC,production_full_cpu_input_ms,3.4908,20.455216,0.116326,0.037053
+ca-GrQc,Dense Small,5242,28980,256,CSR_DIRECT,production_full_cpu_input_ms,3.4908,0.0,0.053248,0.042301
+ca-GrQc,Dense Small,5242,28980,256,RODE_ENHANCED,production_full_cpu_input_ms,3.4908,0.107682,0.064922,0.046367
+ca-GrQc,Dense Small,5242,28980,256,SEGMENT_HYBRID,production_full_cpu_input_ms,3.4908,0.177331,0.070451,0.046382
+ca-GrQc,Dense Small,5242,28980,256,TC_DIRECT,production_full_cpu_input_ms,3.4908,21.294184,0.114074,0.034842
+ca-GrQc,Dense Small,5242,28980,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,3.4908,0.075405,0.082022,0.064051
+ca-GrQc,Dense Small,5242,28980,512,COMMUNITY_TC,production_full_cpu_input_ms,3.4908,20.44011,0.122266,0.079365
+ca-GrQc,Dense Small,5242,28980,512,CSR_DIRECT,production_full_cpu_input_ms,3.4908,0.0,0.105062,0.093921
+ca-GrQc,Dense Small,5242,28980,512,RODE_ENHANCED,production_full_cpu_input_ms,3.4908,0.110797,0.1152,0.09557
+ca-GrQc,Dense Small,5242,28980,512,SEGMENT_HYBRID,production_full_cpu_input_ms,3.4908,0.177932,0.117555,0.095503
+ca-GrQc,Dense Small,5242,28980,512,TC_DIRECT,production_full_cpu_input_ms,3.4908,21.952592,0.120627,0.077824
+ca-GrQc,Dense Small,5242,28980,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,3.4908,0.075,0.124518,0.108047
+ca-HepTh,Dense Small,9877,51971,64,COMMUNITY_TC,production_full_cpu_input_ms,7.0535,21.5104,0.114688,0.015508
+ca-HepTh,Dense Small,9877,51971,64,CSR_DIRECT,production_full_cpu_input_ms,7.0535,0.0,0.032666,0.019512
+ca-HepTh,Dense Small,9877,51971,64,RODE_ENHANCED,production_full_cpu_input_ms,7.0535,0.160969,0.050893,0.025748
+ca-HepTh,Dense Small,9877,51971,64,SEGMENT_HYBRID,production_full_cpu_input_ms,7.0535,0.296771,0.053862,0.025267
+ca-HepTh,Dense Small,9877,51971,64,TC_DIRECT,production_full_cpu_input_ms,7.0535,23.079771,0.103936,0.015872
+ca-HepTh,Dense Small,9877,51971,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,7.0535,0.107689,0.058675,0.039537
+ca-HepTh,Dense Small,9877,51971,128,COMMUNITY_TC,production_full_cpu_input_ms,7.0535,21.311091,0.095437,0.027474
+ca-HepTh,Dense Small,9877,51971,128,CSR_DIRECT,production_full_cpu_input_ms,7.0535,0.0,0.045261,0.03476
+ca-HepTh,Dense Small,9877,51971,128,RODE_ENHANCED,production_full_cpu_input_ms,7.0535,0.156228,0.067072,0.045583
+ca-HepTh,Dense Small,9877,51971,128,SEGMENT_HYBRID,production_full_cpu_input_ms,7.0535,0.297898,0.072397,0.045594
+ca-HepTh,Dense Small,9877,51971,128,TC_DIRECT,production_full_cpu_input_ms,7.0535,21.481292,0.080384,0.027827
+ca-HepTh,Dense Small,9877,51971,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,7.0535,0.107625,0.075776,0.057196
+ca-HepTh,Dense Small,9877,51971,256,COMMUNITY_TC,production_full_cpu_input_ms,7.0535,22.777805,0.116634,0.06507
+ca-HepTh,Dense Small,9877,51971,256,CSR_DIRECT,production_full_cpu_input_ms,7.0535,0.0,0.094003,0.084598
+ca-HepTh,Dense Small,9877,51971,256,RODE_ENHANCED,production_full_cpu_input_ms,7.0535,0.161666,0.116941,0.094643
+ca-HepTh,Dense Small,9877,51971,256,SEGMENT_HYBRID,production_full_cpu_input_ms,7.0535,0.293798,0.118989,0.094633
+ca-HepTh,Dense Small,9877,51971,256,TC_DIRECT,production_full_cpu_input_ms,7.0535,22.100135,0.116531,0.066775
+ca-HepTh,Dense Small,9877,51971,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,7.0535,0.112359,0.1152,0.097843
+ca-HepTh,Dense Small,9877,51971,512,COMMUNITY_TC,production_full_cpu_input_ms,7.0535,25.370855,0.190362,0.141512
+ca-HepTh,Dense Small,9877,51971,512,CSR_DIRECT,production_full_cpu_input_ms,7.0535,0.0,0.196301,0.185539
+ca-HepTh,Dense Small,9877,51971,512,RODE_ENHANCED,production_full_cpu_input_ms,7.0535,0.158407,0.207565,0.188319
+ca-HepTh,Dense Small,9877,51971,512,SEGMENT_HYBRID,production_full_cpu_input_ms,7.0535,0.296861,0.211354,0.188114
+ca-HepTh,Dense Small,9877,51971,512,TC_DIRECT,production_full_cpu_input_ms,7.0535,24.718924,0.191078,0.1438
+ca-HepTh,Dense Small,9877,51971,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,7.0535,0.109623,0.189645,0.173563
+com-Amazon,Community,334863,1851744,64,COMMUNITY_TC,production_full_cpu_input_ms,828.2421,305.545962,0.563306,0.475505
+com-Amazon,Community,334863,1851744,64,CSR_DIRECT,production_full_cpu_input_ms,828.2421,0.0,0.930202,0.921027
+com-Amazon,Community,334863,1851744,64,RODE_ENHANCED,production_full_cpu_input_ms,828.2421,3.534267,1.121459,1.068723
+com-Amazon,Community,334863,1851744,64,SEGMENT_HYBRID,production_full_cpu_input_ms,828.2421,8.928293,1.147459,1.087299
+com-Amazon,Community,334863,1851744,64,TC_DIRECT,production_full_cpu_input_ms,828.2421,81.307972,0.805104,0.721751
+com-Amazon,Community,334863,1851744,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,828.2421,2.569345,0.900506,0.867256
+com-Amazon,Community,334863,1851744,128,COMMUNITY_TC,production_full_cpu_input_ms,828.2421,311.367979,1.017898,0.924221
+com-Amazon,Community,334863,1851744,128,CSR_DIRECT,production_full_cpu_input_ms,828.2421,0.0,1.756979,1.744922
+com-Amazon,Community,334863,1851744,128,RODE_ENHANCED,production_full_cpu_input_ms,828.2421,3.56641,1.983933,1.930143
+com-Amazon,Community,334863,1851744,128,SEGMENT_HYBRID,production_full_cpu_input_ms,828.2421,8.956602,2.011645,1.939528
+com-Amazon,Community,334863,1851744,128,TC_DIRECT,production_full_cpu_input_ms,828.2421,82.916414,1.509485,1.410949
+com-Amazon,Community,334863,1851744,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,828.2421,2.561224,1.715712,1.683185
+com-Amazon,Community,334863,1851744,256,COMMUNITY_TC,production_full_cpu_input_ms,828.2421,340.555757,2.093398,2.00127
+com-Amazon,Community,334863,1851744,256,CSR_DIRECT,production_full_cpu_input_ms,828.2421,0.0,3.549798,3.527762
+com-Amazon,Community,334863,1851744,256,RODE_ENHANCED,production_full_cpu_input_ms,828.2421,3.657238,3.842656,3.782462
+com-Amazon,Community,334863,1851744,256,SEGMENT_HYBRID,production_full_cpu_input_ms,828.2421,8.953392,3.86552,3.78859
+com-Amazon,Community,334863,1851744,256,TC_DIRECT,production_full_cpu_input_ms,828.2421,87.605176,2.995952,2.903644
+com-Amazon,Community,334863,1851744,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,828.2421,2.599309,3.394765,3.354091
+com-Amazon,Community,334863,1851744,512,COMMUNITY_TC,production_full_cpu_input_ms,828.2421,307.042956,4.362378,4.263767
+com-Amazon,Community,334863,1851744,512,CSR_DIRECT,production_full_cpu_input_ms,828.2421,0.0,7.059866,7.047849
+com-Amazon,Community,334863,1851744,512,RODE_ENHANCED,production_full_cpu_input_ms,828.2421,3.747612,7.537395,7.477499
+com-Amazon,Community,334863,1851744,512,SEGMENT_HYBRID,production_full_cpu_input_ms,828.2421,9.36417,7.563472,7.485061
+com-Amazon,Community,334863,1851744,512,TC_DIRECT,production_full_cpu_input_ms,828.2421,87.444778,5.930605,5.847086
+com-Amazon,Community,334863,1851744,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,828.2421,3.125436,6.746522,6.701793
+com-DBLP,Community,317080,2099732,64,COMMUNITY_TC,production_full_cpu_input_ms,588.6181,267.030137,0.803626,0.710354
+com-DBLP,Community,317080,2099732,64,CSR_DIRECT,production_full_cpu_input_ms,588.6181,0.0,0.764006,0.749358
+com-DBLP,Community,317080,2099732,64,RODE_ENHANCED,production_full_cpu_input_ms,588.6181,3.568582,1.020243,0.959135
+com-DBLP,Community,317080,2099732,64,SEGMENT_HYBRID,production_full_cpu_input_ms,588.6181,8.882448,1.044742,0.984822
+com-DBLP,Community,317080,2099732,64,TC_DIRECT,production_full_cpu_input_ms,588.6181,91.099615,0.809034,0.723098
+com-DBLP,Community,317080,2099732,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,588.6181,2.332918,0.850944,0.814285
+com-DBLP,Community,317080,2099732,128,COMMUNITY_TC,production_full_cpu_input_ms,588.6181,244.028699,1.441107,1.355013
+com-DBLP,Community,317080,2099732,128,CSR_DIRECT,production_full_cpu_input_ms,588.6181,0.0,1.600102,1.584553
+com-DBLP,Community,317080,2099732,128,RODE_ENHANCED,production_full_cpu_input_ms,588.6181,3.456146,1.777091,1.731118
+com-DBLP,Community,317080,2099732,128,SEGMENT_HYBRID,production_full_cpu_input_ms,588.6181,8.845904,1.817107,1.746038
+com-DBLP,Community,317080,2099732,128,TC_DIRECT,production_full_cpu_input_ms,588.6181,78.739152,1.475987,1.390085
+com-DBLP,Community,317080,2099732,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,588.6181,2.497301,1.614234,1.58081
+com-DBLP,Community,317080,2099732,256,COMMUNITY_TC,production_full_cpu_input_ms,588.6181,244.171494,2.881869,2.797762
+com-DBLP,Community,317080,2099732,256,CSR_DIRECT,production_full_cpu_input_ms,588.6181,0.0,3.346227,3.327391
+com-DBLP,Community,317080,2099732,256,RODE_ENHANCED,production_full_cpu_input_ms,588.6181,3.662912,3.55665,3.497226
+com-DBLP,Community,317080,2099732,256,SEGMENT_HYBRID,production_full_cpu_input_ms,588.6181,8.863609,3.589629,3.514916
+com-DBLP,Community,317080,2099732,256,TC_DIRECT,production_full_cpu_input_ms,588.6181,75.053022,2.933827,2.857605
+com-DBLP,Community,317080,2099732,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,588.6181,2.335662,3.26953,3.231826
+com-DBLP,Community,317080,2099732,512,COMMUNITY_TC,production_full_cpu_input_ms,588.6181,247.155635,5.895693,5.799404
+com-DBLP,Community,317080,2099732,512,CSR_DIRECT,production_full_cpu_input_ms,588.6181,0.0,6.857728,6.836926
+com-DBLP,Community,317080,2099732,512,RODE_ENHANCED,production_full_cpu_input_ms,588.6181,3.543549,7.112771,7.061821
+com-DBLP,Community,317080,2099732,512,SEGMENT_HYBRID,production_full_cpu_input_ms,588.6181,8.932809,7.16016,7.089725
+com-DBLP,Community,317080,2099732,512,TC_DIRECT,production_full_cpu_input_ms,588.6181,88.124538,5.966122,5.892368
+com-DBLP,Community,317080,2099732,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,588.6181,2.382594,6.639821,6.597663
+com-youtube,Community,1157828,5975248,64,COMMUNITY_TC,production_full_cpu_input_ms,1561.9996,900.377413,7.118912,6.687923
+com-youtube,Community,1157828,5975248,64,CSR_DIRECT,production_full_cpu_input_ms,1561.9996,0.0,7.114342,7.094579
+com-youtube,Community,1157828,5975248,64,RODE_ENHANCED,production_full_cpu_input_ms,1561.9996,15.045962,7.137408,7.045069
+com-youtube,Community,1157828,5975248,64,SEGMENT_HYBRID,production_full_cpu_input_ms,1561.9996,24.50682,7.1504,7.060818
+com-youtube,Community,1157828,5975248,64,TC_DIRECT,production_full_cpu_input_ms,1561.9996,210.725369,6.285517,6.101028
+com-youtube,Community,1157828,5975248,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1561.9996,5.627404,5.093171,5.03914
+com-youtube,Community,1157828,5975248,128,COMMUNITY_TC,production_full_cpu_input_ms,1561.9996,876.363096,9.253222,8.8096
+com-youtube,Community,1157828,5975248,128,CSR_DIRECT,production_full_cpu_input_ms,1561.9996,0.0,9.590989,9.566234
+com-youtube,Community,1157828,5975248,128,RODE_ENHANCED,production_full_cpu_input_ms,1561.9996,14.925955,9.447421,9.359334
+com-youtube,Community,1157828,5975248,128,SEGMENT_HYBRID,production_full_cpu_input_ms,1561.9996,24.621275,9.461123,9.374433
+com-youtube,Community,1157828,5975248,128,TC_DIRECT,production_full_cpu_input_ms,1561.9996,216.99653,8.490086,8.246068
+com-youtube,Community,1157828,5975248,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1561.9996,5.669394,7.203533,7.150203
+com-youtube,Community,1157828,5975248,256,COMMUNITY_TC,production_full_cpu_input_ms,1561.9996,884.216469,18.885008,18.336322
+com-youtube,Community,1157828,5975248,256,CSR_DIRECT,production_full_cpu_input_ms,1561.9996,0.0,19.787571,19.758551
+com-youtube,Community,1157828,5975248,256,RODE_ENHANCED,production_full_cpu_input_ms,1561.9996,14.930777,14.652246,14.562888
+com-youtube,Community,1157828,5975248,256,SEGMENT_HYBRID,production_full_cpu_input_ms,1561.9996,24.555466,14.678122,14.587622
+com-youtube,Community,1157828,5975248,256,TC_DIRECT,production_full_cpu_input_ms,1561.9996,211.368001,17.364685,17.100928
+com-youtube,Community,1157828,5975248,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1561.9996,5.669463,12.083609,12.072914
+gplus-combined,Dense Large-Scale,107614,13673453,64,COMMUNITY_TC,production_full_cpu_input_ms,711.6962,640.249054,2.570326,2.334182
+gplus-combined,Dense Large-Scale,107614,13673453,64,CSR_DIRECT,production_full_cpu_input_ms,711.6962,0.0,2.706637,2.692654
+gplus-combined,Dense Large-Scale,107614,13673453,64,RODE_ENHANCED,production_full_cpu_input_ms,711.6962,4.753912,2.309718,2.254136
+gplus-combined,Dense Large-Scale,107614,13673453,64,SEGMENT_HYBRID,production_full_cpu_input_ms,711.6962,10.391918,2.357792,2.289761
+gplus-combined,Dense Large-Scale,107614,13673453,64,TC_DIRECT,production_full_cpu_input_ms,711.6962,133.449679,2.300118,2.254321
+gplus-combined,Dense Large-Scale,107614,13673453,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,711.6962,0.820626,3.577072,3.490514
+gplus-combined,Dense Large-Scale,107614,13673453,128,COMMUNITY_TC,production_full_cpu_input_ms,711.6962,622.81807,4.366384,4.155105
+gplus-combined,Dense Large-Scale,107614,13673453,128,CSR_DIRECT,production_full_cpu_input_ms,711.6962,0.0,4.831744,4.828129
+gplus-combined,Dense Large-Scale,107614,13673453,128,RODE_ENHANCED,production_full_cpu_input_ms,711.6962,4.642743,3.779578,3.838203
+gplus-combined,Dense Large-Scale,107614,13673453,128,SEGMENT_HYBRID,production_full_cpu_input_ms,711.6962,10.390892,3.746304,3.828152
+gplus-combined,Dense Large-Scale,107614,13673453,128,TC_DIRECT,production_full_cpu_input_ms,711.6962,131.98105,4.059629,4.098493
+gplus-combined,Dense Large-Scale,107614,13673453,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,711.6962,0.828643,4.510656,4.514468
+gplus-combined,Dense Large-Scale,107614,13673453,256,COMMUNITY_TC,production_full_cpu_input_ms,711.6962,636.790542,10.775981,10.589491
+gplus-combined,Dense Large-Scale,107614,13673453,256,CSR_DIRECT,production_full_cpu_input_ms,711.6962,0.0,12.64599,12.592445
+gplus-combined,Dense Large-Scale,107614,13673453,256,RODE_ENHANCED,production_full_cpu_input_ms,711.6962,4.661967,7.662944,7.794324
+gplus-combined,Dense Large-Scale,107614,13673453,256,SEGMENT_HYBRID,production_full_cpu_input_ms,711.6962,10.399616,7.652426,7.81142
+gplus-combined,Dense Large-Scale,107614,13673453,256,TC_DIRECT,production_full_cpu_input_ms,711.6962,131.86519,10.34505,10.347034
+gplus-combined,Dense Large-Scale,107614,13673453,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,711.6962,0.84145,8.429088,8.464548
+gplus-combined,Dense Large-Scale,107614,13673453,512,COMMUNITY_TC,production_full_cpu_input_ms,711.6962,640.398592,25.855958,25.697424
+gplus-combined,Dense Large-Scale,107614,13673453,512,CSR_DIRECT,production_full_cpu_input_ms,711.6962,0.0,29.887181,29.843794
+gplus-combined,Dense Large-Scale,107614,13673453,512,RODE_ENHANCED,production_full_cpu_input_ms,711.6962,5.213268,18.417981,18.435681
+gplus-combined,Dense Large-Scale,107614,13673453,512,SEGMENT_HYBRID,production_full_cpu_input_ms,711.6962,10.437394,18.447731,18.505692
+gplus-combined,Dense Large-Scale,107614,13673453,512,TC_DIRECT,production_full_cpu_input_ms,711.6962,133.825581,25.156208,25.160977
+gplus-combined,Dense Large-Scale,107614,13673453,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,711.6962,0.858722,19.078003,19.077007
+ogbn-arxiv,Sparse Uniform,169343,1166243,64,COMMUNITY_TC,production_full_cpu_input_ms,461.0268,148.904254,0.321418,0.229919
+ogbn-arxiv,Sparse Uniform,169343,1166243,64,CSR_DIRECT,production_full_cpu_input_ms,461.0268,0.0,0.376627,0.376934
+ogbn-arxiv,Sparse Uniform,169343,1166243,64,RODE_ENHANCED,production_full_cpu_input_ms,461.0268,1.875345,0.50048,0.468608
+ogbn-arxiv,Sparse Uniform,169343,1166243,64,SEGMENT_HYBRID,production_full_cpu_input_ms,461.0268,4.549631,0.533552,0.486436
+ogbn-arxiv,Sparse Uniform,169343,1166243,64,TC_DIRECT,production_full_cpu_input_ms,461.0268,63.516258,0.356045,0.272189
+ogbn-arxiv,Sparse Uniform,169343,1166243,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,461.0268,1.361282,0.408371,0.381629
+ogbn-arxiv,Sparse Uniform,169343,1166243,128,COMMUNITY_TC,production_full_cpu_input_ms,461.0268,148.645538,0.574192,0.491382
+ogbn-arxiv,Sparse Uniform,169343,1166243,128,CSR_DIRECT,production_full_cpu_input_ms,461.0268,0.0,0.74496,0.723379
+ogbn-arxiv,Sparse Uniform,169343,1166243,128,RODE_ENHANCED,production_full_cpu_input_ms,461.0268,1.884683,0.854688,0.819651
+ogbn-arxiv,Sparse Uniform,169343,1166243,128,SEGMENT_HYBRID,production_full_cpu_input_ms,461.0268,4.656069,0.881248,0.818995
+ogbn-arxiv,Sparse Uniform,169343,1166243,128,TC_DIRECT,production_full_cpu_input_ms,461.0268,54.197065,0.658432,0.57599
+ogbn-arxiv,Sparse Uniform,169343,1166243,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,461.0268,1.384103,0.725606,0.692813
+ogbn-arxiv,Sparse Uniform,169343,1166243,256,COMMUNITY_TC,production_full_cpu_input_ms,461.0268,152.65092,1.235446,1.141499
+ogbn-arxiv,Sparse Uniform,169343,1166243,256,CSR_DIRECT,production_full_cpu_input_ms,461.0268,0.0,1.631334,1.60834
+ogbn-arxiv,Sparse Uniform,169343,1166243,256,RODE_ENHANCED,production_full_cpu_input_ms,461.0268,2.016935,1.754003,1.704888
+ogbn-arxiv,Sparse Uniform,169343,1166243,256,SEGMENT_HYBRID,production_full_cpu_input_ms,461.0268,4.592349,1.75663,1.703235
+ogbn-arxiv,Sparse Uniform,169343,1166243,256,TC_DIRECT,production_full_cpu_input_ms,461.0268,52.034473,1.383731,1.289349
+ogbn-arxiv,Sparse Uniform,169343,1166243,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,461.0268,1.372798,1.476608,1.445852
+ogbn-arxiv,Sparse Uniform,169343,1166243,512,COMMUNITY_TC,production_full_cpu_input_ms,461.0268,151.19647,2.6852,2.623181
+ogbn-arxiv,Sparse Uniform,169343,1166243,512,CSR_DIRECT,production_full_cpu_input_ms,461.0268,0.0,3.459584,3.437983
+ogbn-arxiv,Sparse Uniform,169343,1166243,512,RODE_ENHANCED,production_full_cpu_input_ms,461.0268,1.938747,3.64208,3.596636
+ogbn-arxiv,Sparse Uniform,169343,1166243,512,SEGMENT_HYBRID,production_full_cpu_input_ms,461.0268,5.242524,3.670374,3.59614
+ogbn-arxiv,Sparse Uniform,169343,1166243,512,TC_DIRECT,production_full_cpu_input_ms,461.0268,57.153403,2.920346,2.823895
+ogbn-arxiv,Sparse Uniform,169343,1166243,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,461.0268,1.382722,3.152794,3.114665
+ogbn-products,Dense Large-Scale,2449029,123718152,64,COMMUNITY_TC,production_full_cpu_input_ms,63392.6615,31274.326338,23.724733,23.455615
+ogbn-products,Dense Large-Scale,2449029,123718152,64,CSR_DIRECT,production_full_cpu_input_ms,63392.6615,0.0,39.662489,39.617383
+ogbn-products,Dense Large-Scale,2449029,123718152,64,RODE_ENHANCED,production_full_cpu_input_ms,63392.6615,61.737055,40.185987,40.184473
+ogbn-products,Dense Large-Scale,2449029,123718152,64,SEGMENT_HYBRID,production_full_cpu_input_ms,63392.6615,153.483342,40.181155,40.16616
+ogbn-products,Dense Large-Scale,2449029,123718152,64,TC_DIRECT,production_full_cpu_input_ms,63392.6615,1431.997408,34.337389,34.314368
+ogbn-products,Dense Large-Scale,2449029,123718152,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,63392.6615,20.806006,163.295459,163.146963
+ogbn-products,Dense Large-Scale,2449029,123718152,128,COMMUNITY_TC,production_full_cpu_input_ms,63392.6615,30670.670966,49.841741,49.508057
+ogbn-products,Dense Large-Scale,2449029,123718152,128,CSR_DIRECT,production_full_cpu_input_ms,63392.6615,0.0,78.217933,78.17751
+ogbn-products,Dense Large-Scale,2449029,123718152,128,RODE_ENHANCED,production_full_cpu_input_ms,63392.6615,61.757097,79.332726,79.293604
+ogbn-products,Dense Large-Scale,2449029,123718152,128,SEGMENT_HYBRID,production_full_cpu_input_ms,63392.6615,152.987283,79.333203,79.282622
+ogbn-products,Dense Large-Scale,2449029,123718152,128,TC_DIRECT,production_full_cpu_input_ms,63392.6615,1448.056929,70.092649,70.07439
+ogbn-products,Dense Large-Scale,2449029,123718152,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,63392.6615,20.785039,198.073183,197.910664
+ogbn-proteins,Dense Large-Scale,132534,79122504,64,COMMUNITY_TC,production_full_cpu_input_ms,2664.1077,3641.568825,9.553715,9.431915
+ogbn-proteins,Dense Large-Scale,132534,79122504,64,CSR_DIRECT,production_full_cpu_input_ms,2664.1077,0.0,9.443123,9.496776
+ogbn-proteins,Dense Large-Scale,132534,79122504,64,RODE_ENHANCED,production_full_cpu_input_ms,2664.1077,26.966122,8.747597,9.311048
+ogbn-proteins,Dense Large-Scale,132534,79122504,64,SEGMENT_HYBRID,production_full_cpu_input_ms,2664.1077,46.690303,8.54015,9.176254
+ogbn-proteins,Dense Large-Scale,132534,79122504,64,TC_DIRECT,production_full_cpu_input_ms,2664.1077,536.252448,7.638102,8.015217
+ogbn-proteins,Dense Large-Scale,132534,79122504,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2664.1077,0.654717,20.895712,20.884714
+ogbn-proteins,Dense Large-Scale,132534,79122504,128,COMMUNITY_TC,production_full_cpu_input_ms,2664.1077,3648.719626,18.790912,18.984152
+ogbn-proteins,Dense Large-Scale,132534,79122504,128,CSR_DIRECT,production_full_cpu_input_ms,2664.1077,0.0,19.847475,19.576683
+ogbn-proteins,Dense Large-Scale,132534,79122504,128,RODE_ENHANCED,production_full_cpu_input_ms,2664.1077,27.348044,15.979696,17.648456
+ogbn-proteins,Dense Large-Scale,132534,79122504,128,SEGMENT_HYBRID,production_full_cpu_input_ms,2664.1077,46.393585,15.775616,17.555088
+ogbn-proteins,Dense Large-Scale,132534,79122504,128,TC_DIRECT,production_full_cpu_input_ms,2664.1077,514.461117,16.55296,17.530563
+ogbn-proteins,Dense Large-Scale,132534,79122504,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2664.1077,0.665149,25.969069,25.965435
+roadNet-CA,Sparse Uniform,1971281,5533214,64,COMMUNITY_TC,production_full_cpu_input_ms,1200.3323,821.984765,2.209818,2.109727
+roadNet-CA,Sparse Uniform,1971281,5533214,64,CSR_DIRECT,production_full_cpu_input_ms,1200.3323,0.0,2.787123,2.764017
+roadNet-CA,Sparse Uniform,1971281,5533214,64,RODE_ENHANCED,production_full_cpu_input_ms,1200.3323,20.163387,4.02463,3.944602
+roadNet-CA,Sparse Uniform,1971281,5533214,64,SEGMENT_HYBRID,production_full_cpu_input_ms,1200.3323,87.168417,4.039117,3.961057
+roadNet-CA,Sparse Uniform,1971281,5533214,64,TC_DIRECT,production_full_cpu_input_ms,1200.3323,283.775409,2.191462,2.10369
+roadNet-CA,Sparse Uniform,1971281,5533214,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1200.3323,5.736454,3.091661,3.026724
+roadNet-CA,Sparse Uniform,1971281,5533214,128,COMMUNITY_TC,production_full_cpu_input_ms,1200.3323,825.517694,4.044902,3.949281
+roadNet-CA,Sparse Uniform,1971281,5533214,128,CSR_DIRECT,production_full_cpu_input_ms,1200.3323,0.0,5.942989,5.920793
+roadNet-CA,Sparse Uniform,1971281,5533214,128,RODE_ENHANCED,production_full_cpu_input_ms,1200.3323,20.657787,6.368422,6.296883
+roadNet-CA,Sparse Uniform,1971281,5533214,128,SEGMENT_HYBRID,production_full_cpu_input_ms,1200.3323,86.623522,6.454202,6.383043
+roadNet-CA,Sparse Uniform,1971281,5533214,128,TC_DIRECT,production_full_cpu_input_ms,1200.3323,318.521808,4.09815,4.006871
+roadNet-CA,Sparse Uniform,1971281,5533214,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1200.3323,5.761678,6.42775,6.364672
+roadNet-PA,Sparse Uniform,1090920,3083796,64,COMMUNITY_TC,production_full_cpu_input_ms,571.1874,467.69243,1.24945,1.161175
+roadNet-PA,Sparse Uniform,1090920,3083796,64,CSR_DIRECT,production_full_cpu_input_ms,571.1874,0.0,1.531494,1.512858
+roadNet-PA,Sparse Uniform,1090920,3083796,64,RODE_ENHANCED,production_full_cpu_input_ms,571.1874,12.932586,2.256611,2.17299
+roadNet-PA,Sparse Uniform,1090920,3083796,64,SEGMENT_HYBRID,production_full_cpu_input_ms,571.1874,53.439523,2.273392,2.206275
+roadNet-PA,Sparse Uniform,1090920,3083796,64,TC_DIRECT,production_full_cpu_input_ms,571.1874,158.779931,1.237494,1.152333
+roadNet-PA,Sparse Uniform,1090920,3083796,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,571.1874,3.190622,1.717555,1.674726
+roadNet-PA,Sparse Uniform,1090920,3083796,128,COMMUNITY_TC,production_full_cpu_input_ms,571.1874,449.39078,2.267984,2.178263
+roadNet-PA,Sparse Uniform,1090920,3083796,128,CSR_DIRECT,production_full_cpu_input_ms,571.1874,0.0,3.280384,3.259274
+roadNet-PA,Sparse Uniform,1090920,3083796,128,RODE_ENHANCED,production_full_cpu_input_ms,571.1874,13.632781,3.544979,3.462958
+roadNet-PA,Sparse Uniform,1090920,3083796,128,SEGMENT_HYBRID,production_full_cpu_input_ms,571.1874,52.059798,3.593587,3.518546
+roadNet-PA,Sparse Uniform,1090920,3083796,128,TC_DIRECT,production_full_cpu_input_ms,571.1874,151.723901,2.276912,2.186573
+roadNet-PA,Sparse Uniform,1090920,3083796,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,571.1874,3.187821,3.574886,3.524997
+roadNet-PA,Sparse Uniform,1090920,3083796,256,COMMUNITY_TC,production_full_cpu_input_ms,571.1874,463.958084,4.572538,4.473989
+roadNet-PA,Sparse Uniform,1090920,3083796,256,CSR_DIRECT,production_full_cpu_input_ms,571.1874,0.0,6.967194,6.947568
+roadNet-PA,Sparse Uniform,1090920,3083796,256,RODE_ENHANCED,production_full_cpu_input_ms,571.1874,13.001327,6.895747,6.806682
+roadNet-PA,Sparse Uniform,1090920,3083796,256,SEGMENT_HYBRID,production_full_cpu_input_ms,571.1874,52.401847,7.031139,6.936156
+roadNet-PA,Sparse Uniform,1090920,3083796,256,TC_DIRECT,production_full_cpu_input_ms,571.1874,184.579039,4.597165,4.501391
+roadNet-PA,Sparse Uniform,1090920,3083796,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,571.1874,3.259643,7.33225,7.283052
+roadNet-PA,Sparse Uniform,1090920,3083796,512,COMMUNITY_TC,production_full_cpu_input_ms,571.1874,440.232921,9.485046,9.382615
+roadNet-PA,Sparse Uniform,1090920,3083796,512,CSR_DIRECT,production_full_cpu_input_ms,571.1874,0.0,14.356378,14.3328
+roadNet-PA,Sparse Uniform,1090920,3083796,512,RODE_ENHANCED,production_full_cpu_input_ms,571.1874,13.075919,13.956502,13.867858
+roadNet-PA,Sparse Uniform,1090920,3083796,512,SEGMENT_HYBRID,production_full_cpu_input_ms,571.1874,50.035492,14.213686,14.123955
+roadNet-PA,Sparse Uniform,1090920,3083796,512,TC_DIRECT,production_full_cpu_input_ms,571.1874,187.49067,9.51777,9.408205
+roadNet-PA,Sparse Uniform,1090920,3083796,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,571.1874,4.543033,14.862336,14.786257
+roadNet-TX,Sparse Uniform,1393383,3843320,64,COMMUNITY_TC,production_full_cpu_input_ms,784.4169,530.918494,1.568157,1.465708
+roadNet-TX,Sparse Uniform,1393383,3843320,64,CSR_DIRECT,production_full_cpu_input_ms,784.4169,0.0,1.932902,1.912627
+roadNet-TX,Sparse Uniform,1393383,3843320,64,RODE_ENHANCED,production_full_cpu_input_ms,784.4169,15.865595,2.832134,2.750443
+roadNet-TX,Sparse Uniform,1393383,3843320,64,SEGMENT_HYBRID,production_full_cpu_input_ms,784.4169,58.190315,2.843274,2.769408
+roadNet-TX,Sparse Uniform,1393383,3843320,64,TC_DIRECT,production_full_cpu_input_ms,784.4169,216.21132,1.539379,1.461258
+roadNet-TX,Sparse Uniform,1393383,3843320,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,784.4169,3.990801,2.162278,2.107203
+roadNet-TX,Sparse Uniform,1393383,3843320,128,COMMUNITY_TC,production_full_cpu_input_ms,784.4169,528.602814,2.824765,2.736788
+roadNet-TX,Sparse Uniform,1393383,3843320,128,CSR_DIRECT,production_full_cpu_input_ms,784.4169,0.0,4.13225,4.112307
+roadNet-TX,Sparse Uniform,1393383,3843320,128,RODE_ENHANCED,production_full_cpu_input_ms,784.4169,15.887958,4.461248,4.381332
+roadNet-TX,Sparse Uniform,1393383,3843320,128,SEGMENT_HYBRID,production_full_cpu_input_ms,784.4169,60.403594,4.51776,4.43625
+roadNet-TX,Sparse Uniform,1393383,3843320,128,TC_DIRECT,production_full_cpu_input_ms,784.4169,176.257473,2.854605,2.765164
+roadNet-TX,Sparse Uniform,1393383,3843320,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,784.4169,4.036197,4.490854,4.43882
+soc-Pokec,Sparse Skewed,1632803,30622564,64,COMMUNITY_TC,production_full_cpu_input_ms,13651.4366,5769.709252,11.39879,11.18275
+soc-Pokec,Sparse Skewed,1632803,30622564,64,CSR_DIRECT,production_full_cpu_input_ms,13651.4366,0.0,9.3952,9.372308
+soc-Pokec,Sparse Skewed,1632803,30622564,64,RODE_ENHANCED,production_full_cpu_input_ms,13651.4366,25.135331,10.859936,10.822697
+soc-Pokec,Sparse Skewed,1632803,30622564,64,SEGMENT_HYBRID,production_full_cpu_input_ms,13651.4366,61.083802,10.88087,10.846321
+soc-Pokec,Sparse Skewed,1632803,30622564,64,TC_DIRECT,production_full_cpu_input_ms,13651.4366,553.378816,9.802077,9.710925
+soc-Pokec,Sparse Skewed,1632803,30622564,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,13651.4366,12.55341,18.292842,18.260905
+soc-Pokec,Sparse Skewed,1632803,30622564,128,COMMUNITY_TC,production_full_cpu_input_ms,13651.4366,5628.311126,21.431065,21.221965
+soc-Pokec,Sparse Skewed,1632803,30622564,128,CSR_DIRECT,production_full_cpu_input_ms,13651.4366,0.0,19.287449,19.259331
+soc-Pokec,Sparse Skewed,1632803,30622564,128,RODE_ENHANCED,production_full_cpu_input_ms,13651.4366,24.811444,20.828138,20.77439
+soc-Pokec,Sparse Skewed,1632803,30622564,128,SEGMENT_HYBRID,production_full_cpu_input_ms,13651.4366,61.445382,20.852781,20.806165
+soc-Pokec,Sparse Skewed,1632803,30622564,128,TC_DIRECT,production_full_cpu_input_ms,13651.4366,570.477518,19.654473,19.567877
+soc-Pokec,Sparse Skewed,1632803,30622564,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,13651.4366,12.522709,27.487117,27.491487
+soc-Pokec,Sparse Skewed,1632803,30622564,256,COMMUNITY_TC,production_full_cpu_input_ms,13651.4366,5668.275742,43.419382,43.156045
+soc-Pokec,Sparse Skewed,1632803,30622564,256,CSR_DIRECT,production_full_cpu_input_ms,13651.4366,0.0,39.828992,39.789861
+soc-Pokec,Sparse Skewed,1632803,30622564,256,RODE_ENHANCED,production_full_cpu_input_ms,13651.4366,25.221196,41.678534,41.632256
+soc-Pokec,Sparse Skewed,1632803,30622564,256,SEGMENT_HYBRID,production_full_cpu_input_ms,13651.4366,60.965217,41.738103,41.690835
+soc-Pokec,Sparse Skewed,1632803,30622564,256,TC_DIRECT,production_full_cpu_input_ms,13651.4366,565.978597,40.131642,40.024336
+soc-Pokec,Sparse Skewed,1632803,30622564,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,13651.4366,12.596986,48.041526,48.005313
+synth_community_nc10,Community,200000,1089063,64,COMMUNITY_TC,production_full_cpu_input_ms,396.3022,150.497128,0.415437,0.325079
+synth_community_nc10,Community,200000,1089063,64,CSR_DIRECT,production_full_cpu_input_ms,396.3022,0.0,0.36608,0.353628
+synth_community_nc10,Community,200000,1089063,64,RODE_ENHANCED,production_full_cpu_input_ms,396.3022,2.014052,0.510298,0.470083
+synth_community_nc10,Community,200000,1089063,64,SEGMENT_HYBRID,production_full_cpu_input_ms,396.3022,4.877081,0.535939,0.481905
+synth_community_nc10,Community,200000,1089063,64,TC_DIRECT,production_full_cpu_input_ms,396.3022,54.650794,0.41431,0.32471
+synth_community_nc10,Community,200000,1089063,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,396.3022,1.350599,0.423117,0.393984
+synth_community_nc10,Community,200000,1089063,128,COMMUNITY_TC,production_full_cpu_input_ms,396.3022,148.11024,0.81449,0.725965
+synth_community_nc10,Community,200000,1089063,128,CSR_DIRECT,production_full_cpu_input_ms,396.3022,0.0,0.812954,0.799601
+synth_community_nc10,Community,200000,1089063,128,RODE_ENHANCED,production_full_cpu_input_ms,396.3022,2.01433,0.955046,0.920294
+synth_community_nc10,Community,200000,1089063,128,SEGMENT_HYBRID,production_full_cpu_input_ms,396.3022,4.879297,0.974707,0.920264
+synth_community_nc10,Community,200000,1089063,128,TC_DIRECT,production_full_cpu_input_ms,396.3022,53.014328,0.809882,0.722509
+synth_community_nc10,Community,200000,1089063,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,396.3022,1.355208,0.880845,0.850207
+synth_community_nc10,Community,200000,1089063,256,COMMUNITY_TC,production_full_cpu_input_ms,396.3022,152.475211,1.68192,1.593257
+synth_community_nc10,Community,200000,1089063,256,CSR_DIRECT,production_full_cpu_input_ms,396.3022,0.0,1.778995,1.763451
+synth_community_nc10,Community,200000,1089063,256,RODE_ENHANCED,production_full_cpu_input_ms,396.3022,2.028303,2.052474,2.014449
+synth_community_nc10,Community,200000,1089063,256,SEGMENT_HYBRID,production_full_cpu_input_ms,396.3022,4.940105,2.072467,2.014162
+synth_community_nc10,Community,200000,1089063,256,TC_DIRECT,production_full_cpu_input_ms,396.3022,52.481239,1.670144,1.583462
+synth_community_nc10,Community,200000,1089063,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,396.3022,1.357643,1.849651,1.815823
+synth_community_nc10,Community,200000,1089063,512,COMMUNITY_TC,production_full_cpu_input_ms,396.3022,147.246351,3.422515,3.335193
+synth_community_nc10,Community,200000,1089063,512,CSR_DIRECT,production_full_cpu_input_ms,396.3022,0.0,3.748045,3.730217
+synth_community_nc10,Community,200000,1089063,512,RODE_ENHANCED,production_full_cpu_input_ms,396.3022,2.048119,4.25537,4.214733
+synth_community_nc10,Community,200000,1089063,512,SEGMENT_HYBRID,production_full_cpu_input_ms,396.3022,4.963898,4.274829,4.214426
+synth_community_nc10,Community,200000,1089063,512,TC_DIRECT,production_full_cpu_input_ms,396.3022,56.441735,3.412173,3.323494
+synth_community_nc10,Community,200000,1089063,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,396.3022,1.359262,3.81952,3.785549
+synth_community_nc100,Community,200000,1098420,64,COMMUNITY_TC,production_full_cpu_input_ms,223.0532,146.593536,0.339866,0.251105
+synth_community_nc100,Community,200000,1098420,64,CSR_DIRECT,production_full_cpu_input_ms,223.0532,0.0,0.352563,0.339922
+synth_community_nc100,Community,200000,1098420,64,RODE_ENHANCED,production_full_cpu_input_ms,223.0532,2.021713,0.484771,0.447928
+synth_community_nc100,Community,200000,1098420,64,SEGMENT_HYBRID,production_full_cpu_input_ms,223.0532,4.911209,0.497763,0.459955
+synth_community_nc100,Community,200000,1098420,64,TC_DIRECT,production_full_cpu_input_ms,223.0532,52.215986,0.330752,0.247547
+synth_community_nc100,Community,200000,1098420,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,223.0532,1.34182,0.384102,0.355041
+synth_community_nc100,Community,200000,1098420,128,COMMUNITY_TC,production_full_cpu_input_ms,223.0532,147.165002,0.574976,0.488371
+synth_community_nc100,Community,200000,1098420,128,CSR_DIRECT,production_full_cpu_input_ms,223.0532,0.0,0.755302,0.741862
+synth_community_nc100,Community,200000,1098420,128,RODE_ENHANCED,production_full_cpu_input_ms,223.0532,2.014231,0.728176,0.69036
+synth_community_nc100,Community,200000,1098420,128,SEGMENT_HYBRID,production_full_cpu_input_ms,223.0532,4.910572,0.738502,0.689838
+synth_community_nc100,Community,200000,1098420,128,TC_DIRECT,production_full_cpu_input_ms,223.0532,55.320052,0.557978,0.466417
+synth_community_nc100,Community,200000,1098420,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,223.0532,1.342483,0.726426,0.6961
+synth_community_nc100,Community,200000,1098420,256,COMMUNITY_TC,production_full_cpu_input_ms,223.0532,148.120263,1.185997,1.099003
+synth_community_nc100,Community,200000,1098420,256,CSR_DIRECT,production_full_cpu_input_ms,223.0532,0.0,1.723904,1.706716
+synth_community_nc100,Community,200000,1098420,256,RODE_ENHANCED,production_full_cpu_input_ms,223.0532,2.019441,1.397258,1.359857
+synth_community_nc100,Community,200000,1098420,256,SEGMENT_HYBRID,production_full_cpu_input_ms,223.0532,4.946441,1.419613,1.361326
+synth_community_nc100,Community,200000,1098420,256,TC_DIRECT,production_full_cpu_input_ms,223.0532,56.302462,1.158656,1.071503
+synth_community_nc100,Community,200000,1098420,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,223.0532,1.345621,1.445581,1.411456
+synth_community_nc100,Community,200000,1098420,512,COMMUNITY_TC,production_full_cpu_input_ms,223.0532,152.861427,2.489856,2.400041
+synth_community_nc100,Community,200000,1098420,512,CSR_DIRECT,production_full_cpu_input_ms,223.0532,0.0,3.706368,3.686722
+synth_community_nc100,Community,200000,1098420,512,RODE_ENHANCED,production_full_cpu_input_ms,223.0532,2.040213,3.074192,3.032904
+synth_community_nc100,Community,200000,1098420,512,SEGMENT_HYBRID,production_full_cpu_input_ms,223.0532,4.967334,3.091366,3.034849
+synth_community_nc100,Community,200000,1098420,512,TC_DIRECT,production_full_cpu_input_ms,223.0532,54.960132,2.400563,2.314844
+synth_community_nc100,Community,200000,1098420,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,223.0532,1.347953,3.068211,3.023463
+synth_community_nc1000,Community,200000,1101854,64,COMMUNITY_TC,production_full_cpu_input_ms,110.1399,142.635018,0.339354,0.249989
+synth_community_nc1000,Community,200000,1101854,64,CSR_DIRECT,production_full_cpu_input_ms,110.1399,0.0,0.29952,0.285778
+synth_community_nc1000,Community,200000,1101854,64,RODE_ENHANCED,production_full_cpu_input_ms,110.1399,2.006464,0.486566,0.453919
+synth_community_nc1000,Community,200000,1101854,64,SEGMENT_HYBRID,production_full_cpu_input_ms,110.1399,5.102632,0.526803,0.472904
+synth_community_nc1000,Community,200000,1101854,64,TC_DIRECT,production_full_cpu_input_ms,110.1399,55.611949,0.331878,0.246743
+synth_community_nc1000,Community,200000,1101854,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,110.1399,1.321876,0.38441,0.353976
+synth_community_nc1000,Community,200000,1101854,128,COMMUNITY_TC,production_full_cpu_input_ms,110.1399,145.362387,0.549581,0.462019
+synth_community_nc1000,Community,200000,1101854,128,CSR_DIRECT,production_full_cpu_input_ms,110.1399,0.0,0.576819,0.560538
+synth_community_nc1000,Community,200000,1101854,128,RODE_ENHANCED,production_full_cpu_input_ms,110.1399,2.004597,0.72647,0.6897
+synth_community_nc1000,Community,200000,1101854,128,SEGMENT_HYBRID,production_full_cpu_input_ms,110.1399,5.098178,0.744186,0.696177
+synth_community_nc1000,Community,200000,1101854,128,TC_DIRECT,production_full_cpu_input_ms,110.1399,50.623507,0.544768,0.453181
+synth_community_nc1000,Community,200000,1101854,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,110.1399,1.330479,0.721613,0.687037
+synth_community_nc1000,Community,200000,1101854,256,COMMUNITY_TC,production_full_cpu_input_ms,110.1399,144.634502,1.111859,1.019848
+synth_community_nc1000,Community,200000,1101854,256,CSR_DIRECT,production_full_cpu_input_ms,110.1399,0.0,1.230131,1.216563
+synth_community_nc1000,Community,200000,1101854,256,RODE_ENHANCED,production_full_cpu_input_ms,110.1399,1.997666,1.345763,1.311084
+synth_community_nc1000,Community,200000,1101854,256,SEGMENT_HYBRID,production_full_cpu_input_ms,110.1399,5.152518,1.382397,1.320172
+synth_community_nc1000,Community,200000,1101854,256,TC_DIRECT,production_full_cpu_input_ms,110.1399,48.847058,1.090662,1.004744
+synth_community_nc1000,Community,200000,1101854,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,110.1399,1.334,1.433395,1.402854
+synth_community_nc1000,Community,200000,1101854,512,COMMUNITY_TC,production_full_cpu_input_ms,110.1399,145.064048,2.326426,2.241915
+synth_community_nc1000,Community,200000,1101854,512,CSR_DIRECT,production_full_cpu_input_ms,110.1399,0.0,2.678067,2.658693
+synth_community_nc1000,Community,200000,1101854,512,RODE_ENHANCED,production_full_cpu_input_ms,110.1399,1.996453,2.690819,2.650317
+synth_community_nc1000,Community,200000,1101854,512,SEGMENT_HYBRID,production_full_cpu_input_ms,110.1399,5.170236,2.726003,2.663537
+synth_community_nc1000,Community,200000,1101854,512,TC_DIRECT,production_full_cpu_input_ms,110.1399,52.119251,2.309939,2.219878
+synth_community_nc1000,Community,200000,1101854,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,110.1399,1.343577,2.917478,2.881695
+synth_community_nc50,Community,200000,1098216,64,COMMUNITY_TC,production_full_cpu_input_ms,283.5879,142.243551,0.387994,0.302295
+synth_community_nc50,Community,200000,1098216,64,CSR_DIRECT,production_full_cpu_input_ms,283.5879,0.0,0.354714,0.340531
+synth_community_nc50,Community,200000,1098216,64,RODE_ENHANCED,production_full_cpu_input_ms,283.5879,2.031292,0.485005,0.449623
+synth_community_nc50,Community,200000,1098216,64,SEGMENT_HYBRID,production_full_cpu_input_ms,283.5879,4.922275,0.522278,0.462935
+synth_community_nc50,Community,200000,1098216,64,TC_DIRECT,production_full_cpu_input_ms,283.5879,55.717895,0.331469,0.250737
+synth_community_nc50,Community,200000,1098216,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,283.5879,1.332218,0.384,0.354883
+synth_community_nc50,Community,200000,1098216,128,COMMUNITY_TC,production_full_cpu_input_ms,283.5879,149.453762,0.714752,0.629386
+synth_community_nc50,Community,200000,1098216,128,CSR_DIRECT,production_full_cpu_input_ms,283.5879,0.0,0.763597,0.750336
+synth_community_nc50,Community,200000,1098216,128,RODE_ENHANCED,production_full_cpu_input_ms,283.5879,2.008049,0.728006,0.695168
+synth_community_nc50,Community,200000,1098216,128,SEGMENT_HYBRID,production_full_cpu_input_ms,283.5879,4.920466,0.75033,0.695204
+synth_community_nc50,Community,200000,1098216,128,TC_DIRECT,production_full_cpu_input_ms,283.5879,55.604215,0.583987,0.495785
+synth_community_nc50,Community,200000,1098216,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,283.5879,1.333484,0.733389,0.705157
+synth_community_nc50,Community,200000,1098216,256,COMMUNITY_TC,production_full_cpu_input_ms,283.5879,149.643558,1.482035,1.396367
+synth_community_nc50,Community,200000,1098216,256,CSR_DIRECT,production_full_cpu_input_ms,283.5879,0.0,1.739469,1.720013
+synth_community_nc50,Community,200000,1098216,256,RODE_ENHANCED,production_full_cpu_input_ms,283.5879,2.019455,1.545814,1.504476
+synth_community_nc50,Community,200000,1098216,256,SEGMENT_HYBRID,production_full_cpu_input_ms,283.5879,4.973802,1.570701,1.503667
+synth_community_nc50,Community,200000,1098216,256,TC_DIRECT,production_full_cpu_input_ms,283.5879,58.594316,1.227981,1.141576
+synth_community_nc50,Community,200000,1098216,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,283.5879,1.597665,1.481114,1.442545
+synth_community_nc50,Community,200000,1098216,512,COMMUNITY_TC,production_full_cpu_input_ms,283.5879,169.318353,3.154739,3.05729
+synth_community_nc50,Community,200000,1098216,512,CSR_DIRECT,production_full_cpu_input_ms,283.5879,0.0,3.721523,3.699717
+synth_community_nc50,Community,200000,1098216,512,RODE_ENHANCED,production_full_cpu_input_ms,283.5879,2.063164,3.595286,3.547361
+synth_community_nc50,Community,200000,1098216,512,SEGMENT_HYBRID,production_full_cpu_input_ms,283.5879,4.97062,3.608627,3.547418
+synth_community_nc50,Community,200000,1098216,512,TC_DIRECT,production_full_cpu_input_ms,283.5879,58.183413,2.725786,2.633912
+synth_community_nc50,Community,200000,1098216,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,283.5879,1.331193,3.270042,3.236982
+synth_community_nc500,Community,200000,1100450,64,COMMUNITY_TC,production_full_cpu_input_ms,131.8418,148.74978,0.338739,0.249917
+synth_community_nc500,Community,200000,1100450,64,CSR_DIRECT,production_full_cpu_input_ms,131.8418,0.0,0.359322,0.339717
+synth_community_nc500,Community,200000,1100450,64,RODE_ENHANCED,production_full_cpu_input_ms,131.8418,1.970655,0.484829,0.449188
+synth_community_nc500,Community,200000,1100450,64,SEGMENT_HYBRID,production_full_cpu_input_ms,131.8418,4.925462,0.521027,0.469545
+synth_community_nc500,Community,200000,1100450,64,TC_DIRECT,production_full_cpu_input_ms,131.8418,53.124753,0.328192,0.246758
+synth_community_nc500,Community,200000,1100450,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,131.8418,1.326693,0.383693,0.354191
+synth_community_nc500,Community,200000,1100450,128,COMMUNITY_TC,production_full_cpu_input_ms,131.8418,150.838007,0.551936,0.462828
+synth_community_nc500,Community,200000,1100450,128,CSR_DIRECT,production_full_cpu_input_ms,131.8418,0.0,0.756019,0.740296
+synth_community_nc500,Community,200000,1100450,128,RODE_ENHANCED,production_full_cpu_input_ms,131.8418,1.979861,0.726813,0.68715
+synth_community_nc500,Community,200000,1100450,128,SEGMENT_HYBRID,production_full_cpu_input_ms,131.8418,4.98443,0.755894,0.69333
+synth_community_nc500,Community,200000,1100450,128,TC_DIRECT,production_full_cpu_input_ms,131.8418,61.878509,0.54231,0.45568
+synth_community_nc500,Community,200000,1100450,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,131.8418,1.326626,0.71721,0.68801
+synth_community_nc500,Community,200000,1100450,256,COMMUNITY_TC,production_full_cpu_input_ms,131.8418,148.09458,1.113805,1.030144
+synth_community_nc500,Community,200000,1100450,256,CSR_DIRECT,production_full_cpu_input_ms,131.8418,0.0,1.717043,1.704038
+synth_community_nc500,Community,200000,1100450,256,RODE_ENHANCED,production_full_cpu_input_ms,131.8418,2.028459,1.35168,1.312502
+synth_community_nc500,Community,200000,1100450,256,SEGMENT_HYBRID,production_full_cpu_input_ms,131.8418,4.914899,1.37271,1.321119
+synth_community_nc500,Community,200000,1100450,256,TC_DIRECT,production_full_cpu_input_ms,131.8418,57.793792,1.094246,1.008451
+synth_community_nc500,Community,200000,1100450,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,131.8418,1.330603,1.427456,1.399875
+synth_community_nc500,Community,200000,1100450,512,COMMUNITY_TC,production_full_cpu_input_ms,131.8418,151.507753,2.330419,2.243036
+synth_community_nc500,Community,200000,1100450,512,CSR_DIRECT,production_full_cpu_input_ms,131.8418,0.0,3.682918,3.664998
+synth_community_nc500,Community,200000,1100450,512,RODE_ENHANCED,production_full_cpu_input_ms,131.8418,2.001198,2.720026,2.681324
+synth_community_nc500,Community,200000,1100450,512,SEGMENT_HYBRID,production_full_cpu_input_ms,131.8418,4.971222,2.752458,2.68865
+synth_community_nc500,Community,200000,1100450,512,TC_DIRECT,production_full_cpu_input_ms,131.8418,57.274663,2.313318,2.228465
+synth_community_nc500,Community,200000,1100450,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,131.8418,1.32906,2.94185,2.900659
+synth_dense_small_d120,Dense Small,10000,1200000,64,COMMUNITY_TC,production_full_cpu_input_ms,59.0289,57.572502,0.220262,0.117637
+synth_dense_small_d120,Dense Small,10000,1200000,64,CSR_DIRECT,production_full_cpu_input_ms,59.0289,0.0,0.147354,0.123141
+synth_dense_small_d120,Dense Small,10000,1200000,64,RODE_ENHANCED,production_full_cpu_input_ms,59.0289,0.245316,0.182272,0.155909
+synth_dense_small_d120,Dense Small,10000,1200000,64,SEGMENT_HYBRID,production_full_cpu_input_ms,59.0289,0.72575,0.183603,0.144589
+synth_dense_small_d120,Dense Small,10000,1200000,64,TC_DIRECT,production_full_cpu_input_ms,59.0289,29.419391,0.218522,0.121943
+synth_dense_small_d120,Dense Small,10000,1200000,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,59.0289,0.057365,0.220774,0.203238
+synth_dense_small_d120,Dense Small,10000,1200000,128,COMMUNITY_TC,production_full_cpu_input_ms,59.0289,55.795546,0.329216,0.241106
+synth_dense_small_d120,Dense Small,10000,1200000,128,CSR_DIRECT,production_full_cpu_input_ms,59.0289,0.0,0.266547,0.253256
+synth_dense_small_d120,Dense Small,10000,1200000,128,RODE_ENHANCED,production_full_cpu_input_ms,59.0289,0.239351,0.292659,0.267919
+synth_dense_small_d120,Dense Small,10000,1200000,128,SEGMENT_HYBRID,production_full_cpu_input_ms,59.0289,0.777538,0.298291,0.263245
+synth_dense_small_d120,Dense Small,10000,1200000,128,TC_DIRECT,production_full_cpu_input_ms,59.0289,29.786547,0.333414,0.244536
+synth_dense_small_d120,Dense Small,10000,1200000,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,59.0289,0.055327,0.291123,0.271923
+synth_dense_small_d120,Dense Small,10000,1200000,256,COMMUNITY_TC,production_full_cpu_input_ms,59.0289,57.636234,0.565043,0.501524
+synth_dense_small_d120,Dense Small,10000,1200000,256,CSR_DIRECT,production_full_cpu_input_ms,59.0289,0.0,0.526438,0.513556
+synth_dense_small_d120,Dense Small,10000,1200000,256,RODE_ENHANCED,production_full_cpu_input_ms,59.0289,0.251731,0.587878,0.561731
+synth_dense_small_d120,Dense Small,10000,1200000,256,SEGMENT_HYBRID,production_full_cpu_input_ms,59.0289,0.765606,0.59689,0.567332
+synth_dense_small_d120,Dense Small,10000,1200000,256,TC_DIRECT,production_full_cpu_input_ms,59.0289,29.90982,0.56617,0.504264
+synth_dense_small_d120,Dense Small,10000,1200000,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,59.0289,0.057417,0.564634,0.547005
+synth_dense_small_d120,Dense Small,10000,1200000,512,COMMUNITY_TC,production_full_cpu_input_ms,59.0289,60.303353,1.048474,1.02933
+synth_dense_small_d120,Dense Small,10000,1200000,512,CSR_DIRECT,production_full_cpu_input_ms,59.0289,0.0,1.073971,1.056625
+synth_dense_small_d120,Dense Small,10000,1200000,512,RODE_ENHANCED,production_full_cpu_input_ms,59.0289,0.25926,1.437082,1.407078
+synth_dense_small_d120,Dense Small,10000,1200000,512,SEGMENT_HYBRID,production_full_cpu_input_ms,59.0289,0.781024,1.44128,1.408282
+synth_dense_small_d120,Dense Small,10000,1200000,512,TC_DIRECT,production_full_cpu_input_ms,59.0289,29.117568,1.050214,1.035715
+synth_dense_small_d120,Dense Small,10000,1200000,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,59.0289,0.060762,1.302733,1.263529
+synth_dense_small_d30,Dense Small,10000,300000,64,COMMUNITY_TC,production_full_cpu_input_ms,25.6738,32.019733,0.118784,0.038717
+synth_dense_small_d30,Dense Small,10000,300000,64,CSR_DIRECT,production_full_cpu_input_ms,25.6738,0.0,0.053555,0.039491
+synth_dense_small_d30,Dense Small,10000,300000,64,RODE_ENHANCED,production_full_cpu_input_ms,25.6738,0.139034,0.070246,0.047626
+synth_dense_small_d30,Dense Small,10000,300000,64,SEGMENT_HYBRID,production_full_cpu_input_ms,25.6738,0.342556,0.082637,0.047626
+synth_dense_small_d30,Dense Small,10000,300000,64,TC_DIRECT,production_full_cpu_input_ms,25.6738,23.912652,0.107213,0.038687
+synth_dense_small_d30,Dense Small,10000,300000,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,25.6738,0.056943,0.075469,0.056842
+synth_dense_small_d30,Dense Small,10000,300000,128,COMMUNITY_TC,production_full_cpu_input_ms,25.6738,29.758551,0.146432,0.069499
+synth_dense_small_d30,Dense Small,10000,300000,128,CSR_DIRECT,production_full_cpu_input_ms,25.6738,0.0,0.083149,0.071137
+synth_dense_small_d30,Dense Small,10000,300000,128,RODE_ENHANCED,production_full_cpu_input_ms,25.6738,0.137632,0.105779,0.080338
+synth_dense_small_d30,Dense Small,10000,300000,128,SEGMENT_HYBRID,production_full_cpu_input_ms,25.6738,0.323876,0.110285,0.079473
+synth_dense_small_d30,Dense Small,10000,300000,128,TC_DIRECT,production_full_cpu_input_ms,25.6738,29.178732,0.147661,0.071485
+synth_dense_small_d30,Dense Small,10000,300000,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,25.6738,0.057764,0.100557,0.083871
+synth_dense_small_d30,Dense Small,10000,300000,256,COMMUNITY_TC,production_full_cpu_input_ms,25.6738,29.592369,0.206336,0.135665
+synth_dense_small_d30,Dense Small,10000,300000,256,CSR_DIRECT,production_full_cpu_input_ms,25.6738,0.0,0.17367,0.150272
+synth_dense_small_d30,Dense Small,10000,300000,256,RODE_ENHANCED,production_full_cpu_input_ms,25.6738,0.138731,0.198349,0.1758
+synth_dense_small_d30,Dense Small,10000,300000,256,SEGMENT_HYBRID,production_full_cpu_input_ms,25.6738,0.328475,0.204902,0.165366
+synth_dense_small_d30,Dense Small,10000,300000,256,TC_DIRECT,production_full_cpu_input_ms,25.6738,25.40174,0.197632,0.139827
+synth_dense_small_d30,Dense Small,10000,300000,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,25.6738,0.060893,0.186778,0.170665
+synth_dense_small_d30,Dense Small,10000,300000,512,COMMUNITY_TC,production_full_cpu_input_ms,25.6738,29.964218,0.342938,0.287222
+synth_dense_small_d30,Dense Small,10000,300000,512,CSR_DIRECT,production_full_cpu_input_ms,25.6738,0.0,0.331264,0.316477
+synth_dense_small_d30,Dense Small,10000,300000,512,RODE_ENHANCED,production_full_cpu_input_ms,25.6738,0.142175,0.566477,0.538015
+synth_dense_small_d30,Dense Small,10000,300000,512,SEGMENT_HYBRID,production_full_cpu_input_ms,25.6738,0.342675,0.55849,0.534369
+synth_dense_small_d30,Dense Small,10000,300000,512,TC_DIRECT,production_full_cpu_input_ms,25.6738,22.379581,0.343347,0.289797
+synth_dense_small_d30,Dense Small,10000,300000,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,25.6738,0.059884,0.397517,0.404086
+synth_dense_small_d50,Dense Small,10000,500000,64,COMMUNITY_TC,production_full_cpu_input_ms,35.8243,37.02997,0.154931,0.057999
+synth_dense_small_d50,Dense Small,10000,500000,64,CSR_DIRECT,production_full_cpu_input_ms,35.8243,0.0,0.07465,0.058158
+synth_dense_small_d50,Dense Small,10000,500000,64,RODE_ENHANCED,production_full_cpu_input_ms,35.8243,0.256802,0.11305,0.080466
+synth_dense_small_d50,Dense Small,10000,500000,64,SEGMENT_HYBRID,production_full_cpu_input_ms,35.8243,0.481291,0.108134,0.07681
+synth_dense_small_d50,Dense Small,10000,500000,64,TC_DIRECT,production_full_cpu_input_ms,35.8243,34.636579,0.161894,0.058061
+synth_dense_small_d50,Dense Small,10000,500000,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,35.8243,0.056503,0.105062,0.088566
+synth_dense_small_d50,Dense Small,10000,500000,128,COMMUNITY_TC,production_full_cpu_input_ms,35.8243,37.164228,0.206438,0.107049
+synth_dense_small_d50,Dense Small,10000,500000,128,CSR_DIRECT,production_full_cpu_input_ms,35.8243,0.0,0.127795,0.111037
+synth_dense_small_d50,Dense Small,10000,500000,128,RODE_ENHANCED,production_full_cpu_input_ms,35.8243,0.241673,0.159027,0.130775
+synth_dense_small_d50,Dense Small,10000,500000,128,SEGMENT_HYBRID,production_full_cpu_input_ms,35.8243,0.507179,0.152371,0.122153
+synth_dense_small_d50,Dense Small,10000,500000,128,TC_DIRECT,production_full_cpu_input_ms,35.8243,30.65323,0.201728,0.10772
+synth_dense_small_d50,Dense Small,10000,500000,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,35.8243,0.059697,0.142848,0.125788
+synth_dense_small_d50,Dense Small,10000,500000,256,COMMUNITY_TC,production_full_cpu_input_ms,35.8243,42.743312,0.300032,0.22039
+synth_dense_small_d50,Dense Small,10000,500000,256,CSR_DIRECT,production_full_cpu_input_ms,35.8243,0.0,0.250368,0.2351
+synth_dense_small_d50,Dense Small,10000,500000,256,RODE_ENHANCED,production_full_cpu_input_ms,35.8243,0.235855,0.286106,0.25921
+synth_dense_small_d50,Dense Small,10000,500000,256,SEGMENT_HYBRID,production_full_cpu_input_ms,35.8243,0.510746,0.293069,0.257111
+synth_dense_small_d50,Dense Small,10000,500000,256,TC_DIRECT,production_full_cpu_input_ms,35.8243,25.947029,0.298598,0.223636
+synth_dense_small_d50,Dense Small,10000,500000,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,35.8243,0.062013,0.28375,0.260106
+synth_dense_small_d50,Dense Small,10000,500000,512,COMMUNITY_TC,production_full_cpu_input_ms,35.8243,34.768992,0.481178,0.467231
+synth_dense_small_d50,Dense Small,10000,500000,512,CSR_DIRECT,production_full_cpu_input_ms,35.8243,0.0,0.504627,0.48639
+synth_dense_small_d50,Dense Small,10000,500000,512,RODE_ENHANCED,production_full_cpu_input_ms,35.8243,0.239119,0.699392,0.673587
+synth_dense_small_d50,Dense Small,10000,500000,512,SEGMENT_HYBRID,production_full_cpu_input_ms,35.8243,0.50079,0.710963,0.671867
+synth_dense_small_d50,Dense Small,10000,500000,512,TC_DIRECT,production_full_cpu_input_ms,35.8243,25.54733,0.47913,0.469187
+synth_dense_small_d50,Dense Small,10000,500000,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,35.8243,0.059071,0.557261,0.570348
+synth_dense_small_d70,Dense Small,10000,700000,64,COMMUNITY_TC,production_full_cpu_input_ms,44.3022,43.748308,0.172237,0.076216
+synth_dense_small_d70,Dense Small,10000,700000,64,CSR_DIRECT,production_full_cpu_input_ms,44.3022,0.0,0.092467,0.078607
+synth_dense_small_d70,Dense Small,10000,700000,64,RODE_ENHANCED,production_full_cpu_input_ms,44.3022,0.243824,0.129229,0.101443
+synth_dense_small_d70,Dense Small,10000,700000,64,SEGMENT_HYBRID,production_full_cpu_input_ms,44.3022,0.566975,0.13353,0.098181
+synth_dense_small_d70,Dense Small,10000,700000,64,TC_DIRECT,production_full_cpu_input_ms,44.3022,28.026781,0.162509,0.0766
+synth_dense_small_d70,Dense Small,10000,700000,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,44.3022,0.052627,0.146022,0.127447
+synth_dense_small_d70,Dense Small,10000,700000,128,COMMUNITY_TC,production_full_cpu_input_ms,44.3022,42.124728,0.241459,0.148168
+synth_dense_small_d70,Dense Small,10000,700000,128,CSR_DIRECT,production_full_cpu_input_ms,44.3022,0.0,0.164454,0.151475
+synth_dense_small_d70,Dense Small,10000,700000,128,RODE_ENHANCED,production_full_cpu_input_ms,44.3022,0.247581,0.198861,0.171684
+synth_dense_small_d70,Dense Small,10000,700000,128,SEGMENT_HYBRID,production_full_cpu_input_ms,44.3022,0.579115,0.203776,0.16404
+synth_dense_small_d70,Dense Small,10000,700000,128,TC_DIRECT,production_full_cpu_input_ms,44.3022,28.421512,0.230502,0.151291
+synth_dense_small_d70,Dense Small,10000,700000,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,44.3022,0.05445,0.198554,0.178258
+synth_dense_small_d70,Dense Small,10000,700000,256,COMMUNITY_TC,production_full_cpu_input_ms,44.3022,42.173195,0.386765,0.307016
+synth_dense_small_d70,Dense Small,10000,700000,256,CSR_DIRECT,production_full_cpu_input_ms,44.3022,0.0,0.332083,0.316698
+synth_dense_small_d70,Dense Small,10000,700000,256,RODE_ENHANCED,production_full_cpu_input_ms,44.3022,0.247487,0.38697,0.358467
+synth_dense_small_d70,Dense Small,10000,700000,256,SEGMENT_HYBRID,production_full_cpu_input_ms,44.3022,0.576985,0.389939,0.352502
+synth_dense_small_d70,Dense Small,10000,700000,256,TC_DIRECT,production_full_cpu_input_ms,44.3022,25.578445,0.36864,0.30846
+synth_dense_small_d70,Dense Small,10000,700000,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,44.3022,0.056918,0.378061,0.359352
+synth_dense_small_d70,Dense Small,10000,700000,512,COMMUNITY_TC,production_full_cpu_input_ms,44.3022,42.302518,0.663962,0.643374
+synth_dense_small_d70,Dense Small,10000,700000,512,CSR_DIRECT,production_full_cpu_input_ms,44.3022,0.0,0.670003,0.65708
+synth_dense_small_d70,Dense Small,10000,700000,512,RODE_ENHANCED,production_full_cpu_input_ms,44.3022,0.253191,1.054618,1.020257
+synth_dense_small_d70,Dense Small,10000,700000,512,SEGMENT_HYBRID,production_full_cpu_input_ms,44.3022,0.586108,1.060454,1.019986
+synth_dense_small_d70,Dense Small,10000,700000,512,TC_DIRECT,production_full_cpu_input_ms,44.3022,27.672227,0.659354,0.64362
+synth_dense_small_d70,Dense Small,10000,700000,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,44.3022,0.060948,0.947302,0.874035
+synth_dense_small_d90,Dense Small,10000,900000,64,COMMUNITY_TC,production_full_cpu_input_ms,50.9525,47.675451,0.189747,0.093312
+synth_dense_small_d90,Dense Small,10000,900000,64,CSR_DIRECT,production_full_cpu_input_ms,50.9525,0.0,0.11008,0.096092
+synth_dense_small_d90,Dense Small,10000,900000,64,RODE_ENHANCED,production_full_cpu_input_ms,50.9525,0.234532,0.155034,0.129157
+synth_dense_small_d90,Dense Small,10000,900000,64,SEGMENT_HYBRID,production_full_cpu_input_ms,50.9525,0.639525,0.16384,0.117187
+synth_dense_small_d90,Dense Small,10000,900000,64,TC_DIRECT,production_full_cpu_input_ms,50.9525,28.016866,0.185856,0.096087
+synth_dense_small_d90,Dense Small,10000,900000,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,50.9525,0.052375,0.178381,0.160251
+synth_dense_small_d90,Dense Small,10000,900000,128,COMMUNITY_TC,production_full_cpu_input_ms,50.9525,51.041302,0.271667,0.188242
+synth_dense_small_d90,Dense Small,10000,900000,128,CSR_DIRECT,production_full_cpu_input_ms,50.9525,0.0,0.209408,0.195558
+synth_dense_small_d90,Dense Small,10000,900000,128,RODE_ENHANCED,production_full_cpu_input_ms,50.9525,0.239407,0.234598,0.208957
+synth_dense_small_d90,Dense Small,10000,900000,128,SEGMENT_HYBRID,production_full_cpu_input_ms,50.9525,0.633907,0.244122,0.200177
+synth_dense_small_d90,Dense Small,10000,900000,128,TC_DIRECT,production_full_cpu_input_ms,50.9525,28.515879,0.273306,0.189445
+synth_dense_small_d90,Dense Small,10000,900000,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,50.9525,0.052603,0.232243,0.212869
+synth_dense_small_d90,Dense Small,10000,900000,256,COMMUNITY_TC,production_full_cpu_input_ms,50.9525,48.226872,0.449741,0.385172
+synth_dense_small_d90,Dense Small,10000,900000,256,CSR_DIRECT,production_full_cpu_input_ms,50.9525,0.0,0.41216,0.398566
+synth_dense_small_d90,Dense Small,10000,900000,256,RODE_ENHANCED,production_full_cpu_input_ms,50.9525,0.234683,0.45609,0.432031
+synth_dense_small_d90,Dense Small,10000,900000,256,SEGMENT_HYBRID,production_full_cpu_input_ms,50.9525,1.08179,0.466432,0.432369
+synth_dense_small_d90,Dense Small,10000,900000,256,TC_DIRECT,production_full_cpu_input_ms,50.9525,28.634166,0.446771,0.388086
+synth_dense_small_d90,Dense Small,10000,900000,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,50.9525,0.054034,0.450765,0.432466
+synth_dense_small_d90,Dense Small,10000,900000,512,COMMUNITY_TC,production_full_cpu_input_ms,50.9525,46.053883,0.804454,0.80299
+synth_dense_small_d90,Dense Small,10000,900000,512,CSR_DIRECT,production_full_cpu_input_ms,50.9525,0.0,0.834662,0.822421
+synth_dense_small_d90,Dense Small,10000,900000,512,RODE_ENHANCED,production_full_cpu_input_ms,50.9525,0.237,1.076531,1.038428
+synth_dense_small_d90,Dense Small,10000,900000,512,SEGMENT_HYBRID,production_full_cpu_input_ms,50.9525,0.661166,1.082778,1.039365
+synth_dense_small_d90,Dense Small,10000,900000,512,TC_DIRECT,production_full_cpu_input_ms,50.9525,39.763724,0.800256,0.805473
+synth_dense_small_d90,Dense Small,10000,900000,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,50.9525,0.055574,1.03424,0.997678
+synth_mixed_v1,Mixed/Irregular,200000,4001390,64,COMMUNITY_TC,production_full_cpu_input_ms,1685.4486,316.728437,1.339085,1.247365
+synth_mixed_v1,Mixed/Irregular,200000,4001390,64,CSR_DIRECT,production_full_cpu_input_ms,1685.4486,0.0,1.366323,1.351373
+synth_mixed_v1,Mixed/Irregular,200000,4001390,64,RODE_ENHANCED,production_full_cpu_input_ms,1685.4486,2.656005,1.35399,1.315118
+synth_mixed_v1,Mixed/Irregular,200000,4001390,64,SEGMENT_HYBRID,production_full_cpu_input_ms,1685.4486,6.589249,1.389603,1.322383
+synth_mixed_v1,Mixed/Irregular,200000,4001390,64,TC_DIRECT,production_full_cpu_input_ms,1685.4486,77.098402,1.299251,1.212954
+synth_mixed_v1,Mixed/Irregular,200000,4001390,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1685.4486,1.742602,1.384141,1.361188
+synth_mixed_v1,Mixed/Irregular,200000,4001390,128,COMMUNITY_TC,production_full_cpu_input_ms,1685.4486,320.95995,2.632602,2.546995
+synth_mixed_v1,Mixed/Irregular,200000,4001390,128,CSR_DIRECT,production_full_cpu_input_ms,1685.4486,0.0,2.724557,2.706437
+synth_mixed_v1,Mixed/Irregular,200000,4001390,128,RODE_ENHANCED,production_full_cpu_input_ms,1685.4486,2.688947,2.750403,2.706765
+synth_mixed_v1,Mixed/Irregular,200000,4001390,128,SEGMENT_HYBRID,production_full_cpu_input_ms,1685.4486,6.643887,2.775043,2.706401
+synth_mixed_v1,Mixed/Irregular,200000,4001390,128,TC_DIRECT,production_full_cpu_input_ms,1685.4486,93.150585,2.60905,2.512082
+synth_mixed_v1,Mixed/Irregular,200000,4001390,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1685.4486,1.747194,2.611814,2.57879
+synth_mixed_v1,Mixed/Irregular,200000,4001390,256,COMMUNITY_TC,production_full_cpu_input_ms,1685.4486,308.444802,5.302886,5.210388
+synth_mixed_v1,Mixed/Irregular,200000,4001390,256,CSR_DIRECT,production_full_cpu_input_ms,1685.4486,0.0,5.526323,5.503662
+synth_mixed_v1,Mixed/Irregular,200000,4001390,256,RODE_ENHANCED,production_full_cpu_input_ms,1685.4486,2.71124,5.594387,5.544858
+synth_mixed_v1,Mixed/Irregular,200000,4001390,256,SEGMENT_HYBRID,production_full_cpu_input_ms,1685.4486,6.989787,5.62561,5.544878
+synth_mixed_v1,Mixed/Irregular,200000,4001390,256,TC_DIRECT,production_full_cpu_input_ms,1685.4486,75.235513,5.244928,5.166167
+synth_mixed_v1,Mixed/Irregular,200000,4001390,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1685.4486,1.757797,5.368013,5.332659
+synth_mixed_v1,Mixed/Irregular,200000,4001390,512,COMMUNITY_TC,production_full_cpu_input_ms,1685.4486,298.208072,10.609562,10.500096
+synth_mixed_v1,Mixed/Irregular,200000,4001390,512,CSR_DIRECT,production_full_cpu_input_ms,1685.4486,0.0,11.171226,11.143511
+synth_mixed_v1,Mixed/Irregular,200000,4001390,512,RODE_ENHANCED,production_full_cpu_input_ms,1685.4486,2.858741,11.256195,11.196375
+synth_mixed_v1,Mixed/Irregular,200000,4001390,512,SEGMENT_HYBRID,production_full_cpu_input_ms,1685.4486,6.638801,11.262262,11.196927
+synth_mixed_v1,Mixed/Irregular,200000,4001390,512,TC_DIRECT,production_full_cpu_input_ms,1685.4486,75.311769,10.550272,10.472351
+synth_mixed_v1,Mixed/Irregular,200000,4001390,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1685.4486,1.779834,10.884506,10.841309
+synth_mixed_v2,Mixed/Irregular,200000,5457270,64,COMMUNITY_TC,production_full_cpu_input_ms,2204.6155,467.805168,1.742848,1.649956
+synth_mixed_v2,Mixed/Irregular,200000,5457270,64,CSR_DIRECT,production_full_cpu_input_ms,2204.6155,0.0,1.819136,1.800151
+synth_mixed_v2,Mixed/Irregular,200000,5457270,64,RODE_ENHANCED,production_full_cpu_input_ms,2204.6155,3.471297,1.578272,1.524588
+synth_mixed_v2,Mixed/Irregular,200000,5457270,64,SEGMENT_HYBRID,production_full_cpu_input_ms,2204.6155,7.934468,1.56841,1.543199
+synth_mixed_v2,Mixed/Irregular,200000,5457270,64,TC_DIRECT,production_full_cpu_input_ms,2204.6155,80.099505,1.65335,1.564733
+synth_mixed_v2,Mixed/Irregular,200000,5457270,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2204.6155,1.466943,1.738035,1.71499
+synth_mixed_v2,Mixed/Irregular,200000,5457270,128,COMMUNITY_TC,production_full_cpu_input_ms,2204.6155,457.037155,3.472282,3.3901
+synth_mixed_v2,Mixed/Irregular,200000,5457270,128,CSR_DIRECT,production_full_cpu_input_ms,2204.6155,0.0,3.591475,3.576264
+synth_mixed_v2,Mixed/Irregular,200000,5457270,128,RODE_ENHANCED,production_full_cpu_input_ms,2204.6155,3.662649,3.480954,3.429806
+synth_mixed_v2,Mixed/Irregular,200000,5457270,128,SEGMENT_HYBRID,production_full_cpu_input_ms,2204.6155,7.869875,3.488854,3.428029
+synth_mixed_v2,Mixed/Irregular,200000,5457270,128,TC_DIRECT,production_full_cpu_input_ms,2204.6155,81.645617,3.381555,3.295514
+synth_mixed_v2,Mixed/Irregular,200000,5457270,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2204.6155,1.47454,3.29431,3.260969
+synth_mixed_v2,Mixed/Irregular,200000,5457270,256,COMMUNITY_TC,production_full_cpu_input_ms,2204.6155,464.497477,7.020646,6.932152
+synth_mixed_v2,Mixed/Irregular,200000,5457270,256,CSR_DIRECT,production_full_cpu_input_ms,2204.6155,0.0,7.307264,7.290829
+synth_mixed_v2,Mixed/Irregular,200000,5457270,256,RODE_ENHANCED,production_full_cpu_input_ms,2204.6155,3.554545,7.235011,7.182976
+synth_mixed_v2,Mixed/Irregular,200000,5457270,256,SEGMENT_HYBRID,production_full_cpu_input_ms,2204.6155,7.930809,7.250848,7.18273
+synth_mixed_v2,Mixed/Irregular,200000,5457270,256,TC_DIRECT,production_full_cpu_input_ms,2204.6155,81.001181,6.886195,6.810179
+synth_mixed_v2,Mixed/Irregular,200000,5457270,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2204.6155,1.476089,6.943437,6.911365
+synth_mixed_v2,Mixed/Irregular,200000,5457270,512,COMMUNITY_TC,production_full_cpu_input_ms,2204.6155,477.824683,14.083891,13.990979
+synth_mixed_v2,Mixed/Irregular,200000,5457270,512,CSR_DIRECT,production_full_cpu_input_ms,2204.6155,0.0,14.72471,14.703616
+synth_mixed_v2,Mixed/Irregular,200000,5457270,512,RODE_ENHANCED,production_full_cpu_input_ms,2204.6155,3.616097,14.60177,14.544988
+synth_mixed_v2,Mixed/Irregular,200000,5457270,512,SEGMENT_HYBRID,production_full_cpu_input_ms,2204.6155,8.015459,14.613914,14.545454
+synth_mixed_v2,Mixed/Irregular,200000,5457270,512,TC_DIRECT,production_full_cpu_input_ms,2204.6155,83.339369,13.909914,13.841024
+synth_mixed_v2,Mixed/Irregular,200000,5457270,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2204.6155,1.477488,14.16192,14.126797
+synth_mixed_v3,Mixed/Irregular,200000,5576937,64,COMMUNITY_TC,production_full_cpu_input_ms,2200.9348,398.990995,1.761178,1.673021
+synth_mixed_v3,Mixed/Irregular,200000,5576937,64,CSR_DIRECT,production_full_cpu_input_ms,2200.9348,0.0,1.827533,1.811021
+synth_mixed_v3,Mixed/Irregular,200000,5576937,64,RODE_ENHANCED,production_full_cpu_input_ms,2200.9348,3.166658,1.750499,1.707505
+synth_mixed_v3,Mixed/Irregular,200000,5576937,64,SEGMENT_HYBRID,production_full_cpu_input_ms,2200.9348,7.940125,1.762317,1.718743
+synth_mixed_v3,Mixed/Irregular,200000,5576937,64,TC_DIRECT,production_full_cpu_input_ms,2200.9348,83.175443,1.738957,1.657206
+synth_mixed_v3,Mixed/Irregular,200000,5576937,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2200.9348,1.568042,1.81504,1.78796
+synth_mixed_v3,Mixed/Irregular,200000,5576937,128,COMMUNITY_TC,production_full_cpu_input_ms,2200.9348,397.113077,3.553485,3.459241
+synth_mixed_v3,Mixed/Irregular,200000,5576937,128,CSR_DIRECT,production_full_cpu_input_ms,2200.9348,0.0,3.647283,3.623634
+synth_mixed_v3,Mixed/Irregular,200000,5576937,128,RODE_ENHANCED,production_full_cpu_input_ms,2200.9348,3.226065,3.624397,3.575193
+synth_mixed_v3,Mixed/Irregular,200000,5576937,128,SEGMENT_HYBRID,production_full_cpu_input_ms,2200.9348,8.004985,3.643066,3.575132
+synth_mixed_v3,Mixed/Irregular,200000,5576937,128,TC_DIRECT,production_full_cpu_input_ms,2200.9348,86.478565,3.507098,3.428874
+synth_mixed_v3,Mixed/Irregular,200000,5576937,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2200.9348,1.571184,3.436646,3.400008
+synth_mixed_v3,Mixed/Irregular,200000,5576937,256,COMMUNITY_TC,production_full_cpu_input_ms,2200.9348,433.403951,7.14455,7.059717
+synth_mixed_v3,Mixed/Irregular,200000,5576937,256,CSR_DIRECT,production_full_cpu_input_ms,2200.9348,0.0,7.42359,7.402823
+synth_mixed_v3,Mixed/Irregular,200000,5576937,256,RODE_ENHANCED,production_full_cpu_input_ms,2200.9348,3.246779,7.404301,7.352719
+synth_mixed_v3,Mixed/Irregular,200000,5576937,256,SEGMENT_HYBRID,production_full_cpu_input_ms,2200.9348,8.221049,7.432493,7.352796
+synth_mixed_v3,Mixed/Irregular,200000,5576937,256,TC_DIRECT,production_full_cpu_input_ms,2200.9348,81.255213,7.112909,7.047014
+synth_mixed_v3,Mixed/Irregular,200000,5576937,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2200.9348,1.576146,7.136154,7.1004
+synth_mixed_v3,Mixed/Irregular,200000,5576937,512,COMMUNITY_TC,production_full_cpu_input_ms,2200.9348,396.513471,14.324019,14.267054
+synth_mixed_v3,Mixed/Irregular,200000,5576937,512,CSR_DIRECT,production_full_cpu_input_ms,2200.9348,0.0,14.938726,14.920576
+synth_mixed_v3,Mixed/Irregular,200000,5576937,512,RODE_ENHANCED,production_full_cpu_input_ms,2200.9348,3.320665,14.928867,14.875116
+synth_mixed_v3,Mixed/Irregular,200000,5576937,512,SEGMENT_HYBRID,production_full_cpu_input_ms,2200.9348,7.991638,14.94225,14.875571
+synth_mixed_v3,Mixed/Irregular,200000,5576937,512,TC_DIRECT,production_full_cpu_input_ms,2200.9348,83.278993,14.284288,14.221486
+synth_mixed_v3,Mixed/Irregular,200000,5576937,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2200.9348,1.657821,14.50199,14.45077
+synth_mixed_v4,Mixed/Irregular,200000,7410217,64,COMMUNITY_TC,production_full_cpu_input_ms,2816.3536,469.631986,2.274406,2.192148
+synth_mixed_v4,Mixed/Irregular,200000,7410217,64,CSR_DIRECT,production_full_cpu_input_ms,2816.3536,0.0,2.285363,2.269553
+synth_mixed_v4,Mixed/Irregular,200000,7410217,64,RODE_ENHANCED,production_full_cpu_input_ms,2816.3536,4.231646,1.852349,1.824589
+synth_mixed_v4,Mixed/Irregular,200000,7410217,64,SEGMENT_HYBRID,production_full_cpu_input_ms,2816.3536,10.091961,1.850419,1.811989
+synth_mixed_v4,Mixed/Irregular,200000,7410217,64,TC_DIRECT,production_full_cpu_input_ms,2816.3536,87.051651,2.15767,2.075561
+synth_mixed_v4,Mixed/Irregular,200000,7410217,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2816.3536,1.528907,2.23959,2.213739
+synth_mixed_v4,Mixed/Irregular,200000,7410217,128,COMMUNITY_TC,production_full_cpu_input_ms,2816.3536,473.653248,4.589466,4.504883
+synth_mixed_v4,Mixed/Irregular,200000,7410217,128,CSR_DIRECT,production_full_cpu_input_ms,2816.3536,0.0,4.62377,4.602803
+synth_mixed_v4,Mixed/Irregular,200000,7410217,128,RODE_ENHANCED,production_full_cpu_input_ms,2816.3536,4.320458,4.355581,4.346865
+synth_mixed_v4,Mixed/Irregular,200000,7410217,128,SEGMENT_HYBRID,production_full_cpu_input_ms,2816.3536,9.970557,4.358928,4.333906
+synth_mixed_v4,Mixed/Irregular,200000,7410217,128,TC_DIRECT,production_full_cpu_input_ms,2816.3536,85.708469,4.463206,4.392842
+synth_mixed_v4,Mixed/Irregular,200000,7410217,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2816.3536,1.531885,4.270285,4.235832
+synth_mixed_v4,Mixed/Irregular,200000,7410217,256,COMMUNITY_TC,production_full_cpu_input_ms,2816.3536,482.08284,9.323008,9.235865
+synth_mixed_v4,Mixed/Irregular,200000,7410217,256,CSR_DIRECT,production_full_cpu_input_ms,2816.3536,0.0,9.430221,9.408323
+synth_mixed_v4,Mixed/Irregular,200000,7410217,256,RODE_ENHANCED,production_full_cpu_input_ms,2816.3536,4.30883,9.410646,9.356764
+synth_mixed_v4,Mixed/Irregular,200000,7410217,256,SEGMENT_HYBRID,production_full_cpu_input_ms,2816.3536,10.123342,9.430134,9.357036
+synth_mixed_v4,Mixed/Irregular,200000,7410217,256,TC_DIRECT,production_full_cpu_input_ms,2816.3536,88.189609,9.137357,9.080294
+synth_mixed_v4,Mixed/Irregular,200000,7410217,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2816.3536,1.530524,9.072026,9.038193
+synth_mixed_v4,Mixed/Irregular,200000,7410217,512,COMMUNITY_TC,production_full_cpu_input_ms,2816.3536,482.699896,18.751898,18.656005
+synth_mixed_v4,Mixed/Irregular,200000,7410217,512,CSR_DIRECT,production_full_cpu_input_ms,2816.3536,0.0,19.036467,19.01057
+synth_mixed_v4,Mixed/Irregular,200000,7410217,512,RODE_ENHANCED,production_full_cpu_input_ms,2816.3536,4.537795,19.157405,19.090493
+synth_mixed_v4,Mixed/Irregular,200000,7410217,512,SEGMENT_HYBRID,production_full_cpu_input_ms,2816.3536,10.202985,19.165021,19.090652
+synth_mixed_v4,Mixed/Irregular,200000,7410217,512,TC_DIRECT,production_full_cpu_input_ms,2816.3536,88.149813,18.464768,18.40766
+synth_mixed_v4,Mixed/Irregular,200000,7410217,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2816.3536,1.563731,18.626765,18.5901
+synth_mixed_v5,Mixed/Irregular,200000,7276677,64,COMMUNITY_TC,production_full_cpu_input_ms,2768.1338,475.143611,2.240717,2.154593
+synth_mixed_v5,Mixed/Irregular,200000,7276677,64,CSR_DIRECT,production_full_cpu_input_ms,2768.1338,0.0,2.351309,2.336568
+synth_mixed_v5,Mixed/Irregular,200000,7276677,64,RODE_ENHANCED,production_full_cpu_input_ms,2768.1338,4.132433,1.928861,1.90142
+synth_mixed_v5,Mixed/Irregular,200000,7276677,64,SEGMENT_HYBRID,production_full_cpu_input_ms,2768.1338,9.548742,1.923014,1.875963
+synth_mixed_v5,Mixed/Irregular,200000,7276677,64,TC_DIRECT,production_full_cpu_input_ms,2768.1338,89.193164,2.159309,2.063427
+synth_mixed_v5,Mixed/Irregular,200000,7276677,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2768.1338,1.526794,2.22976,2.205547
+synth_mixed_v5,Mixed/Irregular,200000,7276677,128,COMMUNITY_TC,production_full_cpu_input_ms,2768.1338,505.82697,4.519117,4.429133
+synth_mixed_v5,Mixed/Irregular,200000,7276677,128,CSR_DIRECT,production_full_cpu_input_ms,2768.1338,0.0,4.671283,4.654198
+synth_mixed_v5,Mixed/Irregular,200000,7276677,128,RODE_ENHANCED,production_full_cpu_input_ms,2768.1338,4.198259,4.421133,4.378276
+synth_mixed_v5,Mixed/Irregular,200000,7276677,128,SEGMENT_HYBRID,production_full_cpu_input_ms,2768.1338,9.66672,4.467648,4.376945
+synth_mixed_v5,Mixed/Irregular,200000,7276677,128,TC_DIRECT,production_full_cpu_input_ms,2768.1338,108.755674,4.429414,4.341821
+synth_mixed_v5,Mixed/Irregular,200000,7276677,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2768.1338,1.521203,4.262912,4.229801
+synth_mixed_v5,Mixed/Irregular,200000,7276677,256,COMMUNITY_TC,production_full_cpu_input_ms,2768.1338,534.533324,9.174835,9.071908
+synth_mixed_v5,Mixed/Irregular,200000,7276677,256,CSR_DIRECT,production_full_cpu_input_ms,2768.1338,0.0,9.490637,9.472502
+synth_mixed_v5,Mixed/Irregular,200000,7276677,256,RODE_ENHANCED,production_full_cpu_input_ms,2768.1338,4.147524,9.316813,9.26678
+synth_mixed_v5,Mixed/Irregular,200000,7276677,256,SEGMENT_HYBRID,production_full_cpu_input_ms,2768.1338,10.039433,9.347194,9.266196
+synth_mixed_v5,Mixed/Irregular,200000,7276677,256,TC_DIRECT,production_full_cpu_input_ms,2768.1338,92.428625,9.007718,8.929766
+synth_mixed_v5,Mixed/Irregular,200000,7276677,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2768.1338,1.529162,8.970547,8.934605
+synth_mixed_v5,Mixed/Irregular,200000,7276677,512,COMMUNITY_TC,production_full_cpu_input_ms,2768.1338,514.072526,18.37609,18.289679
+synth_mixed_v5,Mixed/Irregular,200000,7276677,512,CSR_DIRECT,production_full_cpu_input_ms,2768.1338,0.0,19.168461,19.14453
+synth_mixed_v5,Mixed/Irregular,200000,7276677,512,RODE_ENHANCED,production_full_cpu_input_ms,2768.1338,4.33217,18.92351,18.857145
+synth_mixed_v5,Mixed/Irregular,200000,7276677,512,SEGMENT_HYBRID,production_full_cpu_input_ms,2768.1338,10.014416,18.938448,18.857308
+synth_mixed_v5,Mixed/Irregular,200000,7276677,512,TC_DIRECT,production_full_cpu_input_ms,2768.1338,87.693564,18.154189,18.106301
+synth_mixed_v5,Mixed/Irregular,200000,7276677,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2768.1338,1.541025,18.361344,18.320518
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,64,COMMUNITY_TC,production_full_cpu_input_ms,1564.8943,381.662987,1.232896,1.143286
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,64,CSR_DIRECT,production_full_cpu_input_ms,1564.8943,0.0,1.20617,1.189427
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,64,RODE_ENHANCED,production_full_cpu_input_ms,1564.8943,2.702918,1.318422,1.276995
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,64,SEGMENT_HYBRID,production_full_cpu_input_ms,1564.8943,7.771817,1.347466,1.280497
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,64,TC_DIRECT,production_full_cpu_input_ms,1564.8943,78.87418,1.225216,1.137879
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1564.8943,1.664196,1.31087,1.276764
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,128,COMMUNITY_TC,production_full_cpu_input_ms,1564.8943,330.744739,2.422784,2.335959
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,128,CSR_DIRECT,production_full_cpu_input_ms,1564.8943,0.0,2.454323,2.436521
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,128,RODE_ENHANCED,production_full_cpu_input_ms,1564.8943,2.748714,2.608515,2.564972
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,128,SEGMENT_HYBRID,production_full_cpu_input_ms,1564.8943,7.679447,2.631904,2.565258
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,128,TC_DIRECT,production_full_cpu_input_ms,1564.8943,79.465506,2.410701,2.326323
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1564.8943,1.6654,2.496243,2.462827
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,256,COMMUNITY_TC,production_full_cpu_input_ms,1564.8943,324.666422,4.844339,4.758016
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,256,CSR_DIRECT,production_full_cpu_input_ms,1564.8943,0.0,4.975718,4.958536
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,256,RODE_ENHANCED,production_full_cpu_input_ms,1564.8943,2.765444,5.240422,5.194665
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,256,SEGMENT_HYBRID,production_full_cpu_input_ms,1564.8943,7.780733,5.271254,5.194629
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,256,TC_DIRECT,production_full_cpu_input_ms,1564.8943,79.846996,4.820275,4.740117
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1564.8943,1.671129,4.997747,4.964951
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,512,COMMUNITY_TC,production_full_cpu_input_ms,1564.8943,313.05687,9.641472,9.555968
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,512,CSR_DIRECT,production_full_cpu_input_ms,1564.8943,0.0,10.011034,9.989888
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,512,RODE_ENHANCED,production_full_cpu_input_ms,1564.8943,2.867474,10.508342,10.452971
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,512,SEGMENT_HYBRID,production_full_cpu_input_ms,1564.8943,7.876563,10.526666,10.45312
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,512,TC_DIRECT,production_full_cpu_input_ms,1564.8943,80.884856,9.611776,9.53517
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1564.8943,1.73017,9.999728,9.950126
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,64,COMMUNITY_TC,production_full_cpu_input_ms,2491.1246,610.267019,1.930957,1.8402
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,64,CSR_DIRECT,production_full_cpu_input_ms,2491.1246,0.0,1.902899,1.887872
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,64,RODE_ENHANCED,production_full_cpu_input_ms,2491.1246,3.337367,2.014819,1.973919
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,64,SEGMENT_HYBRID,production_full_cpu_input_ms,2491.1246,9.633771,2.038755,1.973002
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,64,TC_DIRECT,production_full_cpu_input_ms,2491.1246,106.922601,1.913242,1.834005
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2491.1246,1.778992,2.053139,2.026634
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,128,COMMUNITY_TC,production_full_cpu_input_ms,2491.1246,586.564021,3.865805,3.782569
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,128,CSR_DIRECT,production_full_cpu_input_ms,2491.1246,0.0,3.896115,3.876992
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,128,RODE_ENHANCED,production_full_cpu_input_ms,2491.1246,3.550073,4.074477,4.012708
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,128,SEGMENT_HYBRID,production_full_cpu_input_ms,2491.1246,9.685136,4.084662,4.011971
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,128,TC_DIRECT,production_full_cpu_input_ms,2491.1246,95.589414,3.853619,3.775171
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2491.1246,1.791354,3.938928,3.902694
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,256,COMMUNITY_TC,production_full_cpu_input_ms,2491.1246,576.714021,7.823053,7.74591
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,256,CSR_DIRECT,production_full_cpu_input_ms,2491.1246,0.0,7.947674,7.921367
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,256,RODE_ENHANCED,production_full_cpu_input_ms,2491.1246,3.456248,8.217667,8.163666
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,256,SEGMENT_HYBRID,production_full_cpu_input_ms,2491.1246,10.083399,8.24584,8.163558
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,256,TC_DIRECT,production_full_cpu_input_ms,2491.1246,102.522627,7.796941,7.732874
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2491.1246,1.794713,8.010477,7.970816
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,512,COMMUNITY_TC,production_full_cpu_input_ms,2491.1246,576.291335,15.676006,15.584384
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,512,CSR_DIRECT,production_full_cpu_input_ms,2491.1246,0.0,16.032051,16.007721
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,512,RODE_ENHANCED,production_full_cpu_input_ms,2491.1246,3.550808,16.519831,16.46275
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,512,SEGMENT_HYBRID,production_full_cpu_input_ms,2491.1246,10.129983,16.545139,16.462883
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,512,TC_DIRECT,production_full_cpu_input_ms,2491.1246,96.24273,15.664128,15.587246
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2491.1246,1.876889,16.132688,16.076057
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,64,COMMUNITY_TC,production_full_cpu_input_ms,3944.0198,689.640518,3.066368,2.981483
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,64,CSR_DIRECT,production_full_cpu_input_ms,3944.0198,0.0,3.049472,3.029417
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,64,RODE_ENHANCED,production_full_cpu_input_ms,3944.0198,4.498731,2.992483,2.942075
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,64,SEGMENT_HYBRID,production_full_cpu_input_ms,3944.0198,13.218549,3.015274,2.937211
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,64,TC_DIRECT,production_full_cpu_input_ms,3944.0198,120.989074,3.062989,2.981612
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,3944.0198,1.777172,3.310339,3.25568
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,128,COMMUNITY_TC,production_full_cpu_input_ms,3944.0198,661.733864,6.214451,6.130278
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,128,CSR_DIRECT,production_full_cpu_input_ms,3944.0198,0.0,6.244659,6.220662
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,128,RODE_ENHANCED,production_full_cpu_input_ms,3944.0198,4.469945,6.294544,6.234619
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,128,SEGMENT_HYBRID,production_full_cpu_input_ms,3944.0198,12.88837,6.310838,6.234788
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,128,TC_DIRECT,production_full_cpu_input_ms,3944.0198,120.491625,6.214144,6.137062
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,3944.0198,1.764401,6.269878,6.237046
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,256,COMMUNITY_TC,production_full_cpu_input_ms,3944.0198,640.17846,12.648448,12.576077
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,256,CSR_DIRECT,production_full_cpu_input_ms,3944.0198,0.0,12.752998,12.729268
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,256,RODE_ENHANCED,production_full_cpu_input_ms,3944.0198,4.570107,12.906899,12.850427
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,256,SEGMENT_HYBRID,production_full_cpu_input_ms,3944.0198,12.966889,12.926448,12.849275
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,256,TC_DIRECT,production_full_cpu_input_ms,3944.0198,118.36283,12.663501,12.596906
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,3944.0198,1.77031,12.846979,12.810056
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,512,COMMUNITY_TC,production_full_cpu_input_ms,3944.0198,676.926539,25.506099,25.422439
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,512,CSR_DIRECT,production_full_cpu_input_ms,3944.0198,0.0,25.793638,25.769683
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,512,RODE_ENHANCED,production_full_cpu_input_ms,3944.0198,4.868473,26.102598,26.03415
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,512,SEGMENT_HYBRID,production_full_cpu_input_ms,3944.0198,13.066025,26.110115,26.033638
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,512,TC_DIRECT,production_full_cpu_input_ms,3944.0198,122.824887,25.478758,25.407366
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,3944.0198,1.799714,25.969354,25.927419
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,64,COMMUNITY_TC,production_full_cpu_input_ms,5501.2787,1339.675954,4.694528,4.59969
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,64,CSR_DIRECT,production_full_cpu_input_ms,5501.2787,0.0,4.662784,4.640404
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,64,RODE_ENHANCED,production_full_cpu_input_ms,5501.2787,6.953196,4.701475,4.640097
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,64,SEGMENT_HYBRID,production_full_cpu_input_ms,5501.2787,17.320737,4.716611,4.637471
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,64,TC_DIRECT,production_full_cpu_input_ms,5501.2787,172.703473,4.681114,4.600428
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,5501.2787,1.574096,5.033814,5.027855
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,128,COMMUNITY_TC,production_full_cpu_input_ms,5501.2787,1292.307421,9.587507,9.487447
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,128,CSR_DIRECT,production_full_cpu_input_ms,5501.2787,0.0,9.609114,9.583298
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,128,RODE_ENHANCED,production_full_cpu_input_ms,5501.2787,7.235586,9.635117,9.561334
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,128,SEGMENT_HYBRID,production_full_cpu_input_ms,5501.2787,17.004309,9.639178,9.561052
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,128,TC_DIRECT,production_full_cpu_input_ms,5501.2787,169.944071,9.567232,9.490519
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,5501.2787,1.585602,9.546333,9.513917
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,256,COMMUNITY_TC,production_full_cpu_input_ms,5501.2787,1269.448511,19.601612,19.511444
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,256,CSR_DIRECT,production_full_cpu_input_ms,5501.2787,0.0,19.628544,19.607301
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,256,RODE_ENHANCED,production_full_cpu_input_ms,5501.2787,7.376501,19.661408,19.58571
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,256,SEGMENT_HYBRID,production_full_cpu_input_ms,5501.2787,16.904142,19.662192,19.586263
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,256,TC_DIRECT,production_full_cpu_input_ms,5501.2787,168.190833,19.555738,19.474509
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,5501.2787,1.61515,19.68287,19.640063
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,512,COMMUNITY_TC,production_full_cpu_input_ms,5501.2787,1302.440346,39.539302,39.430891
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,512,CSR_DIRECT,production_full_cpu_input_ms,5501.2787,0.0,39.742464,39.703972
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,512,RODE_ENHANCED,production_full_cpu_input_ms,5501.2787,7.616528,39.713146,39.631943
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,512,SEGMENT_HYBRID,production_full_cpu_input_ms,5501.2787,17.054328,39.712902,39.631379
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,512,TC_DIRECT,production_full_cpu_input_ms,5501.2787,176.646399,39.486362,39.403848
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,5501.2787,1.645909,40.002467,39.950208
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,64,COMMUNITY_TC,production_full_cpu_input_ms,7141.9128,2157.332905,7.144448,7.048023
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,64,CSR_DIRECT,production_full_cpu_input_ms,7141.9128,0.0,7.186944,7.172608
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,64,RODE_ENHANCED,production_full_cpu_input_ms,7141.9128,9.810817,7.088682,7.025014
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,64,SEGMENT_HYBRID,production_full_cpu_input_ms,7141.9128,20.318788,7.091331,7.020933
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,64,TC_DIRECT,production_full_cpu_input_ms,7141.9128,251.237278,7.117824,7.029002
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,7141.9128,1.387015,7.708128,7.665234
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,128,COMMUNITY_TC,production_full_cpu_input_ms,7141.9128,2200.185711,14.642483,14.552034
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,128,CSR_DIRECT,production_full_cpu_input_ms,7141.9128,0.0,14.770278,14.742969
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,128,RODE_ENHANCED,production_full_cpu_input_ms,7141.9128,10.328483,14.57527,14.492611
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,128,SEGMENT_HYBRID,production_full_cpu_input_ms,7141.9128,19.661327,14.574553,14.492502
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,128,TC_DIRECT,production_full_cpu_input_ms,7141.9128,218.180729,14.61463,14.526223
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,7141.9128,1.43643,14.490822,14.451251
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,256,COMMUNITY_TC,production_full_cpu_input_ms,7141.9128,2245.606526,30.005965,29.911772
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,256,CSR_DIRECT,production_full_cpu_input_ms,7141.9128,0.0,30.332416,30.31554
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,256,RODE_ENHANCED,production_full_cpu_input_ms,7141.9128,10.538302,29.782535,29.703086
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,256,SEGMENT_HYBRID,production_full_cpu_input_ms,7141.9128,19.683396,29.789932,29.700884
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,256,TC_DIRECT,production_full_cpu_input_ms,7141.9128,221.145559,29.900493,29.826248
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,7141.9128,1.551215,30.040794,29.964094
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,512,COMMUNITY_TC,production_full_cpu_input_ms,7141.9128,2266.675583,60.648653,60.558843
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,512,CSR_DIRECT,production_full_cpu_input_ms,7141.9128,0.0,61.332992,61.307012
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,512,RODE_ENHANCED,production_full_cpu_input_ms,7141.9128,10.552356,60.254288,60.158765
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,512,SEGMENT_HYBRID,production_full_cpu_input_ms,7141.9128,19.67178,60.245386,60.158535
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,512,TC_DIRECT,production_full_cpu_input_ms,7141.9128,223.208868,60.486963,60.412031
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,7141.9128,1.500067,61.187424,61.130249
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,64,COMMUNITY_TC,production_full_cpu_input_ms,1619.3839,305.07971,1.306624,1.220224
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,64,CSR_DIRECT,production_full_cpu_input_ms,1619.3839,0.0,1.313894,1.300342
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,64,RODE_ENHANCED,production_full_cpu_input_ms,1619.3839,3.106837,1.456547,1.412122
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,64,SEGMENT_HYBRID,production_full_cpu_input_ms,1619.3839,6.942081,1.471594,1.414564
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,64,TC_DIRECT,production_full_cpu_input_ms,1619.3839,85.677805,1.305414,1.216276
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1619.3839,1.034888,1.330698,1.297751
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,128,COMMUNITY_TC,production_full_cpu_input_ms,1619.3839,305.822027,2.547712,2.459377
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,128,CSR_DIRECT,production_full_cpu_input_ms,1619.3839,0.0,2.639258,2.621066
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,128,RODE_ENHANCED,production_full_cpu_input_ms,1619.3839,3.091585,2.843642,2.797937
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,128,SEGMENT_HYBRID,production_full_cpu_input_ms,1619.3839,7.823063,2.872886,2.798382
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,128,TC_DIRECT,production_full_cpu_input_ms,1619.3839,85.380349,2.538992,2.451794
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1619.3839,1.030203,2.650381,2.614328
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,256,COMMUNITY_TC,production_full_cpu_input_ms,1619.3839,302.435714,5.04791,4.962125
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,256,CSR_DIRECT,production_full_cpu_input_ms,1619.3839,0.0,5.311693,5.283584
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,256,RODE_ENHANCED,production_full_cpu_input_ms,1619.3839,3.202669,5.69416,5.639634
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,256,SEGMENT_HYBRID,production_full_cpu_input_ms,1619.3839,7.11007,5.710131,5.639485
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,256,TC_DIRECT,production_full_cpu_input_ms,1619.3839,85.700061,5.039402,4.953503
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1619.3839,1.055636,5.30881,5.270794
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,512,COMMUNITY_TC,production_full_cpu_input_ms,1619.3839,303.289658,10.003763,9.91808
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,512,CSR_DIRECT,production_full_cpu_input_ms,1619.3839,0.0,10.637107,10.609602
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,512,RODE_ENHANCED,production_full_cpu_input_ms,1619.3839,3.288266,11.373283,11.314771
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,512,SEGMENT_HYBRID,production_full_cpu_input_ms,1619.3839,7.179257,11.385213,11.314862
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,512,TC_DIRECT,production_full_cpu_input_ms,1619.3839,84.679943,9.993616,9.910876
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1619.3839,1.076177,10.629546,10.586404
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,64,COMMUNITY_TC,production_full_cpu_input_ms,2411.677,432.135648,1.834189,1.744266
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,64,CSR_DIRECT,production_full_cpu_input_ms,2411.677,0.0,1.826816,1.808138
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,64,RODE_ENHANCED,production_full_cpu_input_ms,2411.677,3.210011,1.988451,1.934612
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,64,SEGMENT_HYBRID,production_full_cpu_input_ms,2411.677,7.831055,2.006842,1.9358
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,64,TC_DIRECT,production_full_cpu_input_ms,2411.677,99.635965,1.825328,1.737825
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2411.677,1.189553,1.999949,1.968527
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,128,COMMUNITY_TC,production_full_cpu_input_ms,2411.677,439.209776,3.623219,3.529375
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,128,CSR_DIRECT,production_full_cpu_input_ms,2411.677,0.0,3.68681,3.666913
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,128,RODE_ENHANCED,production_full_cpu_input_ms,2411.677,3.241727,3.908419,3.847921
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,128,SEGMENT_HYBRID,production_full_cpu_input_ms,2411.677,8.226727,3.93296,3.847388
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,128,TC_DIRECT,production_full_cpu_input_ms,2411.677,101.115569,3.60609,3.523999
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2411.677,1.179423,3.716592,3.68023
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,256,COMMUNITY_TC,production_full_cpu_input_ms,2411.677,436.36145,7.226061,7.134848
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,256,CSR_DIRECT,production_full_cpu_input_ms,2411.677,0.0,7.439565,7.41293
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,256,RODE_ENHANCED,production_full_cpu_input_ms,2411.677,3.309115,7.818093,7.757747
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,256,SEGMENT_HYBRID,production_full_cpu_input_ms,2411.677,7.87852,7.832442,7.757676
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,256,TC_DIRECT,production_full_cpu_input_ms,2411.677,109.219402,7.218893,7.127921
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2411.677,1.226007,7.448506,7.403069
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,512,COMMUNITY_TC,production_full_cpu_input_ms,2411.677,444.042244,14.400512,14.313145
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,512,CSR_DIRECT,production_full_cpu_input_ms,2411.677,0.0,14.95808,14.933176
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,512,RODE_ENHANCED,production_full_cpu_input_ms,2411.677,3.510978,15.629578,15.562163
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,512,SEGMENT_HYBRID,production_full_cpu_input_ms,2411.677,8.118113,15.640819,15.561927
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,512,TC_DIRECT,production_full_cpu_input_ms,2411.677,101.889487,14.394941,14.313835
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2411.677,1.344368,14.872816,14.817516
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,64,COMMUNITY_TC,production_full_cpu_input_ms,425.2604,173.742063,0.502784,0.414679
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,64,CSR_DIRECT,production_full_cpu_input_ms,425.2604,0.0,0.685158,0.532378
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,64,RODE_ENHANCED,production_full_cpu_input_ms,425.2604,3.17921,0.756931,0.710943
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,64,SEGMENT_HYBRID,production_full_cpu_input_ms,425.2604,3.531741,0.771638,0.728494
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,64,TC_DIRECT,production_full_cpu_input_ms,425.2604,73.743346,0.540381,0.456509
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,425.2604,0.944701,0.569949,0.534973
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,128,COMMUNITY_TC,production_full_cpu_input_ms,425.2604,176.05146,0.916992,0.830638
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,128,CSR_DIRECT,production_full_cpu_input_ms,425.2604,0.0,1.076531,1.056563
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,128,RODE_ENHANCED,production_full_cpu_input_ms,425.2604,3.233354,1.295814,1.239716
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,128,SEGMENT_HYBRID,production_full_cpu_input_ms,425.2604,3.478132,1.294506,1.240827
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,128,TC_DIRECT,production_full_cpu_input_ms,425.2604,84.033528,0.982579,0.893404
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,425.2604,0.943187,1.098269,1.062999
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,256,COMMUNITY_TC,production_full_cpu_input_ms,425.2604,163.851513,1.77152,1.687091
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,256,CSR_DIRECT,production_full_cpu_input_ms,425.2604,0.0,2.130125,2.109645
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,256,RODE_ENHANCED,production_full_cpu_input_ms,425.2604,3.248354,2.52103,2.466826
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,256,SEGMENT_HYBRID,production_full_cpu_input_ms,425.2604,3.464548,2.521376,2.46614
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,256,TC_DIRECT,production_full_cpu_input_ms,425.2604,69.088317,1.884186,1.791969
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,425.2604,0.978816,2.162592,2.122163
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,512,COMMUNITY_TC,production_full_cpu_input_ms,425.2604,173.471986,3.483853,3.398723
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,512,CSR_DIRECT,production_full_cpu_input_ms,425.2604,0.0,4.233318,4.21228
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,512,RODE_ENHANCED,production_full_cpu_input_ms,425.2604,3.31761,4.977126,4.915548
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,512,SEGMENT_HYBRID,production_full_cpu_input_ms,425.2604,3.55257,4.974989,4.915671
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,512,TC_DIRECT,production_full_cpu_input_ms,425.2604,67.008458,3.638963,3.55136
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,425.2604,0.98724,4.27937,4.23957
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,64,COMMUNITY_TC,production_full_cpu_input_ms,691.9384,194.841235,0.718541,0.628639
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,64,CSR_DIRECT,production_full_cpu_input_ms,691.9384,0.0,0.720077,0.701599
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,64,RODE_ENHANCED,production_full_cpu_input_ms,691.9384,3.181813,0.899312,0.850309
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,64,SEGMENT_HYBRID,production_full_cpu_input_ms,691.9384,5.630443,0.913696,0.861542
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,64,TC_DIRECT,production_full_cpu_input_ms,691.9384,73.273053,0.712931,0.624184
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,691.9384,1.029101,0.736195,0.702541
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,128,COMMUNITY_TC,production_full_cpu_input_ms,691.9384,188.81891,1.338573,1.247309
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,128,CSR_DIRECT,production_full_cpu_input_ms,691.9384,0.0,1.419776,1.404815
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,128,RODE_ENHANCED,production_full_cpu_input_ms,691.9384,3.228263,1.641354,1.585961
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,128,SEGMENT_HYBRID,production_full_cpu_input_ms,691.9384,5.99733,1.661114,1.586565
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,128,TC_DIRECT,production_full_cpu_input_ms,691.9384,71.713471,1.335251,1.242455
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,691.9384,1.057817,1.437626,1.400673
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,256,COMMUNITY_TC,production_full_cpu_input_ms,691.9384,188.687659,2.59799,2.5039
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,256,CSR_DIRECT,production_full_cpu_input_ms,691.9384,0.0,2.83904,2.820393
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,256,RODE_ENHANCED,production_full_cpu_input_ms,691.9384,3.204765,3.216752,3.163704
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,256,SEGMENT_HYBRID,production_full_cpu_input_ms,691.9384,6.071654,3.249434,3.163761
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,256,TC_DIRECT,production_full_cpu_input_ms,691.9384,72.580041,2.588493,2.497183
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,691.9384,1.057003,2.84065,2.803528
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,512,COMMUNITY_TC,production_full_cpu_input_ms,691.9384,193.214162,5.062144,4.969252
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,512,CSR_DIRECT,production_full_cpu_input_ms,691.9384,0.0,5.654221,5.632963
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,512,RODE_ENHANCED,production_full_cpu_input_ms,691.9384,3.312127,6.373882,6.316442
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,512,SEGMENT_HYBRID,production_full_cpu_input_ms,691.9384,5.889268,6.390115,6.31639
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,512,TC_DIRECT,production_full_cpu_input_ms,691.9384,72.083519,5.054214,4.961556
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,691.9384,1.051164,5.640266,5.601475
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,64,COMMUNITY_TC,production_full_cpu_input_ms,1102.6503,260.214007,0.968294,0.880348
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,64,CSR_DIRECT,production_full_cpu_input_ms,1102.6503,0.0,0.970854,0.956088
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,64,RODE_ENHANCED,production_full_cpu_input_ms,1102.6503,3.312258,1.128541,1.068539
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,64,SEGMENT_HYBRID,production_full_cpu_input_ms,1102.6503,6.513241,1.147088,1.07049
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,64,TC_DIRECT,production_full_cpu_input_ms,1102.6503,89.890647,0.964403,0.87554
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1102.6503,1.056969,0.991798,0.955494
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,128,COMMUNITY_TC,production_full_cpu_input_ms,1102.6503,239.36673,1.848013,1.763584
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,128,CSR_DIRECT,production_full_cpu_input_ms,1102.6503,0.0,1.935974,1.918766
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,128,RODE_ENHANCED,production_full_cpu_input_ms,1102.6503,3.292861,2.163744,2.101412
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,128,SEGMENT_HYBRID,production_full_cpu_input_ms,1102.6503,6.372956,2.172189,2.100854
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,128,TC_DIRECT,production_full_cpu_input_ms,1102.6503,85.810672,1.851354,1.75828
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1102.6503,1.070238,1.956048,1.916739
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,256,COMMUNITY_TC,production_full_cpu_input_ms,1102.6503,259.315842,3.638067,3.547561
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,256,CSR_DIRECT,production_full_cpu_input_ms,1102.6503,0.0,3.878195,3.854602
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,256,RODE_ENHANCED,production_full_cpu_input_ms,1102.6503,3.283051,4.276416,4.216898
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,256,SEGMENT_HYBRID,production_full_cpu_input_ms,1102.6503,6.478156,4.292157,4.216622
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,256,TC_DIRECT,production_full_cpu_input_ms,1102.6503,85.426187,3.630083,3.542605
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1102.6503,1.033253,3.886243,3.847951
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,512,COMMUNITY_TC,production_full_cpu_input_ms,1102.6503,256.089308,7.148032,7.05963
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,512,CSR_DIRECT,production_full_cpu_input_ms,1102.6503,0.0,7.736832,7.717289
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,512,RODE_ENHANCED,production_full_cpu_input_ms,1102.6503,3.304304,8.49369,8.430725
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,512,SEGMENT_HYBRID,production_full_cpu_input_ms,1102.6503,6.699934,8.508883,8.431196
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,512,TC_DIRECT,production_full_cpu_input_ms,1102.6503,85.79495,7.140307,7.056415
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,1102.6503,1.046981,7.743206,7.704115
+twitter-combined,Sparse Skewed,81306,1768149,64,COMMUNITY_TC,production_full_cpu_input_ms,104.3531,140.884826,0.497357,0.408428
+twitter-combined,Sparse Skewed,81306,1768149,64,CSR_DIRECT,production_full_cpu_input_ms,104.3531,0.0,0.332595,0.320389
+twitter-combined,Sparse Skewed,81306,1768149,64,RODE_ENHANCED,production_full_cpu_input_ms,104.3531,1.386439,0.487779,0.473047
+twitter-combined,Sparse Skewed,81306,1768149,64,SEGMENT_HYBRID,production_full_cpu_input_ms,104.3531,7.014851,0.573248,0.510776
+twitter-combined,Sparse Skewed,81306,1768149,64,TC_DIRECT,production_full_cpu_input_ms,104.3531,51.246564,0.507392,0.42304
+twitter-combined,Sparse Skewed,81306,1768149,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,104.3531,0.663038,0.475443,0.447401
+twitter-combined,Sparse Skewed,81306,1768149,128,COMMUNITY_TC,production_full_cpu_input_ms,104.3531,140.77119,0.68393,0.612956
+twitter-combined,Sparse Skewed,81306,1768149,128,CSR_DIRECT,production_full_cpu_input_ms,104.3531,0.0,0.536678,0.524483
+twitter-combined,Sparse Skewed,81306,1768149,128,RODE_ENHANCED,production_full_cpu_input_ms,104.3531,1.29371,0.690698,0.660859
+twitter-combined,Sparse Skewed,81306,1768149,128,SEGMENT_HYBRID,production_full_cpu_input_ms,104.3531,7.101132,0.778061,0.72022
+twitter-combined,Sparse Skewed,81306,1768149,128,TC_DIRECT,production_full_cpu_input_ms,104.3531,57.687228,0.746048,0.668892
+twitter-combined,Sparse Skewed,81306,1768149,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,104.3531,0.657143,0.67031,0.643067
+twitter-combined,Sparse Skewed,81306,1768149,256,COMMUNITY_TC,production_full_cpu_input_ms,104.3531,138.656811,1.458176,1.388139
+twitter-combined,Sparse Skewed,81306,1768149,256,CSR_DIRECT,production_full_cpu_input_ms,104.3531,0.0,1.241702,1.226138
+twitter-combined,Sparse Skewed,81306,1768149,256,RODE_ENHANCED,production_full_cpu_input_ms,104.3531,1.327146,1.248784,1.212785
+twitter-combined,Sparse Skewed,81306,1768149,256,SEGMENT_HYBRID,production_full_cpu_input_ms,104.3531,7.133524,1.355936,1.30644
+twitter-combined,Sparse Skewed,81306,1768149,256,TC_DIRECT,production_full_cpu_input_ms,104.3531,65.53681,1.667235,1.576003
+twitter-combined,Sparse Skewed,81306,1768149,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,104.3531,0.662724,1.286656,1.256673
+twitter-combined,Sparse Skewed,81306,1768149,512,COMMUNITY_TC,production_full_cpu_input_ms,104.3531,134.699071,3.361997,3.290209
+twitter-combined,Sparse Skewed,81306,1768149,512,CSR_DIRECT,production_full_cpu_input_ms,104.3531,0.0,3.006362,2.99178
+twitter-combined,Sparse Skewed,81306,1768149,512,RODE_ENHANCED,production_full_cpu_input_ms,104.3531,1.30923,2.463866,2.457595
+twitter-combined,Sparse Skewed,81306,1768149,512,SEGMENT_HYBRID,production_full_cpu_input_ms,104.3531,7.332822,2.675725,2.627241
+twitter-combined,Sparse Skewed,81306,1768149,512,TC_DIRECT,production_full_cpu_input_ms,104.3531,55.861286,3.756502,3.695099
+twitter-combined,Sparse Skewed,81306,1768149,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,104.3531,0.669533,2.596762,2.549606
+web-Google,Sparse Uniform,916428,5105039,64,COMMUNITY_TC,production_full_cpu_input_ms,2777.3616,1194.494226,1.154032,1.065513
+web-Google,Sparse Uniform,916428,5105039,64,CSR_DIRECT,production_full_cpu_input_ms,2777.3616,0.0,2.11927,2.104858
+web-Google,Sparse Uniform,916428,5105039,64,RODE_ENHANCED,production_full_cpu_input_ms,2777.3616,9.855987,2.496474,2.425626
+web-Google,Sparse Uniform,916428,5105039,64,SEGMENT_HYBRID,production_full_cpu_input_ms,2777.3616,23.955241,2.499283,2.425436
+web-Google,Sparse Uniform,916428,5105039,64,TC_DIRECT,production_full_cpu_input_ms,2777.3616,199.288056,1.394045,1.316454
+web-Google,Sparse Uniform,916428,5105039,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2777.3616,7.218355,2.106778,2.056115
+web-Google,Sparse Uniform,916428,5105039,128,COMMUNITY_TC,production_full_cpu_input_ms,2777.3616,1158.853875,1.953706,1.862897
+web-Google,Sparse Uniform,916428,5105039,128,CSR_DIRECT,production_full_cpu_input_ms,2777.3616,0.0,4.283802,4.264197
+web-Google,Sparse Uniform,916428,5105039,128,RODE_ENHANCED,production_full_cpu_input_ms,2777.3616,9.891748,4.687642,4.607944
+web-Google,Sparse Uniform,916428,5105039,128,SEGMENT_HYBRID,production_full_cpu_input_ms,2777.3616,23.999172,4.695994,4.607401
+web-Google,Sparse Uniform,916428,5105039,128,TC_DIRECT,production_full_cpu_input_ms,2777.3616,220.923519,2.661123,2.572539
+web-Google,Sparse Uniform,916428,5105039,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2777.3616,10.399175,4.163277,4.094653
+web-Google,Sparse Uniform,916428,5105039,256,COMMUNITY_TC,production_full_cpu_input_ms,2777.3616,1178.647882,4.00888,3.916913
+web-Google,Sparse Uniform,916428,5105039,256,CSR_DIRECT,production_full_cpu_input_ms,2777.3616,0.0,8.804762,8.773545
+web-Google,Sparse Uniform,916428,5105039,256,RODE_ENHANCED,production_full_cpu_input_ms,2777.3616,9.796217,9.466797,9.386204
+web-Google,Sparse Uniform,916428,5105039,256,SEGMENT_HYBRID,production_full_cpu_input_ms,2777.3616,24.254118,9.472122,9.385042
+web-Google,Sparse Uniform,916428,5105039,256,TC_DIRECT,production_full_cpu_input_ms,2777.3616,201.963109,5.377526,5.311191
+web-Google,Sparse Uniform,916428,5105039,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2777.3616,7.333512,8.490598,8.424822
+web-Google,Sparse Uniform,916428,5105039,512,COMMUNITY_TC,production_full_cpu_input_ms,2777.3616,1213.875341,8.325293,8.229253
+web-Google,Sparse Uniform,916428,5105039,512,CSR_DIRECT,production_full_cpu_input_ms,2777.3616,0.0,17.842893,17.822649
+web-Google,Sparse Uniform,916428,5105039,512,RODE_ENHANCED,production_full_cpu_input_ms,2777.3616,10.470157,19.042922,18.960035
+web-Google,Sparse Uniform,916428,5105039,512,SEGMENT_HYBRID,production_full_cpu_input_ms,2777.3616,24.03254,19.041664,18.960374
+web-Google,Sparse Uniform,916428,5105039,512,TC_DIRECT,production_full_cpu_input_ms,2777.3616,210.806587,10.876806,10.79678
+web-Google,Sparse Uniform,916428,5105039,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,2777.3616,7.395422,17.244058,17.172521
+web-Stanford,Sparse Uniform,281904,2312497,64,COMMUNITY_TC,production_full_cpu_input_ms,951.231,248.870065,0.488109,0.398756
+web-Stanford,Sparse Uniform,281904,2312497,64,CSR_DIRECT,production_full_cpu_input_ms,951.231,0.0,0.645837,0.633047
+web-Stanford,Sparse Uniform,281904,2312497,64,RODE_ENHANCED,production_full_cpu_input_ms,951.231,3.289375,0.853702,0.815734
+web-Stanford,Sparse Uniform,281904,2312497,64,SEGMENT_HYBRID,production_full_cpu_input_ms,951.231,8.374334,0.878266,0.831759
+web-Stanford,Sparse Uniform,281904,2312497,64,TC_DIRECT,production_full_cpu_input_ms,951.231,74.676838,0.507094,0.424474
+web-Stanford,Sparse Uniform,281904,2312497,64,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,951.231,2.414314,0.696422,0.665267
+web-Stanford,Sparse Uniform,281904,2312497,128,COMMUNITY_TC,production_full_cpu_input_ms,951.231,279.274765,0.748685,0.658258
+web-Stanford,Sparse Uniform,281904,2312497,128,CSR_DIRECT,production_full_cpu_input_ms,951.231,0.0,1.307136,1.287767
+web-Stanford,Sparse Uniform,281904,2312497,128,RODE_ENHANCED,production_full_cpu_input_ms,951.231,3.281186,1.473568,1.427702
+web-Stanford,Sparse Uniform,281904,2312497,128,SEGMENT_HYBRID,production_full_cpu_input_ms,951.231,8.909344,1.514813,1.429996
+web-Stanford,Sparse Uniform,281904,2312497,128,TC_DIRECT,production_full_cpu_input_ms,951.231,82.802355,0.891661,0.798536
+web-Stanford,Sparse Uniform,281904,2312497,128,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,951.231,2.341192,1.229107,1.197829
+web-Stanford,Sparse Uniform,281904,2312497,256,COMMUNITY_TC,production_full_cpu_input_ms,951.231,281.754146,1.457699,1.363522
+web-Stanford,Sparse Uniform,281904,2312497,256,CSR_DIRECT,production_full_cpu_input_ms,951.231,0.0,2.706227,2.687063
+web-Stanford,Sparse Uniform,281904,2312497,256,RODE_ENHANCED,production_full_cpu_input_ms,951.231,3.32902,2.949674,2.903695
+web-Stanford,Sparse Uniform,281904,2312497,256,SEGMENT_HYBRID,production_full_cpu_input_ms,951.231,8.636763,2.980669,2.903614
+web-Stanford,Sparse Uniform,281904,2312497,256,TC_DIRECT,production_full_cpu_input_ms,951.231,82.908624,1.75407,1.672008
+web-Stanford,Sparse Uniform,281904,2312497,256,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,951.231,2.378587,2.496,2.458475
+web-Stanford,Sparse Uniform,281904,2312497,512,COMMUNITY_TC,production_full_cpu_input_ms,951.231,252.865454,2.946682,2.858317
+web-Stanford,Sparse Uniform,281904,2312497,512,CSR_DIRECT,production_full_cpu_input_ms,951.231,0.0,5.650022,5.608546
+web-Stanford,Sparse Uniform,281904,2312497,512,RODE_ENHANCED,production_full_cpu_input_ms,951.231,3.395791,6.072838,6.01452
+web-Stanford,Sparse Uniform,281904,2312497,512,SEGMENT_HYBRID,production_full_cpu_input_ms,951.231,8.53086,6.083382,6.014019
+web-Stanford,Sparse Uniform,281904,2312497,512,TC_DIRECT,production_full_cpu_input_ms,951.231,86.32501,3.491354,3.394616
+web-Stanford,Sparse Uniform,281904,2312497,512,ZERO_OVERHEAD_CSR,production_full_cpu_input_ms,951.231,2.472184,5.17376,5.123267

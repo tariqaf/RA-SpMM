@@ -1,0 +1,193 @@
+dataset,category,M,nnz,N,kernel,status,ms_warm,preprocess_ms,cold_exec_ms,ms_cold,gflops_true_nnz,gflops_padded_work,correct,soft_fail,hard_fail,max_error,tolerance,ms_cusparse_warm,ms_cusparse_cold,speedup_warm_vs_cusparse,speedup_cold_vs_cusparse,router_kernel,ms_router_warm,ms_router_cold,speedup_router_vs_mpspmm_warm,speedup_router_vs_mpspmm_cold,warmup,timed_iters,cold_iters,error
+roadNet-CA,Sparse Uniform,1971281,5533214,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+roadNet-CA,Sparse Uniform,1971281,5533214,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=5533214 exceeds explicit --max-nnz=5000000
+roadNet-PA,Sparse Uniform,1090920,3083796,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+roadNet-PA,Sparse Uniform,1090920,3083796,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+roadNet-PA,Sparse Uniform,1090920,3083796,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+roadNet-PA,Sparse Uniform,1090920,3083796,128,MP-SpMM,OK,0.886758,6415.538324,1.187318,6416.725643,890.267,6749.978,True,False,False,0.0,0.03,3.025459,4.579113,3.411821,0.000714,COMMUNITY_TC,2.175979,455.642499,0.407521,14.082808,50,200,10,
+roadNet-TX,Sparse Uniform,1393383,3843320,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+roadNet-TX,Sparse Uniform,1393383,3843320,128,MP-SpMM,OK,1.117261,8275.716198,1.435597,8277.151794,880.627,6769.632,True,False,False,0.0,0.034641016151377546,3.80565,5.5251,3.406232,0.000668,COMMUNITY_TC,2.732826,543.293839,0.40883,15.235129,50,200,10,
+Amazon0601,Sparse Uniform,403394,3387388,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+Amazon0601,Sparse Uniform,403394,3387388,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+Amazon0601,Sparse Uniform,403394,3387388,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+Amazon0601,Sparse Uniform,403394,3387388,128,MP-SpMM,OK,0.601866,3950.600861,0.88513,3951.48599,1440.805,9125.249,True,False,False,0.0,0.03162277660168379,2.243661,3.517287,3.727841,0.00089,COMMUNITY_TC,1.431956,366.408956,0.42031,10.78436,50,200,10,
+web-Google,Sparse Uniform,916428,5105039,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+web-Google,Sparse Uniform,916428,5105039,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+web-Google,Sparse Uniform,916428,5105039,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+web-Google,Sparse Uniform,916428,5105039,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=5105039 exceeds explicit --max-nnz=5000000
+web-Stanford,Sparse Uniform,281904,2312497,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+web-Stanford,Sparse Uniform,281904,2312497,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+web-Stanford,Sparse Uniform,281904,2312497,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+web-Stanford,Sparse Uniform,281904,2312497,128,MP-SpMM,OK,0.46658,3161.671544,0.733411,3162.404955,1268.805,10705.738,True,False,False,0.0,0.1596871942267131,1.201331,2.458005,2.574759,0.000777,COMMUNITY_TC,0.655114,253.433394,0.712212,12.478249,50,200,10,
+ogbn-arxiv,Sparse Uniform,169343,1166243,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+ogbn-arxiv,Sparse Uniform,169343,1166243,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+ogbn-arxiv,Sparse Uniform,169343,1166243,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+ogbn-arxiv,Sparse Uniform,169343,1166243,128,MP-SpMM,OK,0.262354,1692.2806,0.535728,1692.816328,1137.998,9721.84,True,False,False,0.0,0.208806130178211,0.653425,1.901346,2.490622,0.001123,COMMUNITY_TC,0.495099,155.710781,0.529902,10.871542,50,200,10,
+Yelp,Sparse Uniform,716847,13954819,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+Yelp,Sparse Uniform,716847,13954819,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+Yelp,Sparse Uniform,716847,13954819,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=13954819 exceeds explicit --max-nnz=5000000
+twitter-combined,Sparse Skewed,81306,1768149,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+twitter-combined,Sparse Skewed,81306,1768149,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+twitter-combined,Sparse Skewed,81306,1768149,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+twitter-combined,Sparse Skewed,81306,1768149,128,MP-SpMM,OK,0.262927,1554.364346,0.493674,1554.85802,1721.566,10020.306,True,False,False,0.0,0.34713109915419565,0.455496,1.705495,1.732404,0.001097,CSR_DIRECT,0.536837,0.539238,0.489771,2883.433416,50,200,10,
+soc-Pokec,Sparse Skewed,1632803,30622564,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+soc-Pokec,Sparse Skewed,1632803,30622564,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+soc-Pokec,Sparse Skewed,1632803,30622564,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=30622564 exceeds explicit --max-nnz=5000000
+ca-GrQc,Dense Small,5242,28980,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+ca-GrQc,Dense Small,5242,28980,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+ca-GrQc,Dense Small,5242,28980,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+ca-GrQc,Dense Small,5242,28980,128,MP-SpMM,OK,0.012442,350.734475,0.233718,350.968194,596.277,5335.967,True,False,False,0.0,0.09000000000000001,0.017869,1.093303,1.436168,0.003115,TC_DIRECT,0.018473,21.935989,0.673525,15.999652,50,200,10,
+ca-HepTh,Dense Small,9877,51946,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+ca-HepTh,Dense Small,9877,51946,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+ca-HepTh,Dense Small,9877,51946,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+ca-HepTh,Dense Small,9877,51971,128,MP-SpMM,OK,0.022047,369.192467,0.240547,369.433014,603.464,5356.618,True,False,False,0.0,0.0806225774829855,0.031375,1.394431,1.423112,0.003775,TC_DIRECT,0.030029,21.448618,0.734195,17.224094,50,200,10,
+ca-CondMat,Dense Small,23133,186936,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+ca-CondMat,Dense Small,23133,186936,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+ca-CondMat,Dense Small,23133,186936,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+ca-CondMat,Dense Small,23133,186936,128,MP-SpMM,OK,0.067589,538.293534,0.283869,538.577403,708.039,6185.713,True,False,False,0.0,0.16733200530681513,0.10242,1.248829,1.515342,0.002319,TC_DIRECT,0.108078,25.103449,0.625372,21.454319,50,200,10,
+amazon-computers,Dense Small,13752,491722,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+amazon-computers,Dense Small,13752,491722,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+amazon-computers,Dense Small,13752,491722,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+amazon-computers,Dense Small,13752,491722,128,MP-SpMM,OK,0.427827,638.614923,0.648794,639.263717,294.233,2487.008,True,False,False,0.0,0.5469917732470938,0.120909,1.273639,0.282611,0.001992,SEGMENT_HYBRID,0.377231,1.142383,1.134124,559.587712,50,200,10,
+amazon-photo,Dense Small,7650,238162,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+amazon-photo,Dense Small,7650,238162,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+amazon-photo,Dense Small,7650,238162,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+amazon-photo,Dense Small,7650,238162,128,MP-SpMM,OK,0.209244,471.209758,0.429658,471.639415,291.38,2357.326,True,False,False,0.0,0.37868192457522976,0.067661,1.252362,0.323358,0.002655,SEGMENT_HYBRID,0.211441,0.754698,0.989611,624.937959,50,200,10,
+gplus-combined,Dense Large-Scale,107614,13673453,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+gplus-combined,Dense Large-Scale,107614,13673453,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+gplus-combined,Dense Large-Scale,107614,13673453,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+gplus-combined,Dense Large-Scale,107614,13673453,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=13673453 exceeds explicit --max-nnz=5000000
+Reddit,Dense Large-Scale,232965,114615892,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+Reddit,Dense Large-Scale,232965,114615892,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+Reddit,Dense Large-Scale,232965,114615892,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=114615892 exceeds explicit --max-nnz=5000000
+ogbn-products,Dense Large-Scale,2449029,123718152,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+ogbn-products,Dense Large-Scale,2449029,123718152,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=123718152 exceeds explicit --max-nnz=5000000
+ogbn-proteins,Dense Large-Scale,132534,79122504,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+ogbn-proteins,Dense Large-Scale,132534,79122504,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=79122504 exceeds explicit --max-nnz=5000000
+com-DBLP,Community,317080,2099732,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+com-DBLP,Community,317080,2099732,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+com-DBLP,Community,317080,2099732,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+com-DBLP,Community,317080,2099732,128,MP-SpMM,OK,0.468004,3019.639054,0.768141,3020.407194,1148.562,9143.877,True,False,False,0.0,0.18520259177452136,1.533583,2.785476,3.27686,0.000922,COMMUNITY_TC,1.356651,258.186647,0.34497,11.698541,50,200,10,
+com-Amazon,Community,334863,1851744,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+com-Amazon,Community,334863,1851744,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+com-Amazon,Community,334863,1851744,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+com-Amazon,Community,334863,1851744,128,MP-SpMM,OK,0.586906,3020.322249,0.85985,3021.182099,807.704,7166.682,True,False,False,0.0,0.23430749027719963,1.579213,2.877303,2.690742,0.000952,COMMUNITY_TC,0.927119,306.711511,0.633043,9.85024,50,200,10,
+com-youtube,Community,1157828,5975248,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+com-youtube,Community,1157828,5975248,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+com-youtube,Community,1157828,5975248,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=5975248 exceeds explicit --max-nnz=5000000
+Cora,Mixed/Irregular,2708,10556,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+Cora,Mixed/Irregular,2708,10556,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+Cora,Mixed/Irregular,2708,10556,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+Cora,Mixed/Irregular,2708,10556,128,MP-SpMM,OK,0.019108,334.686274,0.234189,334.920463,141.424,1236.442,True,False,False,0.0,0.12961481396815722,0.016399,1.102555,0.858246,0.003292,TC_DIRECT,0.027617,26.929394,0.691886,12.436985,50,200,10,
+CiteSeer,Mixed/Irregular,3327,9104,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+CiteSeer,Mixed/Irregular,3327,9104,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+CiteSeer,Mixed/Irregular,3327,9104,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+CiteSeer,Mixed/Irregular,3327,9104,128,MP-SpMM,OK,0.012411,343.727684,0.236237,343.96392,187.787,1779.538,True,False,False,0.0,0.099498743710662,0.016108,1.086464,1.297842,0.003159,TC_DIRECT,0.018427,26.030589,0.673527,13.213835,50,200,10,
+PPI,Mixed/Irregular,1767,32318,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+PPI,Mixed/Irregular,1767,32318,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+PPI,Mixed/Irregular,1767,32318,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+PPI,Mixed/Irregular,1767,32318,128,MP-SpMM,OK,0.029773,349.995592,0.255018,350.25061,277.883,1994.291,True,False,False,0.0,0.16911534525287764,0.026107,1.061314,0.876864,0.00303,TC_DIRECT,0.038851,20.977151,0.766347,16.696767,50,200,10,
+Flickr,Mixed/Irregular,89250,899756,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+Flickr,Mixed/Irregular,89250,899756,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+Flickr,Mixed/Irregular,89250,899756,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+Flickr,Mixed/Irregular,89250,899756,128,MP-SpMM,OK,1.04724,1429.548356,1.310163,1430.85852,219.947,1962.877,True,False,False,0.0,0.7365459931328118,0.553349,1.725993,0.528388,0.001206,ZERO_OVERHEAD_CSR,0.602158,1.055554,1.739145,1355.552681,50,200,10,
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_skewed_cv1p5,Sparse Skewed,200000,3622709,128,MP-SpMM,OK,0.700293,4973.997018,0.96863,4974.965649,1324.322,10958.461,True,False,False,0.0,0.07745966692414835,2.503188,3.740337,3.574487,0.000752,TC_DIRECT,2.327183,62.989429,0.300919,78.980961,50,200,10,
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_skewed_cv2p0,Sparse Skewed,200000,6166484,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=6166484 exceeds explicit --max-nnz=5000000
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_skewed_cv2p5,Sparse Skewed,200000,10306672,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=10306672 exceeds explicit --max-nnz=5000000
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_skewed_cv3p0,Sparse Skewed,200000,16207364,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=16207364 exceeds explicit --max-nnz=5000000
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_skewed_cv4p0,Sparse Skewed,200000,25191428,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=25191428 exceeds explicit --max-nnz=5000000
+synth_community_nc10,Community,200000,1089063,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_community_nc10,Community,200000,1089063,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_community_nc10,Community,200000,1089063,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_community_nc10,Community,200000,1089063,128,MP-SpMM,OK,0.241162,1817.250911,0.487197,1817.738108,1156.07,10081.678,True,False,False,0.0,0.04358898943540675,0.802724,2.088176,3.328567,0.001149,TC_DIRECT,0.721987,41.666115,0.334026,43.626292,50,200,10,
+synth_community_nc50,Community,200000,1098216,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_community_nc50,Community,200000,1098216,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_community_nc50,Community,200000,1098216,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_community_nc50,Community,200000,1098216,128,MP-SpMM,OK,0.222909,1850.034728,0.473622,1850.50835,1261.247,10927.644,True,False,False,0.0,0.04242640687119285,0.697226,1.979892,3.127852,0.00107,TC_DIRECT,0.500931,37.745228,0.44499,49.026286,50,200,10,
+synth_community_nc100,Community,200000,1098420,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_community_nc100,Community,200000,1098420,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_community_nc100,Community,200000,1098420,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_community_nc100,Community,200000,1098420,128,MP-SpMM,OK,0.221814,1754.944736,0.469174,1755.413911,1267.709,10899.338,True,False,False,0.0,0.04242640687119285,0.68951,1.980827,3.108507,0.001128,TC_DIRECT,0.469827,35.331466,0.472119,49.684151,50,200,10,
+synth_community_nc500,Community,200000,1100450,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_community_nc500,Community,200000,1100450,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_community_nc500,Community,200000,1100450,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_community_nc500,Community,200000,1100450,128,MP-SpMM,OK,0.217431,1731.459039,0.459373,1731.918412,1295.653,10470.699,True,False,False,0.0,0.04242640687119285,0.686484,1.973188,3.157252,0.001139,TC_DIRECT,0.456509,36.653194,0.47629,47.2515,50,200,10,
+synth_community_nc1000,Community,200000,1101854,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_community_nc1000,Community,200000,1101854,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_community_nc1000,Community,200000,1101854,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_community_nc1000,Community,200000,1101854,128,MP-SpMM,OK,0.211487,1672.025114,0.463866,1672.48898,1333.768,10042.512,True,False,False,0.0,0.0412310562561766,0.684452,1.933749,3.236378,0.001156,TC_DIRECT,0.454083,48.159105,0.465746,34.728407,50,200,10,
+synth_mixed_v1,Mixed/Irregular,200000,4001390,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_mixed_v1,Mixed/Irregular,200000,4001390,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_mixed_v1,Mixed/Irregular,200000,4001390,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_mixed_v1,Mixed/Irregular,200000,4001390,128,MP-SpMM,OK,0.873457,5543.093919,1.163744,5544.257663,1172.76,11283.668,True,False,False,0.0,0.1549193338482967,2.686659,3.884686,3.075891,0.000701,TC_DIRECT,2.497843,62.467373,0.349684,88.754455,50,200,10,
+synth_mixed_v2,Mixed/Irregular,200000,5457270,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_mixed_v2,Mixed/Irregular,200000,5457270,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_mixed_v2,Mixed/Irregular,200000,5457270,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_mixed_v2,Mixed/Irregular,200000,5457270,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=5457270 exceeds explicit --max-nnz=5000000
+synth_mixed_v3,Mixed/Irregular,200000,5576937,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_mixed_v3,Mixed/Irregular,200000,5576937,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_mixed_v3,Mixed/Irregular,200000,5576937,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_mixed_v3,Mixed/Irregular,200000,5576937,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=5576937 exceeds explicit --max-nnz=5000000
+synth_mixed_v4,Mixed/Irregular,200000,7410217,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_mixed_v4,Mixed/Irregular,200000,7410217,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_mixed_v4,Mixed/Irregular,200000,7410217,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_mixed_v4,Mixed/Irregular,200000,7410217,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=7410217 exceeds explicit --max-nnz=5000000
+synth_mixed_v5,Mixed/Irregular,200000,7276677,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_mixed_v5,Mixed/Irregular,200000,7276677,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_mixed_v5,Mixed/Irregular,200000,7276677,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_mixed_v5,Mixed/Irregular,200000,7276677,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=7276677 exceeds explicit --max-nnz=5000000
+synth_dense_small_d30,Dense Small,10000,300000,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_dense_small_d30,Dense Small,10000,300000,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_dense_small_d30,Dense Small,10000,300000,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_dense_small_d30,Dense Small,10000,300000,128,MP-SpMM,OK,0.044805,536.73174,0.266019,536.99776,1714.094,13696.629,True,False,False,0.0,0.05477225575051661,0.085765,1.280784,1.914186,0.002385,COMMUNITY_TC,0.078152,19.578064,0.573308,27.428542,50,200,10,
+synth_dense_small_d50,Dense Small,10000,500000,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_dense_small_d50,Dense Small,10000,500000,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_dense_small_d50,Dense Small,10000,500000,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_dense_small_d50,Dense Small,10000,500000,128,MP-SpMM,OK,0.066033,634.218493,0.286938,634.50543,1938.425,15110.491,True,False,False,0.0,0.07071067811865475,0.130243,1.351291,1.972386,0.00213,COMMUNITY_TC,0.122117,20.613794,0.540735,30.780623,50,200,10,
+synth_dense_small_d70,Dense Small,10000,700000,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_dense_small_d70,Dense Small,10000,700000,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_dense_small_d70,Dense Small,10000,700000,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_dense_small_d70,Dense Small,10000,700000,128,MP-SpMM,OK,0.086533,810.90839,0.312736,811.221126,2070.886,15848.341,True,False,False,0.0,0.08366600265340757,0.175365,1.376341,2.026569,0.001697,COMMUNITY_TC,0.163789,25.575668,0.528321,31.718473,50,200,10,
+synth_dense_small_d90,Dense Small,10000,900000,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_dense_small_d90,Dense Small,10000,900000,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_dense_small_d90,Dense Small,10000,900000,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_dense_small_d90,Dense Small,10000,900000,128,MP-SpMM,OK,0.106696,895.606687,0.335296,895.941983,2159.406,16257.517,True,False,False,0.0,0.09486832980505137,0.22017,1.460751,2.063528,0.00163,COMMUNITY_TC,0.206449,49.19978,0.516816,18.210284,50,200,10,
+synth_dense_small_d120,Dense Small,10000,1200000,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_dense_small_d120,Dense Small,10000,1200000,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_dense_small_d120,Dense Small,10000,1200000,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_dense_small_d120,Dense Small,10000,1200000,128,MP-SpMM,OK,0.135378,1116.904835,0.359315,1117.26415,2269.202,16689.716,True,False,False,0.0,0.10954451150103323,0.285773,1.483574,2.110925,0.001328,COMMUNITY_TC,0.237353,54.671634,0.570366,20.435902,50,200,10,
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_uniform_d3,Sparse Uniform,300000,900000,128,MP-SpMM,OK,0.327557,1878.578139,0.579594,1879.157732,703.389,5708.241,True,False,False,0.0,0.017320508075688773,0.935875,2.234932,2.857135,0.001189,COMMUNITY_TC,0.831109,153.707028,0.39412,12.225581,50,200,10,
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_uniform_d5,Sparse Uniform,300000,1500000,128,MP-SpMM,OK,0.420659,2299.464341,0.690118,2300.15446,912.853,7494.995,True,False,False,0.0,0.0223606797749979,1.344077,2.633856,3.19517,0.001145,TC_DIRECT,1.245394,56.285977,0.337772,40.865498,50,200,10,
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_uniform_d8,Sparse Uniform,300000,2400000,128,MP-SpMM,OK,0.56193,3542.776234,0.826688,3543.602922,1093.375,9004.097,True,False,False,0.0,0.028284271247461905,1.868283,3.115072,3.324761,0.000879,TC_DIRECT,1.756329,61.347779,0.319946,57.76253,50,200,10,
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_uniform_d12,Sparse Uniform,300000,3600000,128,MP-SpMM,OK,0.728556,5013.637214,1.00865,5014.645864,1264.968,10396.762,True,False,False,0.0,0.034641016151377546,2.635648,3.877544,3.617632,0.000773,TC_DIRECT,2.454195,94.952765,0.296861,52.812005,50,200,10,
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,64,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,256,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,512,MP-SpMM,UNSUPPORTED_FEATURE_DIM,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,MP-SpMM artifact supports N=32 and N=128
+synth_sparse_uniform_d18,Sparse Uniform,300000,5400000,128,MP-SpMM,SKIPPED_RESOURCE,,,,,,,False,False,False,,,,,,,,,,,,50,200,10,nnz=5400000 exceeds explicit --max-nnz=5000000
