@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Task 6: unified per-regime baseline matrix, recomputed vs the FINAL router.
 
-Single source of truth: router_quality_v5.router_ms (final router warm),
+Single source of truth: router_quality_v8.router_ms (final router warm),
 joined by (dataset, N). For every baseline, router_faster = baseline_ms /
 router_ms (>1 => router faster). Per-regime geomean, overall geomean, and
 regime-balanced geomean (mean of per-regime geomeans). Coverage and one-time
@@ -13,7 +13,7 @@ import csv, math
 from collections import defaultdict
 from pathlib import Path
 
-R = Path("/mnt/shared/development/tariq/RA-SpMM")
+R = Path(__file__).resolve().parent.parent
 TF = R / "fgcs_results/revision/tf32"
 FAIR = R / "fgcs_results/revision/fair"
 OUT = TF / "baseline_audit"
@@ -28,7 +28,7 @@ def gm(v):
 router = {}   # (dataset,N) -> ms
 regime = {}   # (dataset,N) -> category
 synth = {}
-for r in csv.DictReader(open(TF / "router_quality_v5.csv")):
+for r in csv.DictReader(open(TF / "router_quality_v8.csv")):
     k = (r["dataset"], r["N"])
     router[k] = float(r["router_ms"])
     regime[k] = r["category"]

@@ -6,13 +6,13 @@
 # 20 warmup + 100 timed steps warm; 25 trials cold; seed 123.
 # Single RTX 3090 -> archs run sequentially to avoid OOM (Reddit TC plan ~2.2 GB).
 set -euo pipefail
-cd /mnt/shared/development/tariq/RA-SpMM
+cd "$(dirname "$(readlink -f "$0")")/.."
 export CUDA_VISIBLE_DEVICES=0
 PY=.venv/bin/python
 DS="Reddit,ogbn-proteins,ogbn-arxiv,PPI,amazon-photo,amazon-computers,Cora,CiteSeer"
 BK="router,cusparse,tc_direct,tc_direct_tf32,pyg"
 OUT_REL="fgcs_results/revision/tf32/gnn_corrected"
-OUT_ABS="/mnt/shared/development/tariq/RA-SpMM/${OUT_REL}"
+OUT_ABS="$(pwd)/${OUT_REL}"
 mkdir -p "${OUT_ABS}"
 
 echo "===== WARM GCN ====="

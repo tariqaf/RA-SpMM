@@ -12,7 +12,7 @@ from __future__ import annotations
 import sys, csv, math, traceback
 from pathlib import Path
 
-REPO = Path("/mnt/shared/development/tariq/RA-SpMM")
+REPO = Path(__file__).resolve().parent.parent
 FS = REPO / "external/flashsparse/FlashSparse"
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(FS))

@@ -14,7 +14,7 @@ from __future__ import annotations
 import csv, json, subprocess, sys
 from pathlib import Path
 
-R = Path("/mnt/shared/development/tariq/RA-SpMM")
+R = Path(__file__).resolve().parent.parent
 TF = R / "fgcs_results/revision/tf32"
 NEW_DIR = TF / "ncu_final"
 MASTER_OLD = TF / "ncu_master.csv"
