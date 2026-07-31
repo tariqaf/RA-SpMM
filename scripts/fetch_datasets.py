@@ -77,14 +77,28 @@ def main() -> int:
 
     print()
     print("[fetch_datasets] Sanity check:")
+    combined = repo_root / "fgcs_results" / "paper_combined_datasets.json"
     try:
-        with open(repo_root / "paper_datasets.json") as fh:
-            m = json.load(fh)["datasets"]
-        miss = [d["name"] for d in m if not (repo_root / d["path"]).exists()]
-        if miss:
-            print(f"  MISSING real graphs: {miss}")
+        def check(manifest: Path, label: str) -> bool:
+            with open(manifest) as fh:
+                entries = json.load(fh)["datasets"]
+            miss = [d["name"] for d in entries
+                    if not (repo_root / d["path"]).exists()]
+            if miss:
+                print(f"  MISSING {label}: {miss}")
+                return False
+            print(f"  OK: all {len(entries)} {label} found.")
+            return True
+
+        ok = check(repo_root / "paper_datasets.json", "real graphs")
+        if not combined.exists():
+            print("  MISSING combined manifest: the synthetic half of the bundle was")
+            print("  not extracted. The 192-configuration reproduction needs all 51.")
+            ok = False
+        else:
+            ok = check(combined, "graphs in the full suite") and ok
+        if not ok:
             return 1
-        print(f"  OK: all {len(m)} real graphs found.")
     except Exception as e:
         print(f"  Sanity check failed: {e}")
         return 1

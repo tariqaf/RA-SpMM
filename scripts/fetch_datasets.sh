@@ -55,13 +55,28 @@ echo ""
 echo "[fetch_datasets] Sanity check:"
 python3 - <<'PY'
 import json, os, sys
-try:
-    m = json.load(open('paper_datasets.json'))['datasets']
-    miss = [d['name'] for d in m if not os.path.exists(d['path'])]
+
+COMBINED = 'fgcs_results/paper_combined_datasets.json'
+
+def check(manifest, label):
+    entries = json.load(open(manifest))['datasets']
+    miss = [d['name'] for d in entries if not os.path.exists(d['path'])]
     if miss:
-        print('  MISSING real graphs:', miss)
+        print(f'  MISSING {label}:', miss)
+        return False
+    print(f'  OK: all {len(entries)} {label} found.')
+    return True
+
+try:
+    ok = check('paper_datasets.json', 'real graphs')
+    if not os.path.exists(COMBINED):
+        print('  MISSING combined manifest: the synthetic half of the bundle was not')
+        print('  extracted. The 192-configuration reproduction needs all 51 graphs.')
+        ok = False
+    else:
+        ok = check(COMBINED, 'graphs in the full suite') and ok
+    if not ok:
         sys.exit(1)
-    print(f'  OK: all {len(m)} real graphs found.')
 except Exception as e:
     print('  Sanity check failed:', e)
     sys.exit(1)

@@ -22,15 +22,30 @@ wget https://zenodo.org/records/19903313/files/ra_spmm_data_v1.tar.gz
 # land in ./datasets/ and ./fgcs_results/ where the manifests expect them
 tar -xzf ra_spmm_data_v1.tar.gz --strip-components=1
 
-# Sanity check
+# Sanity check: both groups must be present for the 192-configuration reproduction
 python -c "
 import json, os
-m = json.load(open('paper_datasets.json'))['datasets']
-miss = [d['name'] for d in m if not os.path.exists(d['path'])]
-print('Missing real graphs:', miss or 'none')
+def missing(manifest):
+    entries = json.load(open(manifest))['datasets']
+    return [d['name'] for d in entries if not os.path.exists(d['path'])]
+real = missing('paper_datasets.json')
+print('Real graphs      : %d/26 present' % (26 - len(real)), '| missing:', real or 'none')
+comb = 'fgcs_results/paper_combined_datasets.json'
+if os.path.exists(comb):
+    all_miss = missing(comb)
+    print('Full suite       : %d/51 present' % (51 - len(all_miss)),
+          '| missing:', all_miss or 'none')
+else:
+    print('Full suite       : combined manifest not found -- the synthetic half of the')
+    print('                   bundle was not extracted; scripts/reproduce_fgcs_v5.sh')
+    print('                   will stop at its 192-configuration assertion.')
 "
-# Expected: Missing real graphs: none
+# Expected: Real graphs: 26/26 present | Full suite: 51/51 present
 ```
+
+The 25 synthetic graphs live under `fgcs_results/` in the bundle, not under `datasets/`.
+Extracting only `datasets/` leaves the real graphs usable for per-graph work but is not
+enough to reproduce the paper's 192 (graph, N) configurations.
 
 Or use the provided helper script: `bash scripts/fetch_datasets.sh` (Linux/macOS) or `python scripts/fetch_datasets.py` (cross-platform).
 
